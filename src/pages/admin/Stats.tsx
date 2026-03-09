@@ -45,14 +45,14 @@ export default function AdminStats() {
 
       if (ordersError) throw ordersError;
 
-      // Get supplier responses
+      // Get supplier responses with proper joins
       const { data: responses, error: responsesError } = await supabase
         .from('supplier_responses')
         .select(`
           *,
-          supplier_assignments(
+          supplier_assignments!inner(
             supplier_id,
-            profiles:supplier_id(full_name, company_name)
+            assigned_at
           )
         `);
 
