@@ -9,11 +9,7 @@ import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
-  order_items?: { count: number }[];
-  supplier_assignments?: Array<{
-    supplier_id: string;
-    profiles?: { full_name: string; company_name: string | null };
-  }>;
+  order_items?: Array<{ count: number }>;
 };
 
 type FilterType = 'all' | 'new' | 'contacted' | 'done' | 'late';
