@@ -277,37 +277,46 @@ export default function OrderDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {items.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No items in this order</p>
-            ) : (
-              items.map((item) => {
-                const itemResponse = itemResponses[item.id];
-                return (
-                  <div key={item.id} className="p-4 border rounded-lg bg-background">
-                    <div className="flex items-start justify-between">
-                      <div>
+          {items.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No items in this order</p>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b text-left text-sm text-muted-foreground">
+                  <th className="pb-2 font-medium">Article</th>
+                  <th className="pb-2 font-medium text-right w-32">Quantité</th>
+                  <th className="pb-2 font-medium text-right w-28">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => {
+                  const itemResponse = itemResponses[item.id];
+                  return (
+                    <tr key={item.id} className="border-b last:border-0">
+                      <td className="py-3">
                         <p className="font-medium">{item.name}</p>
                         {item.sku && <p className="text-sm text-muted-foreground">SKU: {item.sku}</p>}
-                        <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
                         {item.client_note && (
-                          <p className="text-sm text-muted-foreground mt-1 italic">Note: {item.client_note}</p>
+                          <p className="text-sm text-muted-foreground italic">Note: {item.client_note}</p>
                         )}
                         {itemResponse?.supplier_note && (
-                          <p className="text-sm text-blue-600 mt-1">Supplier: {itemResponse.supplier_note}</p>
+                          <p className="text-sm text-primary mt-0.5">Supplier: {itemResponse.supplier_note}</p>
                         )}
-                      </div>
-                      {itemResponse && (
-                        <Badge variant={itemResponse.can_fulfill ? 'default' : 'destructive'}>
-                          {itemResponse.can_fulfill ? 'Available' : 'Not Available'}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+                      </td>
+                      <td className="py-3 text-right font-medium tabular-nums">{item.quantity}</td>
+                      <td className="py-3 text-right">
+                        {itemResponse && (
+                          <Badge variant={itemResponse.can_fulfill ? 'default' : 'destructive'}>
+                            {itemResponse.can_fulfill ? 'Dispo' : 'Indispo'}
+                          </Badge>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </CardContent>
       </Card>
 
