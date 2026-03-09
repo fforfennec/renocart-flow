@@ -1,12 +1,12 @@
 import { Routes, Route } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-
-// Temporary placeholder components for nested routes
-const DashboardOverview = () => <div className="p-6"><h1 className="text-2xl font-bold text-rc-navy mb-4">COO Dashboard</h1><p>Metrics overview coming soon.</p></div>;
-const OrdersList = () => <div className="p-6"><h1 className="text-2xl font-bold text-rc-navy mb-4">All Orders</h1><p>Orders list coming soon.</p></div>;
-const SuppliersList = () => <div className="p-6"><h1 className="text-2xl font-bold text-rc-navy mb-4">Suppliers Directory</h1><p>Suppliers coming soon.</p></div>;
+import { NavLink } from '@/components/NavLink';
+import AdminOverview from './Overview';
+import AdminHistorique from './Historique';
+import AdminStats from './Stats';
+import AdminFAQ from './FAQ';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
