@@ -1,12 +1,12 @@
 import { Routes, Route } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-
-// Temporary placeholder components for nested routes
-const DashboardOverview = () => <div className="p-6"><h1 className="text-2xl font-bold text-rc-navy mb-4">COO Dashboard</h1><p>Metrics overview coming soon.</p></div>;
-const OrdersList = () => <div className="p-6"><h1 className="text-2xl font-bold text-rc-navy mb-4">All Orders</h1><p>Orders list coming soon.</p></div>;
-const SuppliersList = () => <div className="p-6"><h1 className="text-2xl font-bold text-rc-navy mb-4">Suppliers Directory</h1><p>Suppliers coming soon.</p></div>;
+import { NavLink } from '@/components/NavLink';
+import AdminOverview from './Overview';
+import AdminHistorique from './Historique';
+import AdminStats from './Stats';
+import AdminFAQ from './FAQ';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
@@ -21,18 +21,39 @@ const AdminDashboard = () => {
         </div>
         
         <nav className="flex-1 px-4 space-y-2 mt-4">
-          <a href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-md bg-white/10 text-white">
+          <NavLink 
+            to="/admin" 
+            end
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
             <LayoutDashboard size={20} />
-            <span>Dashboard</span>
-          </a>
-          <a href="/admin/orders" className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors">
+            <span>Overview</span>
+          </NavLink>
+          <NavLink 
+            to="/admin/historique"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
             <Package size={20} />
-            <span>Orders</span>
-          </a>
-          <a href="/admin/suppliers" className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors">
-            <Users size={20} />
-            <span>Suppliers</span>
-          </a>
+            <span>Historique</span>
+          </NavLink>
+          <NavLink 
+            to="/admin/stats"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
+            <BarChart3 size={20} />
+            <span>Stats</span>
+          </NavLink>
+          <NavLink 
+            to="/admin/faq"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
+            <HelpCircle size={20} />
+            <span>FAQ</span>
+          </NavLink>
         </nav>
 
         <div className="p-4 border-t border-white/10">
@@ -58,9 +79,10 @@ const AdminDashboard = () => {
         </header>
         
         <Routes>
-          <Route path="/" element={<DashboardOverview />} />
-          <Route path="/orders" element={<OrdersList />} />
-          <Route path="/suppliers" element={<SuppliersList />} />
+          <Route path="/" element={<AdminOverview />} />
+          <Route path="/historique" element={<AdminHistorique />} />
+          <Route path="/stats" element={<AdminStats />} />
+          <Route path="/faq" element={<AdminFAQ />} />
         </Routes>
       </main>
     </div>
