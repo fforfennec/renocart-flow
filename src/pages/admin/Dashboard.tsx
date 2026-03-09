@@ -21,18 +21,18 @@ const AdminDashboard = () => {
         </div>
         
         <nav className="flex-1 px-4 space-y-2 mt-4">
-          <a href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-md bg-white/10 text-white">
-            <LayoutDashboard size={20} />
-            <span>Dashboard</span>
-          </a>
-          <a href="/admin/orders" className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors">
-            <Package size={20} />
-            <span>Orders</span>
-          </a>
-          <a href="/admin/suppliers" className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors">
-            <Users size={20} />
-            <span>Suppliers</span>
-          </a>
+          <NavLink to="/admin" icon={LayoutDashboard}>
+            Overview
+          </NavLink>
+          <NavLink to="/admin/historique" icon={Package}>
+            Historique
+          </NavLink>
+          <NavLink to="/admin/stats" icon={BarChart3}>
+            Stats
+          </NavLink>
+          <NavLink to="/admin/faq" icon={HelpCircle}>
+            FAQ
+          </NavLink>
         </nav>
 
         <div className="p-4 border-t border-white/10">
