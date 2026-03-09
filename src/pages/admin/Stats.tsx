@@ -19,7 +19,7 @@ interface StatsData {
   }>;
 }
 
-const COLORS = ['#3B82F6', '#8B5CF6', '#F59E0B', '#10B981', '#EF4444'];
+const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 export default function AdminStats() {
   const [stats, setStats] = useState<StatsData>({
