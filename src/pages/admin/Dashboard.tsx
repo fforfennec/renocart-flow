@@ -80,6 +80,7 @@ const AdminDashboard = () => {
         
         <Routes>
           <Route path="/" element={<AdminOverview />} />
+          <Route path="/orders/:orderId" element={<AdminOrderDetail />} />
           <Route path="/historique" element={<AdminHistorique />} />
           <Route path="/stats" element={<AdminStats />} />
           <Route path="/faq" element={<AdminFAQ />} />
