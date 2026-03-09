@@ -21,17 +21,38 @@ const AdminDashboard = () => {
         </div>
         
         <nav className="flex-1 px-4 space-y-2 mt-4">
-          <NavLink to="/admin" icon={LayoutDashboard}>
-            Overview
+          <NavLink 
+            to="/admin" 
+            end
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
+            <LayoutDashboard size={20} />
+            <span>Overview</span>
           </NavLink>
-          <NavLink to="/admin/historique" icon={Package}>
-            Historique
+          <NavLink 
+            to="/admin/historique"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
+            <Package size={20} />
+            <span>Historique</span>
           </NavLink>
-          <NavLink to="/admin/stats" icon={BarChart3}>
-            Stats
+          <NavLink 
+            to="/admin/stats"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
+            <BarChart3 size={20} />
+            <span>Stats</span>
           </NavLink>
-          <NavLink to="/admin/faq" icon={HelpCircle}>
-            FAQ
+          <NavLink 
+            to="/admin/faq"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
+            <HelpCircle size={20} />
+            <span>FAQ</span>
           </NavLink>
         </nav>
 

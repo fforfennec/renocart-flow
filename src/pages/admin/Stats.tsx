@@ -64,17 +64,25 @@ export default function AdminStats() {
       const cancelledOrders = orders?.filter(o => o.status === 'cancelled').length || 0;
       const pendingOrders = orders?.filter(o => o.status === 'pending').length || 0;
 
+      // Get supplier profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, company_name');
+
+      if (profilesError) throw profilesError;
+
       // Calculate supplier stats
-      const supplierMap = new Map<string, { approved: number; declined: number; pending: number; times: number[] }>();
+      const supplierMap = new Map<string, { approved: number; declined: number; pending: number; times: number[]; name: string }>();
       
       responses?.forEach((response: any) => {
         const supplierId = response.supplier_assignments?.supplier_id;
-        const supplierName = response.supplier_assignments?.profiles?.company_name || 
-                           response.supplier_assignments?.profiles?.full_name || 
-                           'Unknown Supplier';
+        
+        if (!supplierId) return;
 
         if (!supplierMap.has(supplierId)) {
-          supplierMap.set(supplierId, { approved: 0, declined: 0, pending: 0, times: [] });
+          const profile = profiles?.find((p: any) => p.user_id === supplierId);
+          const name = profile?.company_name || profile?.full_name || 'Unknown Supplier';
+          supplierMap.set(supplierId, { approved: 0, declined: 0, pending: 0, times: [], name });
         }
 
         const stats = supplierMap.get(supplierId)!;
@@ -87,26 +95,19 @@ export default function AdminStats() {
           stats.pending++;
         }
 
-        if (response.responded_at) {
-          const responseTime = new Date(response.responded_at).getTime() - new Date(response.supplier_assignments?.assigned_at).getTime();
+        if (response.responded_at && response.supplier_assignments?.assigned_at) {
+          const responseTime = new Date(response.responded_at).getTime() - new Date(response.supplier_assignments.assigned_at).getTime();
           stats.times.push(responseTime / (1000 * 60 * 60)); // Convert to hours
         }
       });
 
-      const supplierStats = Array.from(supplierMap.entries()).map(([id, data]) => {
-        const supplier = responses?.find((r: any) => r.supplier_assignments?.supplier_id === id);
-        const name = supplier?.supplier_assignments?.profiles?.company_name || 
-                    supplier?.supplier_assignments?.profiles?.full_name || 
-                    'Unknown';
-        
-        return {
-          name,
-          approved: data.approved,
-          declined: data.declined,
-          pending: data.pending,
-          avgTime: data.times.length > 0 ? data.times.reduce((a, b) => a + b, 0) / data.times.length : 0,
-        };
-      });
+      const supplierStats = Array.from(supplierMap.values()).map(data => ({
+        name: data.name,
+        approved: data.approved,
+        declined: data.declined,
+        pending: data.pending,
+        avgTime: data.times.length > 0 ? data.times.reduce((a, b) => a + b, 0) / data.times.length : 0,
+      }));
 
       setStats({
         totalOrders,

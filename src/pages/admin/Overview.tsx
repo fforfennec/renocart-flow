@@ -29,14 +29,7 @@ export default function AdminOverview() {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .select(`
-          *,
-          order_items(count),
-          supplier_assignments(
-            supplier_id,
-            profiles:supplier_id(full_name, company_name)
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

@@ -50,7 +50,7 @@ export default function AdminHistorique() {
 
   const getStatusBadge = (status: string) => {
     if (status === 'delivered') {
-      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Delivered</Badge>;
+      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800">Delivered</Badge>;
     }
     if (status === 'cancelled') {
       return <Badge variant="destructive">Cancelled</Badge>;
