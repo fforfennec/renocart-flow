@@ -7,6 +7,7 @@ import AdminOverview from './Overview';
 import AdminHistorique from './Historique';
 import AdminStats from './Stats';
 import AdminFAQ from './FAQ';
+import AdminOrderDetail from './OrderDetail';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
