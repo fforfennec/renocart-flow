@@ -58,9 +58,10 @@ const AdminDashboard = () => {
         </header>
         
         <Routes>
-          <Route path="/" element={<DashboardOverview />} />
-          <Route path="/orders" element={<OrdersList />} />
-          <Route path="/suppliers" element={<SuppliersList />} />
+          <Route path="/" element={<AdminOverview />} />
+          <Route path="/historique" element={<AdminHistorique />} />
+          <Route path="/stats" element={<AdminStats />} />
+          <Route path="/faq" element={<AdminFAQ />} />
         </Routes>
       </main>
     </div>
