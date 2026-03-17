@@ -285,6 +285,7 @@ export default function OrderDetail() {
             <table className="w-full">
               <thead>
                 <tr className="border-b text-left text-sm text-muted-foreground">
+                  <th className="pb-2 font-medium w-16">Photo</th>
                   <th className="pb-2 font-medium">Article</th>
                   <th className="pb-2 font-medium text-right w-32">Quantité</th>
                   <th className="pb-2 font-medium text-right w-28">Statut</th>
@@ -295,6 +296,19 @@ export default function OrderDetail() {
                   const itemResponse = itemResponses[item.id];
                   return (
                     <tr key={item.id} className="border-b last:border-0">
+                      <td className="py-3">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            className="w-12 h-12 object-cover rounded border bg-muted"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded border bg-muted flex items-center justify-center">
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                      </td>
                       <td className="py-3">
                         <p className="font-medium">{item.name}</p>
                         {item.sku && <p className="text-sm text-muted-foreground">SKU: {item.sku}</p>}
