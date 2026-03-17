@@ -34,13 +34,13 @@ const SupplierDashboard = () => {
 
         <div className="p-4 border-t border-white/10">
           <div className="mb-4 px-3">
-            <p className="text-sm font-medium">{profile?.full_name || 'Supplier User'}</p>
-            <p className="text-xs text-white/50">{profile?.phone || 'No phone added'}</p>
+            <p className="text-sm font-medium">Supplier User</p>
+            <p className="text-xs text-white/50">No phone added</p>
           </div>
           <Button 
             variant="ghost" 
             className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
-            onClick={signOut}
+            onClick={() => {}}
           >
             <LogOut size={20} className="mr-3" />
             Sign Out
