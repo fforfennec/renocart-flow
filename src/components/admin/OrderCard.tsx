@@ -14,8 +14,11 @@ export const getStatusBadge = (status: string) => {
   const variants: Record<string, { variant: any; label: string }> = {
     pending: { variant: 'secondary', label: 'New' },
     in_progress: { variant: 'default', label: 'Contacted' },
+    assigned: { variant: 'default', label: 'Assigned' },
+    on_hold: { variant: 'outline', label: 'On Hold' },
     delivered: { variant: 'outline', label: 'Done' },
     cancelled: { variant: 'destructive', label: 'Cancelled' },
+    returned: { variant: 'destructive', label: 'Returned' },
   };
   const config = variants[status] || { variant: 'secondary', label: status };
   return <Badge variant={config.variant}>{config.label}</Badge>;
