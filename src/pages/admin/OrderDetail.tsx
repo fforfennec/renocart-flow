@@ -434,5 +434,7 @@ export default function OrderDetail() {
         </Card>
       </div>
     </div>
+    <OrderSidebar orderId={orderId!} />
+    </div>
   );
 }
