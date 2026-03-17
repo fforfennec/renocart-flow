@@ -53,7 +53,7 @@ const SupplierDashboard = () => {
         <div className="max-w-5xl mx-auto">
           {/* Header matching mockup */}
           <div className="bg-rc-navy rounded-t-lg p-4 flex justify-between items-center text-white mb-6">
-            <div className="font-medium">{profile?.company_name || 'Supplier X'}</div>
+            <div className="font-medium">Supplier X</div>
             <div className="flex gap-12">
               <span className="text-rc-gold cursor-pointer">Orders</span>
               <span className="cursor-pointer hover:text-rc-gold transition-colors">Data</span>
