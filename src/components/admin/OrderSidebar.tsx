@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, Lock, Send, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { MessageSquare, Lock, Send, PanelRightClose } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {

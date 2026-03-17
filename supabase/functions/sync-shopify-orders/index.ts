@@ -25,6 +25,7 @@ interface ShopifyOrder {
   };
   line_items: Array<{
     name: string;
+    title?: string;
     quantity: number;
     sku: string | null;
     image?: { src: string } | null;
@@ -80,10 +81,12 @@ async function fetchProductImage(
         "Content-Type": "application/json",
       },
     });
+
     if (!res.ok) {
       await res.text();
       return null;
     }
+
     const data = await res.json();
     return data.images?.[0]?.src || null;
   } catch (e) {
@@ -96,6 +99,80 @@ function buildAddress(addr: ShopifyOrder["shipping_address"]): string {
   if (!addr) return "N/A";
   const parts = [addr.address1, addr.address2, addr.city, addr.province_code, addr.zip, addr.country].filter(Boolean);
   return parts.join(", ");
+}
+
+async function buildItemsWithImages(
+  orderId: string,
+  lineItems: ShopifyOrder["line_items"],
+  shopifyToken: string,
+) {
+  const items = [];
+
+  for (let idx = 0; idx < lineItems.length; idx++) {
+    const item = lineItems[idx];
+    let imageUrl = item.image?.src || null;
+
+    if (!imageUrl && item.product_id) {
+      imageUrl = await fetchProductImage(item.product_id, shopifyToken);
+    }
+
+    items.push({
+      order_id: orderId,
+      name: item.name || item.title || "Unknown item",
+      quantity: item.quantity,
+      sku: item.sku || null,
+      image_url: imageUrl,
+      sort_order: idx,
+      client_note: null,
+    });
+  }
+
+  return items;
+}
+
+async function backfillExistingOrderImages(
+  supabase: ReturnType<typeof createClient>,
+  existingOrderId: string,
+  lineItems: ShopifyOrder["line_items"],
+  shopifyToken: string,
+) {
+  const { data: existingItems, error } = await supabase
+    .from("order_items")
+    .select("id, sort_order, image_url")
+    .eq("order_id", existingOrderId)
+    .order("sort_order", { ascending: true });
+
+  if (error) throw error;
+
+  let updated = 0;
+
+  for (let idx = 0; idx < lineItems.length; idx++) {
+    const dbItem = existingItems?.find((item) => (item.sort_order ?? 0) === idx);
+    if (!dbItem || dbItem.image_url) continue;
+
+    const lineItem = lineItems[idx];
+    let imageUrl = lineItem.image?.src || null;
+
+    if (!imageUrl && lineItem.product_id) {
+      imageUrl = await fetchProductImage(lineItem.product_id, shopifyToken);
+    }
+
+    if (!imageUrl) continue;
+
+    const { error: updateError } = await supabase
+      .from("order_items")
+      .update({ image_url: imageUrl })
+      .eq("id", dbItem.id);
+
+    if (updateError) {
+      console.error(`Failed to update image for item ${dbItem.id}:`, updateError);
+      continue;
+    }
+
+    updated++;
+  }
+
+  return updated;
 }
 
 Deno.serve(async (req) => {
@@ -126,28 +203,43 @@ Deno.serve(async (req) => {
 
     if (shopifyOrders.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, imported: 0, message: "No orders found" }),
+        JSON.stringify({ success: true, imported: 0, updated_images: 0, message: "No orders found" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check which orders already exist
     const orderNums = shopifyOrders.map((o) => o.name.replace("#", ""));
-    const { data: existing } = await supabase
+    const { data: existingOrders } = await supabase
       .from("orders")
-      .select("order_number")
+      .select("id, order_number")
       .in("order_number", orderNums);
 
-    const existingSet = new Set((existing || []).map((e) => e.order_number));
+    const existingMap = new Map((existingOrders || []).map((order) => [order.order_number, order.id]));
 
     let imported = 0;
+    let updatedImages = 0;
+    let skipped = 0;
     const errors: string[] = [];
 
     for (const shopifyOrder of shopifyOrders) {
       const orderNumber = shopifyOrder.name.replace("#", "");
+      const existingOrderId = existingMap.get(orderNumber);
 
-      if (existingSet.has(orderNumber)) {
-        console.log(`Order ${orderNumber} already exists, skipping`);
+      if (existingOrderId) {
+        try {
+          const updated = await backfillExistingOrderImages(
+            supabase,
+            existingOrderId,
+            shopifyOrder.line_items,
+            shopifyToken,
+          );
+          updatedImages += updated;
+          if (updated === 0) skipped++;
+          console.log(`Backfilled ${updated} images for existing order ${orderNumber}`);
+        } catch (error) {
+          console.error(`Failed to backfill existing order ${orderNumber}:`, error);
+          errors.push(`${orderNumber}: ${error instanceof Error ? error.message : "Backfill failed"}`);
+        }
         continue;
       }
 
@@ -178,26 +270,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Build items, fetching missing images from Shopify Admin API
-      const items = [];
-      for (let idx = 0; idx < shopifyOrder.line_items.length; idx++) {
-        const item = shopifyOrder.line_items[idx];
-        let imageUrl = item.image?.src || null;
-
-        if (!imageUrl && item.product_id) {
-          imageUrl = await fetchProductImage(item.product_id, shopifyToken);
-        }
-
-        items.push({
-          order_id: newOrder.id,
-          name: item.name,
-          quantity: item.quantity,
-          sku: item.sku || null,
-          image_url: imageUrl,
-          sort_order: idx,
-          client_note: null,
-        });
-      }
+      const items = await buildItemsWithImages(newOrder.id, shopifyOrder.line_items, shopifyToken);
 
       if (items.length > 0) {
         const { error: itemsErr } = await supabase
@@ -207,6 +280,7 @@ Deno.serve(async (req) => {
         if (itemsErr) {
           console.error(`Failed to insert items for ${orderNumber}:`, itemsErr);
           errors.push(`${orderNumber} items: ${itemsErr.message}`);
+          continue;
         }
       }
 
@@ -218,7 +292,8 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         imported,
-        skipped: shopifyOrders.length - imported - errors.length,
+        updated_images: updatedImages,
+        skipped,
         errors: errors.length > 0 ? errors : undefined,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
