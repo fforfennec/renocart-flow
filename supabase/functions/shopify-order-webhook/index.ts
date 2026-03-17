@@ -7,6 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SHOPIFY_DOMAIN = "e5ec80-69.myshopify.com";
+const SHOPIFY_API_VERSION = "2025-07";
+
 function verifyShopifyWebhook(
   body: string,
   hmacHeader: string,
@@ -29,6 +32,30 @@ function buildAddress(addr: any): string {
     addr.country,
   ].filter(Boolean);
   return parts.join(", ");
+}
+
+async function fetchProductImage(
+  productId: number,
+  accessToken: string
+): Promise<string | null> {
+  try {
+    const url = `https://${SHOPIFY_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}/images.json?limit=1`;
+    const res = await fetch(url, {
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) {
+      await res.text();
+      return null;
+    }
+    const data = await res.json();
+    return data.images?.[0]?.src || null;
+  } catch (e) {
+    console.error(`Failed to fetch image for product ${productId}:`, e);
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -56,7 +83,6 @@ Deno.serve(async (req) => {
     const topic = req.headers.get("x-shopify-topic") || "orders/create";
     console.log(`Received Shopify webhook: ${topic}, order: ${shopifyOrder.name}`);
 
-    // Only process order creation
     if (topic !== "orders/create") {
       return new Response(
         JSON.stringify({ success: true, message: "Ignored non-create event" }),
@@ -67,6 +93,8 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const shopifyToken = Deno.env.get("SHOPIFY_ACCESS_TOKEN");
 
     const orderNumber = (shopifyOrder.name || "").replace("#", "");
     if (!orderNumber) {
@@ -126,18 +154,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Insert order items with product images
-    const items = (shopifyOrder.line_items || []).map(
-      (item: any, idx: number) => ({
+    // Build items, fetching missing images from Shopify Admin API
+    const lineItems = shopifyOrder.line_items || [];
+    const items = [];
+
+    for (let idx = 0; idx < lineItems.length; idx++) {
+      const item = lineItems[idx];
+      let imageUrl = item.image?.src || null;
+
+      // If no image on line item, try fetching from product
+      if (!imageUrl && item.product_id && shopifyToken) {
+        imageUrl = await fetchProductImage(item.product_id, shopifyToken);
+      }
+
+      items.push({
         order_id: newOrder.id,
         name: item.name || item.title || "Unknown item",
         quantity: item.quantity || 1,
         sku: item.sku || null,
-        image_url: item.image?.src || null,
+        image_url: imageUrl,
         sort_order: idx,
         client_note: null,
-      })
-    );
+      });
+    }
 
     if (items.length > 0) {
       const { error: itemsErr } = await supabase
