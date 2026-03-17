@@ -236,8 +236,6 @@ export default function AdminOverview() {
     </div>
   );
 }
-  const navigate = useNavigate();
-  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
