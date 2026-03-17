@@ -56,6 +56,7 @@ export default function SupplierOverview() {
         .from('orders')
         .select('*')
         .in('id', orderIds)
+        .neq('status', 'archived')
         .order('created_at', { ascending: false });
 
       if (ordersErr) throw ordersErr;

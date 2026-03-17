@@ -25,7 +25,7 @@ export default function AdminHistorique() {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .in('status', ['delivered', 'cancelled'])
+        .in('status', ['archived', 'cancelled'])
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -49,8 +49,8 @@ export default function AdminHistorique() {
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === 'delivered') {
-      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800">Delivered</Badge>;
+    if (status === 'archived') {
+      return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-950 dark:text-gray-400 dark:border-gray-800">Archived</Badge>;
     }
     if (status === 'cancelled') {
       return <Badge variant="destructive">Cancelled</Badge>;
