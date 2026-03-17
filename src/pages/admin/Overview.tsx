@@ -28,8 +28,11 @@ export default function AdminOverview() {
 
   const loadOrders = async () => {
     try {
+      // Auto-archive old delivered orders (3+ business days)
+      await supabase.rpc('archive_old_delivered_orders');
+
       const [ordersRes, assignmentsRes] = await Promise.all([
-        supabase.from('orders').select('*').order('created_at', { ascending: false }),
+        supabase.from('orders').select('*').neq('status', 'archived').order('created_at', { ascending: false }),
         supabase.from('supplier_assignments').select('order_id, supplier_id, assignment_type, profiles:supplier_id (full_name, company_name)'),
       ]);
 
