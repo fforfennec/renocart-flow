@@ -25,24 +25,10 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             
             {/* Admin Routes */}
-            <Route 
-              path="/admin/*" 
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
+            <Route path="/admin/*" element={<AdminDashboard />} />
             
             {/* Supplier Routes */}
-            <Route 
-              path="/supplier/*" 
-              element={
-                <ProtectedRoute requiredRole="supplier">
-                  <SupplierDashboard />
-                </ProtectedRoute>
-              } 
-            />
+            <Route path="/supplier/*" element={<SupplierDashboard />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
