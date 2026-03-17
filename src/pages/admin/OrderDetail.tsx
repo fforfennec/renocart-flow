@@ -149,7 +149,8 @@ export default function OrderDetail() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl">
+    <div className="flex h-[calc(100vh-4rem)]">
+    <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-6xl">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
