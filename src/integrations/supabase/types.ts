@@ -353,6 +353,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      archive_old_delivered_orders: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
