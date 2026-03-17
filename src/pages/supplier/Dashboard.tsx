@@ -13,7 +13,7 @@ const SupplierDashboard = () => {
       <aside className="w-64 bg-rc-navy text-white flex flex-col">
         <div className="p-6">
           <h2 className="text-xl font-bold text-rc-gold mb-1">Supplier Portal</h2>
-          <p className="text-sm text-white/70">{profile?.company_name || 'Partner Company'}</p>
+          <p className="text-sm text-white/70">Partner Company</p>
         </div>
         
         <nav className="flex-1 px-4 space-y-2 mt-4">
