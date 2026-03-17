@@ -78,6 +78,10 @@ export default function AdminOverview() {
     return filtered;
   };
 
+  const handleOrderRead = (orderId: string) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'in_progress' } : o));
+  };
+
   const filteredOrders = getFilteredOrders();
 
   const views: { key: ViewType; label: string; icon: React.ReactNode }[] = [
