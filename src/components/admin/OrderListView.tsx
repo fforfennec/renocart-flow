@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Package, Truck, AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Database } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
 import { AssignmentInfo, getStatusBadge, isLate, LateBadge, getSupplierInitial, getSupplierName } from './OrderCard';
 
 type Order = Database['public']['Tables']['orders']['Row'];
@@ -10,9 +11,10 @@ type Order = Database['public']['Tables']['orders']['Row'];
 interface Props {
   orders: Order[];
   assignmentsByOrder: Record<string, AssignmentInfo[]>;
+  onOrderRead?: (orderId: string) => void;
 }
 
-export default function OrderListView({ orders, assignmentsByOrder }: Props) {
+export default function OrderListView({ orders, assignmentsByOrder, onOrderRead }: Props) {
   const navigate = useNavigate();
 
   return (
@@ -31,11 +33,23 @@ export default function OrderListView({ orders, assignmentsByOrder }: Props) {
           const materialSuppliers = assignments.filter(a => a.assignment_type === 'material');
           const dspSuppliers = assignments.filter(a => a.assignment_type === 'delivery');
 
+          const isNew = order.status === 'pending';
+
+          const handleClick = async () => {
+            if (isNew) {
+              onOrderRead?.(order.id);
+              await supabase.from('orders').update({ status: 'in_progress' }).eq('id', order.id);
+            }
+            navigate(`/admin/orders/${order.id}`);
+          };
+
           return (
             <div
               key={order.id}
-              onClick={() => navigate(`/admin/orders/${order.id}`)}
-              className="bg-background border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-center gap-2"
+              onClick={handleClick}
+              className={`border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-center gap-2 ${
+                isNew ? 'bg-destructive/8 border-destructive/30 ring-1 ring-destructive/20' : 'bg-background'
+              }`}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">

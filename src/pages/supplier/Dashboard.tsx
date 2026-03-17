@@ -1,14 +1,11 @@
 import { Routes, Route } from 'react-router-dom';
 import { Package, Bell, LogOut, CheckCircle2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
-// Temporary placeholder components
 const OrdersQueue = () => <div className="p-6"><h1 className="text-2xl font-bold text-rc-navy mb-4">Pending Orders</h1><p>Orders to confirm coming soon.</p></div>;
 const CompletedOrders = () => <div className="p-6"><h1 className="text-2xl font-bold text-rc-navy mb-4">Completed Deliveries</h1><p>Past orders coming soon.</p></div>;
 
 const SupplierDashboard = () => {
-  const { signOut, profile } = useAuth();
 
   return (
     <div className="min-h-screen flex bg-rc-beige">
@@ -16,7 +13,7 @@ const SupplierDashboard = () => {
       <aside className="w-64 bg-rc-navy text-white flex flex-col">
         <div className="p-6">
           <h2 className="text-xl font-bold text-rc-gold mb-1">Supplier Portal</h2>
-          <p className="text-sm text-white/70">{profile?.company_name || 'Partner Company'}</p>
+          <p className="text-sm text-white/70">Partner Company</p>
         </div>
         
         <nav className="flex-1 px-4 space-y-2 mt-4">
@@ -37,13 +34,13 @@ const SupplierDashboard = () => {
 
         <div className="p-4 border-t border-white/10">
           <div className="mb-4 px-3">
-            <p className="text-sm font-medium">{profile?.full_name || 'Supplier User'}</p>
-            <p className="text-xs text-white/50">{profile?.phone || 'No phone added'}</p>
+            <p className="text-sm font-medium">Supplier User</p>
+            <p className="text-xs text-white/50">No phone added</p>
           </div>
           <Button 
             variant="ghost" 
             className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
-            onClick={signOut}
+            onClick={() => {}}
           >
             <LogOut size={20} className="mr-3" />
             Sign Out
@@ -56,7 +53,7 @@ const SupplierDashboard = () => {
         <div className="max-w-5xl mx-auto">
           {/* Header matching mockup */}
           <div className="bg-rc-navy rounded-t-lg p-4 flex justify-between items-center text-white mb-6">
-            <div className="font-medium">{profile?.company_name || 'Supplier X'}</div>
+            <div className="font-medium">Supplier X</div>
             <div className="flex gap-12">
               <span className="text-rc-gold cursor-pointer">Orders</span>
               <span className="cursor-pointer hover:text-rc-gold transition-colors">Data</span>
