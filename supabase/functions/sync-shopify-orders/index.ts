@@ -11,7 +11,7 @@ const SHOPIFY_API_VERSION = "2025-07";
 
 interface ShopifyOrder {
   id: number;
-  name: string; // e.g. "#RC2996"
+  name: string;
   note: string | null;
   shipping_address?: {
     address1: string;
@@ -48,7 +48,6 @@ async function fetchShopifyOrders(
   let url = `https://${SHOPIFY_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/orders.json?status=any&limit=50`;
 
   if (orderNumbers && orderNumbers.length > 0) {
-    // Shopify name field includes "#", e.g. "#RC2996"
     const names = orderNumbers.map((n) => n.replace("#", "")).join(",");
     url += `&name=${names}`;
   }
@@ -62,13 +61,35 @@ async function fetchShopifyOrders(
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(
-      `Shopify API error [${response.status}]: ${body}`
-    );
+    throw new Error(`Shopify API error [${response.status}]: ${body}`);
   }
 
   const data = await response.json();
   return data.orders || [];
+}
+
+async function fetchProductImage(
+  productId: number,
+  accessToken: string
+): Promise<string | null> {
+  try {
+    const url = `https://${SHOPIFY_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}/images.json?limit=1`;
+    const res = await fetch(url, {
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) {
+      await res.text();
+      return null;
+    }
+    const data = await res.json();
+    return data.images?.[0]?.src || null;
+  } catch (e) {
+    console.error(`Failed to fetch image for product ${productId}:`, e);
+    return null;
+  }
 }
 
 function buildAddress(addr: ShopifyOrder["shipping_address"]): string {
@@ -111,11 +132,11 @@ Deno.serve(async (req) => {
     }
 
     // Check which orders already exist
-    const orderNumbers = shopifyOrders.map((o) => o.name.replace("#", ""));
+    const orderNums = shopifyOrders.map((o) => o.name.replace("#", ""));
     const { data: existing } = await supabase
       .from("orders")
       .select("order_number")
-      .in("order_number", orderNumbers);
+      .in("order_number", orderNums);
 
     const existingSet = new Set((existing || []).map((e) => e.order_number));
 
@@ -131,11 +152,10 @@ Deno.serve(async (req) => {
       }
 
       const addr = shopifyOrder.shipping_address;
-      const contactName = addr?.name || 
+      const contactName = addr?.name ||
         (shopifyOrder.customer ? `${shopifyOrder.customer.first_name} ${shopifyOrder.customer.last_name}` : "N/A");
       const contactPhone = addr?.phone || shopifyOrder.customer?.phone || null;
 
-      // Insert order
       const { data: newOrder, error: orderErr } = await supabase
         .from("orders")
         .insert({
@@ -143,7 +163,7 @@ Deno.serve(async (req) => {
           client_name: contactName,
           client_address: buildAddress(addr),
           client_phone: contactPhone,
-          delivery_date: new Date().toISOString().split("T")[0], // Default to today, admin can adjust
+          delivery_date: new Date().toISOString().split("T")[0],
           delivery_time_window: "TBD",
           status: "pending",
           internal_notes: shopifyOrder.note || null,
@@ -158,16 +178,26 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Insert order items
-      const items = shopifyOrder.line_items.map((item, idx) => ({
-        order_id: newOrder.id,
-        name: item.name,
-        quantity: item.quantity,
-        sku: item.sku || null,
-        image_url: item.image?.src || null,
-        sort_order: idx,
-        client_note: null,
-      }));
+      // Build items, fetching missing images from Shopify Admin API
+      const items = [];
+      for (let idx = 0; idx < shopifyOrder.line_items.length; idx++) {
+        const item = shopifyOrder.line_items[idx];
+        let imageUrl = item.image?.src || null;
+
+        if (!imageUrl && item.product_id) {
+          imageUrl = await fetchProductImage(item.product_id, shopifyToken);
+        }
+
+        items.push({
+          order_id: newOrder.id,
+          name: item.name,
+          quantity: item.quantity,
+          sku: item.sku || null,
+          image_url: imageUrl,
+          sort_order: idx,
+          client_note: null,
+        });
+      }
 
       if (items.length > 0) {
         const { error: itemsErr } = await supabase
