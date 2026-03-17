@@ -146,7 +146,7 @@ export default function AdminOverview() {
       ) : (
         <>
           {activeView === 'list' && (
-            <OrderListView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} />
+            <OrderListView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} onOrderRead={handleOrderRead} />
           )}
           {activeView === 'board' && (
             <OrderBoardView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} />
