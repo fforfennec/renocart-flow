@@ -1,14 +1,11 @@
 import { Routes, Route } from 'react-router-dom';
 import { Package, Bell, LogOut, CheckCircle2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
-// Temporary placeholder components
 const OrdersQueue = () => <div className="p-6"><h1 className="text-2xl font-bold text-rc-navy mb-4">Pending Orders</h1><p>Orders to confirm coming soon.</p></div>;
 const CompletedOrders = () => <div className="p-6"><h1 className="text-2xl font-bold text-rc-navy mb-4">Completed Deliveries</h1><p>Past orders coming soon.</p></div>;
 
 const SupplierDashboard = () => {
-  const { signOut, profile } = useAuth();
 
   return (
     <div className="min-h-screen flex bg-rc-beige">
