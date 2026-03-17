@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, Lock, Send } from 'lucide-react';
+import { MessageSquare, Lock, Send, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -22,19 +22,21 @@ interface Message {
 
 export default function OrderSidebar({ orderId }: Props) {
   const { user, profile, userRole } = useAuth();
+  const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('internal');
   const [comments, setComments] = useState<Message[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newText, setNewText] = useState('');
   const [sending, setSending] = useState(false);
+  const [unreadComments, setUnreadComments] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastSeenRef = useRef({ internal: 0, chat: 0 });
 
-  // Load comments
   useEffect(() => {
     loadComments();
     loadMessages();
 
-    // Realtime subscriptions
     const commentChannel = supabase
       .channel(`order-comments-${orderId}`)
       .on('postgres_changes', {
@@ -43,7 +45,11 @@ export default function OrderSidebar({ orderId }: Props) {
         table: 'order_comments',
         filter: `order_id=eq.${orderId}`,
       }, (payload) => {
-        setComments(prev => [...prev, payload.new as Message]);
+        const msg = payload.new as Message;
+        setComments(prev => [...prev, msg]);
+        if (!open || activeTab !== 'internal') {
+          setUnreadComments(prev => prev + 1);
+        }
       })
       .subscribe();
 
@@ -55,7 +61,11 @@ export default function OrderSidebar({ orderId }: Props) {
         table: 'order_messages',
         filter: `order_id=eq.${orderId}`,
       }, (payload) => {
-        setMessages(prev => [...prev, payload.new as Message]);
+        const msg = payload.new as Message;
+        setMessages(prev => [...prev, msg]);
+        if (!open || activeTab !== 'chat') {
+          setUnreadMessages(prev => prev + 1);
+        }
       })
       .subscribe();
 
@@ -63,11 +73,17 @@ export default function OrderSidebar({ orderId }: Props) {
       supabase.removeChannel(commentChannel);
       supabase.removeChannel(messageChannel);
     };
-  }, [orderId]);
+  }, [orderId, open, activeTab]);
+
+  // Clear unread when switching tabs or opening
+  useEffect(() => {
+    if (open && activeTab === 'internal') setUnreadComments(0);
+    if (open && activeTab === 'chat') setUnreadMessages(0);
+  }, [open, activeTab]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [comments, messages, activeTab]);
+  }, [comments, messages, activeTab, open]);
 
   const loadComments = async () => {
     const { data } = await supabase
@@ -77,7 +93,6 @@ export default function OrderSidebar({ orderId }: Props) {
       .order('created_at', { ascending: true });
 
     if (data) {
-      // For comments, load profile names
       const userIds = [...new Set(data.map(c => c.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
@@ -147,14 +162,44 @@ export default function OrderSidebar({ orderId }: Props) {
 
   const currentMessages = activeTab === 'internal' ? comments : messages;
   const isAdmin = userRole === 'admin';
+  const totalUnread = unreadComments + unreadMessages;
+
+  // Collapsed state — just show a floating button
+  if (!open) {
+    return (
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          onClick={() => setOpen(true)}
+          className="h-14 w-14 rounded-full bg-rc-navy hover:bg-rc-navy/90 shadow-lg relative"
+          size="icon"
+        >
+          <MessageSquare className="h-6 w-6" />
+          {totalUnread > 0 && (
+            <span className="absolute -top-1 -right-1 h-5 min-w-[20px] rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1">
+              {totalUnread}
+            </span>
+          )}
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-[340px] shrink-0 border-l bg-background flex flex-col h-full">
+    <div className="w-[360px] shrink-0 border-l bg-background flex flex-col h-full relative">
+      {/* Collapse arrow */}
+      <button
+        onClick={() => setOpen(false)}
+        className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 h-10 w-4 bg-muted border border-r-0 rounded-l-md flex items-center justify-center hover:bg-muted-foreground/10 transition-colors"
+        title="Close panel"
+      >
+        <PanelRightClose className="h-3 w-3 text-muted-foreground" />
+      </button>
+
       {/* Tab header */}
       <div className="flex border-b">
         <button
           onClick={() => setActiveTab('internal')}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium border-b-2 -mb-px transition-colors relative ${
             activeTab === 'internal'
               ? 'border-rc-navy text-rc-navy'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -162,10 +207,15 @@ export default function OrderSidebar({ orderId }: Props) {
         >
           <Lock className="h-3.5 w-3.5" />
           Internal
+          {unreadComments > 0 && activeTab !== 'internal' && (
+            <span className="ml-1 h-4 min-w-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+              {unreadComments}
+            </span>
+          )}
         </button>
         <button
           onClick={() => setActiveTab('chat')}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium border-b-2 -mb-px transition-colors relative ${
             activeTab === 'chat'
               ? 'border-rc-navy text-rc-navy'
               : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -173,6 +223,11 @@ export default function OrderSidebar({ orderId }: Props) {
         >
           <MessageSquare className="h-3.5 w-3.5" />
           Supplier Chat
+          {unreadMessages > 0 && activeTab !== 'chat' && (
+            <span className="ml-1 h-4 min-w-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+              {unreadMessages}
+            </span>
+          )}
         </button>
       </div>
 
@@ -225,7 +280,7 @@ export default function OrderSidebar({ orderId }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — hide internal tab for non-admins */}
+      {/* Input */}
       {(activeTab === 'chat' || isAdmin) && (
         <div className="border-t p-3">
           <div className="flex gap-2">
