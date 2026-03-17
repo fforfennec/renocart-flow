@@ -1,10 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { Package, Truck, AlertCircle } from 'lucide-react';
+import { Package, Truck, ChevronDown } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { AssignmentInfo, getStatusBadge, isLate, LateBadge, getSupplierInitial, getSupplierName } from './OrderCard';
+import { toast } from 'sonner';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 
@@ -12,16 +15,64 @@ interface Props {
   orders: Order[];
   assignmentsByOrder: Record<string, AssignmentInfo[]>;
   onOrderRead?: (orderId: string) => void;
+  onOrderUpdate?: (orderId: string, updates: Partial<Order>) => void;
 }
 
-export default function OrderListView({ orders, assignmentsByOrder, onOrderRead }: Props) {
+const ACTION_OPTIONS = [
+  { label: 'Assign', value: 'assign' },
+  { label: 'Cancel', value: 'cancel' },
+  { label: 'Hold', value: 'hold' },
+  { label: 'Return', value: 'return' },
+];
+
+const STATUS_OPTIONS = [
+  { label: 'New', value: 'pending' },
+  { label: 'Contacted', value: 'in_progress' },
+  { label: 'Assigned', value: 'assigned' },
+  { label: 'On Hold', value: 'on_hold' },
+  { label: 'Done', value: 'delivered' },
+  { label: 'Cancelled', value: 'cancelled' },
+  { label: 'Returned', value: 'returned' },
+];
+
+export default function OrderListView({ orders, assignmentsByOrder, onOrderRead, onOrderUpdate }: Props) {
   const navigate = useNavigate();
+
+  const handleAction = async (e: React.MouseEvent, order: Order, action: string) => {
+    e.stopPropagation();
+    if (action === 'cancel') {
+      await updateStatus(order.id, 'cancelled');
+    } else if (action === 'hold') {
+      await updateStatus(order.id, 'on_hold');
+    } else if (action === 'return') {
+      await updateStatus(order.id, 'returned');
+    } else if (action === 'assign') {
+      navigate(`/admin/orders/${order.id}`);
+    }
+  };
+
+  const handleStatusChange = async (e: React.MouseEvent, orderId: string, status: string) => {
+    e.stopPropagation();
+    await updateStatus(orderId, status);
+  };
+
+  const updateStatus = async (orderId: string, status: string) => {
+    const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
+    if (error) {
+      toast.error('Failed to update order');
+    } else {
+      onOrderUpdate?.(orderId, { status });
+      toast.success('Order updated');
+    }
+  };
 
   return (
     <>
       {/* Column Headers */}
       <div className="flex items-center gap-2 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">
         <div className="flex-1">Order</div>
+        <div className="w-28 text-center">Action</div>
+        <div className="w-32 text-center">Status</div>
         <div className="w-10 text-center" title="Supplier"><Package className="h-3.5 w-3.5 mx-auto" /></div>
         <div className="w-10 text-center" title="DSP"><Truck className="h-3.5 w-3.5 mx-auto" /></div>
         <div className="w-20 text-right">Created</div>
@@ -63,6 +114,49 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead 
                   <p><span className="font-medium">Delivery:</span> {new Date(order.delivery_date).toLocaleDateString()} - {order.delivery_time_window}</p>
                   {order.truck_type && <p><span className="font-medium">Truck:</span> {order.truck_type}</p>}
                 </div>
+              </div>
+
+              {/* Action dropdown */}
+              <div className="w-28 shrink-0 flex justify-center" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1 text-xs">
+                      Action
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center">
+                    {ACTION_OPTIONS.map((opt) => (
+                      <DropdownMenuItem key={opt.value} onClick={(e) => handleAction(e, order, opt.value)}>
+                        {opt.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Status dropdown */}
+              <div className="w-32 shrink-0 flex justify-center" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1 text-xs">
+                      Status
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center">
+                    {STATUS_OPTIONS.map((opt) => (
+                      <DropdownMenuItem
+                        key={opt.value}
+                        onClick={(e) => handleStatusChange(e, order.id, opt.value)}
+                        className={order.status === opt.value ? 'bg-accent font-medium' : ''}
+                      >
+                        {opt.label}
+                        {order.status === opt.value && <span className="ml-auto text-primary">●</span>}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* Supplier column */}
