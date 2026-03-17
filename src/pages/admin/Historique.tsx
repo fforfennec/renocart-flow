@@ -25,7 +25,7 @@ export default function AdminHistorique() {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .in('status', ['delivered', 'cancelled'])
+        .in('status', ['archived', 'cancelled'])
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
