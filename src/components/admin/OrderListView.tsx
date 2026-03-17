@@ -14,7 +14,7 @@ interface Props {
   onOrderRead?: (orderId: string) => void;
 }
 
-export default function OrderListView({ orders, assignmentsByOrder }: Props) {
+export default function OrderListView({ orders, assignmentsByOrder, onOrderRead }: Props) {
   const navigate = useNavigate();
 
   return (
