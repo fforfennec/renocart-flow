@@ -320,95 +320,117 @@ export default function OrderDetail() {
         </CardContent>
       </Card>
 
-      {/* Supplier Assignments */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Truck className="h-5 w-5" />
-            Supplier Assignments
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {assignments.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No suppliers assigned yet</p>
-          ) : (
-            <div className="space-y-4">
-              {assignments.map((assignment) => {
-                const profile = assignment.profiles as any;
-                const response = (assignment.supplier_responses as any)?.[0];
-                
-                return (
-                  <div key={assignment.id} className="p-4 border rounded-lg space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium text-lg">
-                            {profile?.company_name || profile?.full_name || 'Unknown Supplier'}
+      {/* Suppliers & DSP Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Material Suppliers */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Package className="h-5 w-5" />
+              Fournisseurs Matériaux
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const materialAssignments = assignments.filter(a => a.assignment_type === 'material');
+              if (materialAssignments.length === 0) {
+                return <p className="text-sm text-muted-foreground text-center py-4">Aucun fournisseur assigné</p>;
+              }
+              return (
+                <div className="space-y-3">
+                  {materialAssignments.map((assignment) => {
+                    const profile = assignment.profiles as any;
+                    const response = (assignment.supplier_responses as any)?.[0];
+                    return (
+                      <div key={assignment.id} className="p-3 border rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">
+                            {profile?.company_name || profile?.full_name || 'Fournisseur inconnu'}
                           </p>
-                          <Badge variant="outline">{assignment.assignment_type}</Badge>
+                          {response ? (
+                            <Badge variant={response.status === 'confirmed' ? 'default' : 'secondary'}>
+                              {response.status === 'confirmed' ? 'Confirmé' : response.status === 'pending' ? 'En attente' : response.status}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">En attente</Badge>
+                          )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Assigned on {new Date(assignment.assigned_at).toLocaleDateString()}
+                        <p className="text-xs text-muted-foreground">
+                          Assigné le {new Date(assignment.assigned_at).toLocaleDateString('fr-CA')}
                         </p>
+                        {response?.supplier_general_note && (
+                          <p className="text-sm text-muted-foreground bg-muted p-2 rounded">{response.supplier_general_note}</p>
+                        )}
                       </div>
-                      {response && (
-                        <Badge variant={response.status === 'confirmed' ? 'default' : 'secondary'}>
-                          {response.status}
-                        </Badge>
-                      )}
-                    </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
 
-                    {response && (
-                      <div className="bg-muted/50 p-3 rounded space-y-2 text-sm">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <p className="font-medium">Can deliver on date?</p>
-                            <p className={response.can_deliver_date ? 'text-green-600' : 'text-red-600'}>
-                              {response.can_deliver_date ? 'Yes' : 'No'}
-                            </p>
-                            {response.alternative_date && (
-                              <p className="text-xs text-muted-foreground">Alt: {new Date(response.alternative_date).toLocaleDateString()}</p>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">Can deliver at time?</p>
-                            <p className={response.can_deliver_time ? 'text-green-600' : 'text-red-600'}>
-                              {response.can_deliver_time ? 'Yes' : 'No'}
-                            </p>
-                            {response.alternative_time && (
-                              <p className="text-xs text-muted-foreground">Alt: {response.alternative_time}</p>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">Can deliver with truck?</p>
-                            <p className={response.can_deliver_truck ? 'text-green-600' : 'text-red-600'}>
-                              {response.can_deliver_truck ? 'Yes' : 'No'}
-                            </p>
-                            {response.alternative_truck && (
-                              <p className="text-xs text-muted-foreground">Alt: {response.alternative_truck}</p>
-                            )}
-                          </div>
-                        </div>
-                        {response.supplier_general_note && (
-                          <div className="pt-2 border-t">
-                            <p className="font-medium">Supplier Note:</p>
-                            <p className="text-muted-foreground">{response.supplier_general_note}</p>
-                          </div>
-                        )}
-                        {response.responded_at && (
-                          <p className="text-xs text-muted-foreground">
-                            Responded on {new Date(response.responded_at).toLocaleString()}
+        {/* Delivery Service Partner */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Truck className="h-5 w-5" />
+              DSP – Livraison
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const deliveryAssignments = assignments.filter(a => a.assignment_type === 'delivery');
+              if (deliveryAssignments.length === 0) {
+                return <p className="text-sm text-muted-foreground text-center py-4">Aucun DSP assigné</p>;
+              }
+              return (
+                <div className="space-y-3">
+                  {deliveryAssignments.map((assignment) => {
+                    const profile = assignment.profiles as any;
+                    const response = (assignment.supplier_responses as any)?.[0];
+                    return (
+                      <div key={assignment.id} className="p-3 border rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">
+                            {profile?.company_name || profile?.full_name || 'DSP inconnu'}
                           </p>
+                          {response ? (
+                            <Badge variant={response.status === 'confirmed' ? 'default' : 'secondary'}>
+                              {response.status === 'confirmed' ? 'Confirmé' : response.status === 'pending' ? 'En attente' : response.status}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">En attente</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Assigné le {new Date(assignment.assigned_at).toLocaleDateString('fr-CA')}
+                        </p>
+                        {response && (
+                          <div className="text-sm space-y-1">
+                            {response.can_deliver_date === false && response.alternative_date && (
+                              <p className="text-xs">Date alt: {new Date(response.alternative_date).toLocaleDateString('fr-CA')}</p>
+                            )}
+                            {response.can_deliver_time === false && response.alternative_time && (
+                              <p className="text-xs">Heure alt: {response.alternative_time}</p>
+                            )}
+                            {response.can_deliver_truck === false && response.alternative_truck && (
+                              <p className="text-xs">Camion alt: {response.alternative_truck}</p>
+                            )}
+                            {response.supplier_general_note && (
+                              <p className="text-muted-foreground bg-muted p-2 rounded">{response.supplier_general_note}</p>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
