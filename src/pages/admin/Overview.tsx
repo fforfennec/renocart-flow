@@ -88,43 +88,24 @@ export default function AdminOverview() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header with view tabs */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-rc-navy">Orders Overview</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage all orders and deliveries</p>
-        </div>
-        <div className="flex items-center border rounded-lg overflow-hidden">
-          {views.map((v) => (
-            <button
-              key={v.key}
-              onClick={() => setActiveView(v.key)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${
-                activeView === v.key
-                  ? 'bg-rc-navy text-white'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              }`}
-            >
-              {v.icon}
-              {v.label}
-            </button>
-          ))}
-        </div>
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-rc-navy">Orders Overview</h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage all orders and deliveries</p>
       </div>
 
-      {/* Search & Filters */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="relative max-w-md flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by order #, client, or address..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 border-rc-gold/30 focus:border-rc-gold"
-          />
-        </div>
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by order #, client, or address..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9 border-rc-gold/30 focus:border-rc-gold"
+        />
       </div>
 
+      {/* Filters */}
       {activeView !== 'calendar' && (
         <div className="flex gap-2 flex-wrap">
           <Button variant={activeFilter === 'all' ? 'default' : 'outline'} onClick={() => setActiveFilter('all')} className={activeFilter === 'all' ? 'bg-rc-gold text-rc-navy hover:bg-rc-gold/90' : ''}>All Orders</Button>
@@ -134,6 +115,24 @@ export default function AdminOverview() {
           <Button variant={activeFilter === 'late' ? 'destructive' : 'outline'} onClick={() => setActiveFilter('late')}><AlertCircle className="h-4 w-4 mr-2" />Late Orders</Button>
         </div>
       )}
+
+      {/* View tabs */}
+      <div className="flex items-center border-b">
+        {views.map((v) => (
+          <button
+            key={v.key}
+            onClick={() => setActiveView(v.key)}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeView === v.key
+                ? 'border-rc-navy text-rc-navy'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {v.icon}
+            {v.label}
+          </button>
+        ))}
+      </div>
 
       {/* Content */}
       {loading ? (
