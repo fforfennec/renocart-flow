@@ -82,6 +82,10 @@ export default function AdminOverview() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'in_progress' } : o));
   };
 
+  const handleOrderUpdate = (orderId: string, updates: Partial<Order>) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updates } : o));
+  };
+
   const filteredOrders = getFilteredOrders();
 
   const views: { key: ViewType; label: string; icon: React.ReactNode }[] = [
@@ -146,7 +150,7 @@ export default function AdminOverview() {
       ) : (
         <>
           {activeView === 'list' && (
-            <OrderListView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} onOrderRead={handleOrderRead} />
+            <OrderListView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} onOrderRead={handleOrderRead} onOrderUpdate={handleOrderUpdate} />
           )}
           {activeView === 'board' && (
             <OrderBoardView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} />
