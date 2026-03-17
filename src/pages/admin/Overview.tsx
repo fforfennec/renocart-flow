@@ -3,16 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, AlertCircle } from 'lucide-react';
+import { Search, AlertCircle, Package, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-type Order = Database['public']['Tables']['orders']['Row'] & {
-  order_items?: Array<{ count: number }>;
-};
-
+type Order = Database['public']['Tables']['orders']['Row'];
 type FilterType = 'all' | 'new' | 'contacted' | 'done' | 'late';
+
+type AssignmentInfo = {
+  supplier_id: string;
+  assignment_type: string;
+  profiles?: { full_name: string; company_name: string | null } | null;
+};
 
 export default function AdminOverview() {
   const navigate = useNavigate();
@@ -20,6 +24,7 @@ export default function AdminOverview() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [assignmentsByOrder, setAssignmentsByOrder] = useState<Record<string, AssignmentInfo[]>>({});
 
   useEffect(() => {
     loadOrders();
@@ -27,13 +32,22 @@ export default function AdminOverview() {
 
   const loadOrders = async () => {
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const [ordersRes, assignmentsRes] = await Promise.all([
+        supabase.from('orders').select('*').order('created_at', { ascending: false }),
+        supabase.from('supplier_assignments').select('order_id, supplier_id, assignment_type, profiles:supplier_id (full_name, company_name)'),
+      ]);
 
-      if (error) throw error;
-      setOrders(data || []);
+      if (ordersRes.error) throw ordersRes.error;
+      setOrders(ordersRes.data || []);
+
+      if (!assignmentsRes.error && assignmentsRes.data) {
+        const map: Record<string, AssignmentInfo[]> = {};
+        (assignmentsRes.data as any[]).forEach((a) => {
+          if (!map[a.order_id]) map[a.order_id] = [];
+          map[a.order_id].push(a);
+        });
+        setAssignmentsByOrder(map);
+      }
     } catch (error) {
       console.error('Error loading orders:', error);
       toast.error('Failed to load orders');
@@ -45,7 +59,6 @@ export default function AdminOverview() {
   const getFilteredOrders = () => {
     let filtered = orders;
 
-    // Apply status filter
     if (activeFilter === 'new') {
       filtered = filtered.filter(o => o.status === 'pending');
     } else if (activeFilter === 'contacted') {
@@ -60,7 +73,6 @@ export default function AdminOverview() {
       });
     }
 
-    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(o =>
         o.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -114,41 +126,19 @@ export default function AdminOverview() {
 
       {/* Filters */}
       <div className="flex gap-2 flex-wrap">
-        <Button
-          variant={activeFilter === 'all' ? 'default' : 'outline'}
-          onClick={() => setActiveFilter('all')}
-          className={activeFilter === 'all' ? 'bg-rc-gold text-rc-navy hover:bg-rc-gold/90' : ''}
-        >
-          All Orders
-        </Button>
-        <Button
-          variant={activeFilter === 'new' ? 'default' : 'outline'}
-          onClick={() => setActiveFilter('new')}
-          className={activeFilter === 'new' ? 'bg-rc-gold text-rc-navy hover:bg-rc-gold/90' : ''}
-        >
-          New
-        </Button>
-        <Button
-          variant={activeFilter === 'contacted' ? 'default' : 'outline'}
-          onClick={() => setActiveFilter('contacted')}
-          className={activeFilter === 'contacted' ? 'bg-rc-gold text-rc-navy hover:bg-rc-gold/90' : ''}
-        >
-          Contacted
-        </Button>
-        <Button
-          variant={activeFilter === 'done' ? 'default' : 'outline'}
-          onClick={() => setActiveFilter('done')}
-          className={activeFilter === 'done' ? 'bg-rc-gold text-rc-navy hover:bg-rc-gold/90' : ''}
-        >
-          Done
-        </Button>
-        <Button
-          variant={activeFilter === 'late' ? 'destructive' : 'outline'}
-          onClick={() => setActiveFilter('late')}
-        >
-          <AlertCircle className="h-4 w-4 mr-2" />
-          Late Orders
-        </Button>
+        <Button variant={activeFilter === 'all' ? 'default' : 'outline'} onClick={() => setActiveFilter('all')} className={activeFilter === 'all' ? 'bg-rc-gold text-rc-navy hover:bg-rc-gold/90' : ''}>All Orders</Button>
+        <Button variant={activeFilter === 'new' ? 'default' : 'outline'} onClick={() => setActiveFilter('new')} className={activeFilter === 'new' ? 'bg-rc-gold text-rc-navy hover:bg-rc-gold/90' : ''}>New</Button>
+        <Button variant={activeFilter === 'contacted' ? 'default' : 'outline'} onClick={() => setActiveFilter('contacted')} className={activeFilter === 'contacted' ? 'bg-rc-gold text-rc-navy hover:bg-rc-gold/90' : ''}>Contacted</Button>
+        <Button variant={activeFilter === 'done' ? 'default' : 'outline'} onClick={() => setActiveFilter('done')} className={activeFilter === 'done' ? 'bg-rc-gold text-rc-navy hover:bg-rc-gold/90' : ''}>Done</Button>
+        <Button variant={activeFilter === 'late' ? 'destructive' : 'outline'} onClick={() => setActiveFilter('late')}><AlertCircle className="h-4 w-4 mr-2" />Late Orders</Button>
+      </div>
+
+      {/* Column Headers */}
+      <div className="flex items-center gap-2 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        <div className="flex-1">Order</div>
+        <div className="w-10 text-center" title="Supplier"><Package className="h-3.5 w-3.5 mx-auto" /></div>
+        <div className="w-10 text-center" title="DSP"><Truck className="h-3.5 w-3.5 mx-auto" /></div>
+        <div className="w-20 text-right">Created</div>
       </div>
 
       {/* Orders List */}
@@ -158,14 +148,19 @@ export default function AdminOverview() {
         ) : filteredOrders.length === 0 ? (
           <p className="text-center py-8 text-muted-foreground">No orders found</p>
         ) : (
-          filteredOrders.map((order) => (
-            <div
-              key={order.id}
-              onClick={() => navigate(`/admin/orders/${order.id}`)}
-              className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
+          filteredOrders.map((order) => {
+            const assignments = assignmentsByOrder[order.id] || [];
+            const materialSuppliers = assignments.filter(a => a.assignment_type === 'material');
+            const dspSuppliers = assignments.filter(a => a.assignment_type === 'delivery');
+
+            return (
+              <div
+                key={order.id}
+                onClick={() => navigate(`/admin/orders/${order.id}`)}
+                className="bg-background border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex items-center gap-2"
+              >
+                {/* Order info */}
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="font-semibold text-rc-navy">{order.order_number}</h3>
                     {getStatusBadge(order.status)}
@@ -183,15 +178,62 @@ export default function AdminOverview() {
                     {order.truck_type && <p><span className="font-medium">Truck:</span> {order.truck_type}</p>}
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground mb-1">Created</p>
+
+                {/* Supplier column */}
+                <div className="w-10 flex flex-col items-center justify-center gap-1 shrink-0">
+                  {materialSuppliers.length > 0 ? (
+                    materialSuppliers.map((s, i) => (
+                      <Tooltip key={i}>
+                        <TooltipTrigger asChild>
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                            {((s.profiles as any)?.company_name || (s.profiles as any)?.full_name || '?').charAt(0).toUpperCase()}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {(s.profiles as any)?.company_name || (s.profiles as any)?.full_name || 'Unknown'}
+                        </TooltipContent>
+                      </Tooltip>
+                    ))
+                  ) : (
+                    <div className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                      <Package className="h-3.5 w-3.5 text-muted-foreground/40" />
+                    </div>
+                  )}
+                </div>
+
+                {/* DSP column */}
+                <div className="w-10 flex flex-col items-center justify-center gap-1 shrink-0">
+                  {dspSuppliers.length > 0 ? (
+                    dspSuppliers.map((s, i) => (
+                      <Tooltip key={i}>
+                        <TooltipTrigger asChild>
+                          <div className="h-8 w-8 rounded-full bg-accent/50 flex items-center justify-center text-xs font-bold text-accent-foreground">
+                            {((s.profiles as any)?.company_name || (s.profiles as any)?.full_name || '?').charAt(0).toUpperCase()}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {(s.profiles as any)?.company_name || (s.profiles as any)?.full_name || 'Unknown'}
+                        </TooltipContent>
+                      </Tooltip>
+                    ))
+                  ) : (
+                    <div className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                      <Truck className="h-3.5 w-3.5 text-muted-foreground/40" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Date column */}
+                <div className="w-20 text-right shrink-0">
+                  <p className="text-xs text-muted-foreground">Created</p>
                   <p className="text-sm font-medium">{new Date(order.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
   );
 }
+
