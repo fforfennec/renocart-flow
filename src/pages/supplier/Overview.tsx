@@ -169,7 +169,7 @@ export default function SupplierOverview() {
       ) : (
         <>
           {activeView === 'list' && (
-            <OrderListView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} onOrderRead={handleOrderRead} />
+            <OrderListView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} onOrderRead={handleOrderRead} onOrderUpdate={handleOrderUpdate} />
           )}
           {activeView === 'board' && (
             <OrderBoardView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} />
