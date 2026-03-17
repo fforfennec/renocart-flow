@@ -236,7 +236,6 @@ export default function AdminOverview() {
     </div>
   );
 }
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
