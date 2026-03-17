@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Package, Truck, AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Database } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
 import { AssignmentInfo, getStatusBadge, isLate, LateBadge, getSupplierInitial, getSupplierName } from './OrderCard';
 
 type Order = Database['public']['Tables']['orders']['Row'];
@@ -10,6 +11,7 @@ type Order = Database['public']['Tables']['orders']['Row'];
 interface Props {
   orders: Order[];
   assignmentsByOrder: Record<string, AssignmentInfo[]>;
+  onOrderRead?: (orderId: string) => void;
 }
 
 export default function OrderListView({ orders, assignmentsByOrder }: Props) {
