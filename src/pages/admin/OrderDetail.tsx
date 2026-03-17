@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, AlertCircle, Package, Truck, User, Phone, MapPin, Calendar, Clock } from 'lucide-react';
+import OrderSidebar from '@/components/admin/OrderSidebar';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 
@@ -148,7 +149,8 @@ export default function OrderDetail() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl">
+    <div className="flex h-[calc(100vh-4rem)]">
+    <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-6xl">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
@@ -431,6 +433,8 @@ export default function OrderDetail() {
           </CardContent>
         </Card>
       </div>
+    </div>
+    <OrderSidebar orderId={orderId!} />
     </div>
   );
 }
