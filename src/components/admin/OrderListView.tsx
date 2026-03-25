@@ -180,11 +180,11 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
 
               {/* Supplier column */}
               <div className="w-10 flex flex-col items-center justify-center gap-1 shrink-0">
-                {materialSuppliers.length > 0 ? materialSuppliers.map((s, i) => (
+              {materialSuppliers.length > 0 ? materialSuppliers.map((s, i) => (
                   <Tooltip key={i}>
                     <TooltipTrigger asChild>
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                        {getSupplierInitial(s)}
+                      <div className="h-8 w-8 rounded-full bg-white border flex items-center justify-center overflow-hidden">
+                        <img src={pontMassonLogo} alt={getSupplierName(s)} className="h-6 w-6 object-contain" />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>{getSupplierName(s)}</TooltipContent>

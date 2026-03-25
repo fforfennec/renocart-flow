@@ -29,6 +29,7 @@ const App = () => (
             <Route path="/admin/*" element={<AdminDashboard />} />
             
             {/* Supplier Routes */}
+            <Route path="/supplier/respond" element={<SupplierRespond />} />
             <Route path="/supplier/*" element={<SupplierDashboard />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
