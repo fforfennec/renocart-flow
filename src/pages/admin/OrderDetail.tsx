@@ -437,9 +437,12 @@ export default function OrderDetail() {
                     return (
                       <div key={assignment.id} className="p-3 border rounded-lg space-y-2">
                         <div className="flex items-center justify-between">
-                          <p className="font-medium">
-                            {profile?.company_name || profile?.full_name || 'Fournisseur inconnu'}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <img src={pontMassonLogo} alt="Pont-Masson" className="h-6 w-6 object-contain" />
+                            <p className="font-medium">
+                              {profile?.company_name || profile?.full_name || 'Fournisseur inconnu'}
+                            </p>
+                          </div>
                           {response ? (
                             <Badge variant={response.status === 'confirmed' ? 'default' : 'secondary'}>
                               {response.status === 'confirmed' ? 'Confirmé' : response.status === 'pending' ? 'En attente' : response.status}
