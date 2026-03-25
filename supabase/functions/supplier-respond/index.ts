@@ -5,221 +5,102 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Simple public edge function: accepts assignment_id, confirms the order.
+// No auth required — the assignment_id itself acts as the token.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-
   try {
     const url = new URL(req.url);
+    // Support both GET (email click) and POST
+    const assignmentId = url.searchParams.get("assignment_id") ||
+      (req.method === "POST" ? (await req.json()).assignment_id : null);
 
-    // GET = validate token and return order details
-    if (req.method === "GET") {
-      const token = url.searchParams.get("token");
-      if (!token) {
-        return new Response(JSON.stringify({ error: "Missing token" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const { data: tokenData, error: tokenErr } = await supabase
-        .from("supplier_response_tokens")
-        .select("*, supplier_assignments(*, orders(*), supplier_responses(*))")
-        .eq("token", token)
-        .maybeSingle();
-
-      if (tokenErr || !tokenData) {
-        return new Response(JSON.stringify({ error: "Invalid token" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      if (tokenData.used_at) {
-        return new Response(JSON.stringify({ error: "Token already used", already_responded: true }), {
-          status: 410,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      if (new Date(tokenData.expires_at) < new Date()) {
-        return new Response(JSON.stringify({ error: "Token expired" }), {
-          status: 410,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const assignment = tokenData.supplier_assignments as any;
-      const order = assignment.orders;
-
-      // Fetch order items
-      const { data: items } = await supabase
-        .from("order_items")
-        .select("*")
-        .eq("order_id", order.id)
-        .order("sort_order");
-
-      return new Response(JSON.stringify({
-        order: {
-          id: order.id,
-          order_number: order.order_number,
-          client_address: order.client_address,
-          delivery_date: order.delivery_date,
-          delivery_time_window: order.delivery_time_window,
-          truck_type: order.truck_type,
-          internal_notes: order.internal_notes,
-        },
-        items: items || [],
-        assignment_id: assignment.id,
-        response_id: (assignment.supplier_responses as any)?.[0]?.id || null,
-      }), {
+    if (!assignmentId) {
+      return new Response(JSON.stringify({ error: "Missing assignment_id" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // POST = submit response
-    if (req.method === "POST") {
-      const body = await req.json();
-      const { token, action, can_deliver_date, can_deliver_time, can_deliver_truck,
-        alternative_date, alternative_time, alternative_truck,
-        supplier_general_note, item_responses } = body;
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-      if (!token) {
-        return new Response(JSON.stringify({ error: "Missing token" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // Find the supplier_response for this assignment
+    const { data: response, error: respErr } = await supabase
+      .from("supplier_responses")
+      .select("id, status, assignment_id")
+      .eq("assignment_id", assignmentId)
+      .maybeSingle();
 
-      // Validate token
-      const { data: tokenData, error: tokenErr } = await supabase
-        .from("supplier_response_tokens")
-        .select("*, supplier_assignments(id, order_id, supplier_responses(id))")
-        .eq("token", token)
-        .maybeSingle();
+    if (respErr || !response) {
+      return new Response(JSON.stringify({ error: "Assignment not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-      if (tokenErr || !tokenData) {
-        return new Response(JSON.stringify({ error: "Invalid token" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    if (response.status === "confirmed") {
+      // Already confirmed — show success page anyway
+      return new Response(redirectHtml("Déjà confirmé", "Cette commande a déjà été confirmée. Merci !"), {
+        headers: { ...corsHeaders, "Content-Type": "text/html" },
+      });
+    }
 
-      if (tokenData.used_at) {
-        return new Response(JSON.stringify({ error: "Already responded" }), {
-          status: 410,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const now = new Date().toISOString();
 
-      if (new Date(tokenData.expires_at) < new Date()) {
-        return new Response(JSON.stringify({ error: "Token expired" }), {
-          status: 410,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // Mark as confirmed
+    await supabase
+      .from("supplier_responses")
+      .update({
+        status: "confirmed",
+        can_deliver_date: true,
+        can_deliver_time: true,
+        can_deliver_truck: true,
+        responded_at: now,
+        confirmed_at: now,
+      })
+      .eq("id", response.id);
 
-      const assignment = tokenData.supplier_assignments as any;
-      const responseId = assignment.supplier_responses?.[0]?.id;
+    // Get order info for notification
+    const { data: assignment } = await supabase
+      .from("supplier_assignments")
+      .select("order_id")
+      .eq("id", assignmentId)
+      .single();
 
-      if (!responseId) {
-        return new Response(JSON.stringify({ error: "No response record found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const now = new Date().toISOString();
-
-      // action = "confirm_all" or "modify"
-      if (action === "confirm_all") {
-        await supabase
-          .from("supplier_responses")
-          .update({
-            status: "confirmed",
-            can_deliver_date: true,
-            can_deliver_time: true,
-            can_deliver_truck: true,
-            responded_at: now,
-            confirmed_at: now,
-          })
-          .eq("id", responseId);
-      } else {
-        // "modify" — save partial response
-        await supabase
-          .from("supplier_responses")
-          .update({
-            status: "modified",
-            can_deliver_date: can_deliver_date ?? null,
-            can_deliver_time: can_deliver_time ?? null,
-            can_deliver_truck: can_deliver_truck ?? null,
-            alternative_date: alternative_date ?? null,
-            alternative_time: alternative_time ?? null,
-            alternative_truck: alternative_truck ?? null,
-            supplier_general_note: supplier_general_note ?? null,
-            responded_at: now,
-          })
-          .eq("id", responseId);
-
-        // Save item-level responses
-        if (item_responses && Array.isArray(item_responses)) {
-          for (const ir of item_responses) {
-            await supabase.from("item_responses").upsert({
-              response_id: responseId,
-              item_id: ir.item_id,
-              can_fulfill: ir.can_fulfill ?? true,
-              supplier_note: ir.supplier_note ?? null,
-            }, { onConflict: "response_id,item_id" });
-          }
-        }
-      }
-
-      // Mark token as used
-      await supabase
-        .from("supplier_response_tokens")
-        .update({ used_at: now })
-        .eq("id", tokenData.id);
-
+    if (assignment) {
       // Update order status
       await supabase
         .from("orders")
-        .update({
-          status: action === "confirm_all" ? "confirmed" : "modified",
-          updated_at: now,
-        })
+        .update({ status: "confirmed", updated_at: now })
         .eq("id", assignment.order_id);
 
-      // Send notification to RenoCart admin
+      // Get order number for notification
       const { data: order } = await supabase
         .from("orders")
         .select("order_number")
         .eq("id", assignment.order_id)
         .single();
 
+      // Create notification for admin
       await supabase.from("notifications").insert({
-        type: action === "confirm_all" ? "supplier_confirmed" : "supplier_modified",
-        title: action === "confirm_all"
-          ? `Confirmé — ${order?.order_number}`
-          : `Modifié — ${order?.order_number}`,
-        message: action === "confirm_all"
-          ? `Le fournisseur a confirmé la commande ${order?.order_number}.`
-          : `Le fournisseur a modifié sa réponse pour la commande ${order?.order_number}.`,
+        type: "supplier_confirmed",
+        title: `✅ Confirmé — ${order?.order_number}`,
+        message: `Le fournisseur a confirmé la commande ${order?.order_number}.`,
         order_id: assignment.order_id,
         is_read: false,
       });
-
-      return new Response(JSON.stringify({ success: true, action }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+    // Return a simple HTML confirmation page
+    return new Response(redirectHtml("Commande confirmée !", "Merci ! L'équipe RenoCart a été notifiée. Vous pouvez fermer cette page."), {
+      headers: { ...corsHeaders, "Content-Type": "text/html" },
+    });
   } catch (error) {
     console.error("supplier-respond error:", error);
     return new Response(
@@ -228,3 +109,17 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+function redirectHtml(title: string, message: string) {
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
+<body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f9fafb;">
+  <div style="text-align:center;max-width:400px;padding:40px;">
+    <div style="font-size:48px;margin-bottom:16px;">✅</div>
+    <h1 style="font-size:24px;color:#1a2e44;margin:0 0 12px;">${title}</h1>
+    <p style="color:#6b7280;font-size:16px;line-height:1.5;">${message}</p>
+  </div>
+</body>
+</html>`;
+}
