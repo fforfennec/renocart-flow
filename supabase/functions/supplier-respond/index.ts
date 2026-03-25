@@ -186,14 +186,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    return new Response(JSON.stringify({ error: "Invalid action" }), {
-      status: 400, headers: jsonHeaders,
-    });
+    return makeJsonResponse({ error: "Invalid action" }, 400);
   } catch (error) {
     console.error("supplier-respond error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: jsonHeaders }
+    return makeJsonResponse(
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      500
     );
   }
 });
