@@ -75,8 +75,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (nextSupplier) {
-        // Dispatch to next supplier
-        console.log(`Escalating order ${order.order_number} to ${nextSupplier.supplier_name} (priority ${nextSupplier.priority})`);
+        console.log(`Escalating order ${order.order_number} to ${nextSupplier.name} (priority ${nextSupplier.priority_order})`);
 
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -89,9 +88,9 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             order_id: assignment.order_id,
-            supplier_email: nextSupplier.supplier_email,
-            supplier_name: nextSupplier.supplier_name,
-            priority_rank: nextSupplier.priority,
+            supplier_email: nextSupplier.email,
+            supplier_name: nextSupplier.name,
+            priority_rank: nextSupplier.priority_order,
           }),
         });
 
