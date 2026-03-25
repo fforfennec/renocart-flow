@@ -53,9 +53,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (respErr || !response) {
-      return new Response(JSON.stringify({ error: "Assignment not found" }), {
-        status: 404, headers: jsonHeaders,
-      });
+      return makeJsonResponse({ error: "Assignment not found" }, 404);
     }
 
     // === UNDO action ===
