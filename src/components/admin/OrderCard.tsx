@@ -7,6 +7,7 @@ type Order = Database['public']['Tables']['orders']['Row'];
 export type AssignmentInfo = {
   supplier_id: string;
   assignment_type: string;
+  assigned_at?: string;
   profiles?: { full_name: string; company_name: string | null } | null;
 };
 

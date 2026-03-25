@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, AlertCircle, Package, Truck, User, Phone, MapPin, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Package, Truck, User, Phone, MapPin, Calendar, Clock, Send, Loader2 } from 'lucide-react';
 import OrderSidebar from '@/components/admin/OrderSidebar';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
@@ -17,6 +17,20 @@ type SupplierAssignment = Database['public']['Tables']['supplier_assignments']['
 };
 type ItemResponse = Database['public']['Tables']['item_responses']['Row'];
 
+function useMinutesAgo(timestamp: string | null) {
+  const [minutesAgo, setMinutesAgo] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!timestamp) { setMinutesAgo(null); return; }
+    const calc = () => setMinutesAgo(Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000));
+    calc();
+    const interval = setInterval(calc, 60000);
+    return () => clearInterval(interval);
+  }, [timestamp]);
+
+  return minutesAgo;
+}
+
 export default function OrderDetail() {
   const { orderId } = useParams();
   const navigate = useNavigate();
@@ -25,6 +39,10 @@ export default function OrderDetail() {
   const [assignments, setAssignments] = useState<SupplierAssignment[]>([]);
   const [itemResponses, setItemResponses] = useState<Record<string, ItemResponse>>({});
   const [loading, setLoading] = useState(true);
+  const [dispatching, setDispatching] = useState(false);
+
+  const materialAssignment = assignments.find(a => a.assignment_type === 'material');
+  const minutesAgo = useMinutesAgo(materialAssignment?.assigned_at ?? null);
 
   useEffect(() => {
     if (orderId) {
@@ -34,7 +52,6 @@ export default function OrderDetail() {
 
   const loadOrderDetails = async () => {
     try {
-      // Load order
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select('*')
@@ -44,7 +61,6 @@ export default function OrderDetail() {
       if (orderError) throw orderError;
       setOrder(orderData);
 
-      // Load order items
       const { data: itemsData, error: itemsError } = await supabase
         .from('order_items')
         .select('*')
@@ -54,7 +70,6 @@ export default function OrderDetail() {
       if (itemsError) throw itemsError;
       setItems(itemsData || []);
 
-      // Load supplier assignments with profiles and responses
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('supplier_assignments')
         .select(`
@@ -67,7 +82,6 @@ export default function OrderDetail() {
       if (assignmentsError) throw assignmentsError;
       setAssignments(assignmentsData as any || []);
 
-      // Load item responses
       if (assignmentsData && assignmentsData.length > 0) {
         const responseIds = assignmentsData
           .flatMap(a => (a as any).supplier_responses || [])
@@ -93,6 +107,25 @@ export default function OrderDetail() {
       toast.error('Failed to load order details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDispatch = async () => {
+    if (!orderId) return;
+    setDispatching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('dispatch-order', {
+        body: { order_id: orderId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success('Commande envoyée à Pont-Masson');
+      await loadOrderDetails();
+    } catch (error: any) {
+      console.error('Dispatch error:', error);
+      toast.error(error.message || 'Erreur lors de l\'envoi');
+    } finally {
+      setDispatching(false);
     }
   };
 
@@ -123,6 +156,7 @@ export default function OrderDetail() {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
       pending: { variant: 'secondary', label: 'New' },
+      assigned: { variant: 'default', label: 'Assigned' },
       in_progress: { variant: 'default', label: 'Contacted' },
       on_hold: { variant: 'outline', label: 'On Hold' },
       delivered: { variant: 'outline', label: 'Done' },
@@ -175,6 +209,20 @@ export default function OrderDetail() {
           <p className="text-sm text-muted-foreground">Created on {new Date(order.created_at).toLocaleString()}</p>
         </div>
         <div className="flex gap-2">
+          {!materialAssignment && (
+            <Button
+              onClick={handleDispatch}
+              disabled={dispatching}
+              className="bg-rc-navy hover:bg-rc-navy/90 text-white gap-2"
+            >
+              {dispatching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {dispatching ? 'Envoi…' : 'Dispatch to Pont-Masson'}
+            </Button>
+          )}
           <Button
             onClick={() => updateOrderStatus('delivered')}
             disabled={order.status === 'delivered'}
@@ -198,6 +246,16 @@ export default function OrderDetail() {
           </Button>
         </div>
       </div>
+
+      {/* Dispatch info banner */}
+      {materialAssignment && minutesAgo !== null && (
+        <div className="flex items-center gap-3 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+          <Send className="h-4 w-4 shrink-0" />
+          <span className="font-medium">
+            Envoyé à Pont-Masson — {minutesAgo < 1 ? 'à l\'instant' : `il y a ${minutesAgo} min`}
+          </span>
+        </div>
+      )}
 
       {/* Order Info Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

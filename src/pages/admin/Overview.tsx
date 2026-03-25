@@ -33,7 +33,7 @@ export default function AdminOverview() {
 
       const [ordersRes, assignmentsRes] = await Promise.all([
         supabase.from('orders').select('*').neq('status', 'archived').order('created_at', { ascending: false }),
-        supabase.from('supplier_assignments').select('order_id, supplier_id, assignment_type, profiles:supplier_id (full_name, company_name)'),
+        supabase.from('supplier_assignments').select('order_id, supplier_id, assignment_type, assigned_at, profiles:supplier_id (full_name, company_name)'),
       ]);
 
       if (ordersRes.error) throw ordersRes.error;
