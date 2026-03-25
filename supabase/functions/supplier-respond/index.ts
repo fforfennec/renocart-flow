@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
 
     // === Already confirmed ===
     if (response.status === "confirmed") {
-      return new Response(alreadyConfirmedHtml(), { headers: htmlHeaders });
+      return makeHtmlResponse(alreadyConfirmedHtml());
     }
 
     const now = new Date().toISOString();
