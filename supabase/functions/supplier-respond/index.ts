@@ -138,9 +138,8 @@ Deno.serve(async (req) => {
       }
 
       const undoUrl = `${SUPABASE_URL}/functions/v1/supplier-respond?assignment_id=${assignmentId}&action=undo`;
-      return new Response(
-        countdownHtml("Vous avez confirmé cette commande", "Confirmé — Merci !", undoUrl),
-        { headers: htmlHeaders }
+      return makeHtmlResponse(
+        countdownHtml("Vous avez confirmé cette commande", "Confirmé — Merci !", undoUrl)
       );
     }
 
