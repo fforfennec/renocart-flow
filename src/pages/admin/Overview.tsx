@@ -33,17 +33,33 @@ export default function AdminOverview() {
 
       const [ordersRes, assignmentsRes] = await Promise.all([
         supabase.from('orders').select('*').neq('status', 'archived').order('created_at', { ascending: false }),
-        supabase.from('supplier_assignments').select('order_id, supplier_id, assignment_type, assigned_at, profiles:supplier_id (full_name, company_name)'),
+        supabase.from('supplier_assignments').select('order_id, supplier_id, assignment_type, assigned_at'),
       ]);
 
       if (ordersRes.error) throw ordersRes.error;
       setOrders(ordersRes.data || []);
 
       if (!assignmentsRes.error && assignmentsRes.data) {
+        // Fetch profiles separately (no FK)
+        const supplierIds = [...new Set(assignmentsRes.data.map(a => a.supplier_id))];
+        let profilesMap: Record<string, { full_name: string; company_name: string | null }> = {};
+        if (supplierIds.length > 0) {
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('user_id, full_name, company_name')
+            .in('user_id', supplierIds);
+          (profilesData || []).forEach(p => {
+            profilesMap[p.user_id] = { full_name: p.full_name, company_name: p.company_name };
+          });
+        }
+
         const map: Record<string, AssignmentInfo[]> = {};
-        (assignmentsRes.data as any[]).forEach((a) => {
+        assignmentsRes.data.forEach((a) => {
           if (!map[a.order_id]) map[a.order_id] = [];
-          map[a.order_id].push(a);
+          map[a.order_id].push({
+            ...a,
+            profiles: profilesMap[a.supplier_id] || null,
+          } as any);
         });
         setAssignmentsByOrder(map);
       }

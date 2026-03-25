@@ -72,15 +72,29 @@ export default function OrderDetail() {
 
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('supplier_assignments')
-        .select(`
-          *,
-          profiles:supplier_id (full_name, company_name),
-          supplier_responses (*)
-        `)
+        .select(`*, supplier_responses (*)`)
         .eq('order_id', orderId);
 
       if (assignmentsError) throw assignmentsError;
-      setAssignments(assignmentsData as any || []);
+
+      // Fetch profiles separately (no FK relationship)
+      const supplierIds = (assignmentsData || []).map(a => a.supplier_id);
+      let profilesMap: Record<string, { full_name: string; company_name: string | null }> = {};
+      if (supplierIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, company_name')
+          .in('user_id', supplierIds);
+        (profilesData || []).forEach(p => {
+          profilesMap[p.user_id] = { full_name: p.full_name, company_name: p.company_name };
+        });
+      }
+
+      const enriched = (assignmentsData || []).map(a => ({
+        ...a,
+        profiles: profilesMap[a.supplier_id] || null,
+      }));
+      setAssignments(enriched as any);
 
       if (assignmentsData && assignmentsData.length > 0) {
         const responseIds = assignmentsData
@@ -210,18 +224,22 @@ export default function OrderDetail() {
         </div>
         <div className="flex gap-2">
           {!materialAssignment && (
-            <Button
-              onClick={handleDispatch}
-              disabled={dispatching}
-              className="bg-rc-navy hover:bg-rc-navy/90 text-white gap-2"
-            >
-              {dispatching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              {dispatching ? 'Envoi…' : 'Dispatch to Pont-Masson'}
-            </Button>
+            <div className="flex flex-col items-start">
+              <Button
+                variant="outline"
+                onClick={handleDispatch}
+                disabled={dispatching}
+                className="gap-2"
+              >
+                {dispatching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {dispatching ? 'Envoi…' : 'Manual Override'}
+              </Button>
+              <span className="text-xs text-muted-foreground mt-1">Auto-dispatch is active</span>
+            </div>
           )}
           <Button
             onClick={() => updateOrderStatus('delivered')}
