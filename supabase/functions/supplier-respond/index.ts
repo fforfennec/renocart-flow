@@ -37,9 +37,7 @@ Deno.serve(async (req) => {
     const action = url.searchParams.get("action") || "confirm";
 
     if (!assignmentId) {
-      return new Response(JSON.stringify({ error: "Missing assignment_id" }), {
-        status: 400, headers: jsonHeaders,
-      });
+      return makeJsonResponse({ error: "Missing assignment_id" }, 400);
     }
 
     const supabase = createClient(
