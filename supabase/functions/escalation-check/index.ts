@@ -94,11 +94,10 @@ Deno.serve(async (req) => {
           }),
         });
 
-        // Notify admin
         await supabase.from("notifications").insert({
           type: "escalation",
           title: `Escalade — ${order.order_number}`,
-          message: `Pas de réponse du fournisseur précédent. Commande envoyée à ${nextSupplier.supplier_name}.`,
+          message: `Pas de réponse du fournisseur précédent. Commande envoyée à ${nextSupplier.name}.`,
           order_id: assignment.order_id,
           is_read: false,
         });
