@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, AlertCircle, Package, Truck, User, Phone, MapPin, Calendar, Clock, Send, Loader2 } from 'lucide-react';
+import pontMassonLogo from '@/assets/pont-masson-logo.png';
 import OrderSidebar from '@/components/admin/OrderSidebar';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
