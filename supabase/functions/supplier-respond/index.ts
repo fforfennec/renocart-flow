@@ -5,8 +5,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const htmlHeaders = { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" };
-const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+function makeHtmlResponse(html: string, status = 200): Response {
+  return new Response(html, {
+    status,
+    headers: new Headers({
+      ...corsHeaders,
+      "Content-Type": "text/html; charset=utf-8",
+    }),
+  });
+}
+
+function makeJsonResponse(data: object, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: new Headers({
+      ...corsHeaders,
+      "Content-Type": "application/json",
+    }),
+  });
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
