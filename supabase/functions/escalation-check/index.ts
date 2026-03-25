@@ -69,8 +69,8 @@ Deno.serve(async (req) => {
         .from("supplier_priority")
         .select("*")
         .eq("is_active", true)
-        .gt("priority", currentRank)
-        .order("priority")
+        .gt("priority_order", currentRank)
+        .order("priority_order")
         .limit(1)
         .maybeSingle();
 
