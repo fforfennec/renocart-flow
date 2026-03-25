@@ -53,6 +53,44 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          order_id: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          order_id?: string | null
+          title: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          order_id?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_comments: {
         Row: {
           content: string
@@ -287,6 +325,7 @@ export type Database = {
           can_deliver_time: boolean | null
           can_deliver_truck: boolean | null
           confirmed_at: string | null
+          escalated_at: string | null
           id: string
           responded_at: string | null
           status: string
@@ -301,6 +340,7 @@ export type Database = {
           can_deliver_time?: boolean | null
           can_deliver_truck?: boolean | null
           confirmed_at?: string | null
+          escalated_at?: string | null
           id?: string
           responded_at?: string | null
           status?: string
@@ -315,6 +355,7 @@ export type Database = {
           can_deliver_time?: boolean | null
           can_deliver_truck?: boolean | null
           confirmed_at?: string | null
+          escalated_at?: string | null
           id?: string
           responded_at?: string | null
           status?: string
