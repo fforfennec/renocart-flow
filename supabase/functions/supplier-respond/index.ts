@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
           .eq("id", assignment.order_id);
       }
 
-      return new Response(undoSuccessHtml(), { headers: htmlHeaders });
+      return makeHtmlResponse(undoSuccessHtml());
     }
 
     // === Already confirmed ===
