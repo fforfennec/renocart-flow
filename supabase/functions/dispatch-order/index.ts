@@ -5,7 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PONT_MASSON_EMAIL = "badis@birouche.ca"; // TEST PHASE — swap to ebrodeur@pontmasson.com for prod
 const RENOCART_EMAIL = "commande@renocart.ca";
 
 Deno.serve(async (req) => {
@@ -14,7 +13,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { order_id } = await req.json();
+    const { order_id, supplier_email, supplier_name, priority_rank } = await req.json();
     if (!order_id) {
       return new Response(JSON.stringify({ error: "Missing order_id" }), {
         status: 400,
@@ -30,6 +29,37 @@ Deno.serve(async (req) => {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const APP_URL = Deno.env.get("APP_URL") || "https://renocart.ca";
 
+    // Determine which supplier to dispatch to
+    let targetEmail: string;
+    let targetName: string;
+    let rank: number;
+
+    if (supplier_email) {
+      targetEmail = supplier_email;
+      targetName = supplier_name || supplier_email;
+      rank = priority_rank || 1;
+    } else {
+      // Get the first active supplier from the priority list
+      const { data: firstSupplier } = await supabase
+        .from("supplier_priority")
+        .select("*")
+        .eq("is_active", true)
+        .order("priority")
+        .limit(1)
+        .single();
+
+      if (!firstSupplier) {
+        return new Response(JSON.stringify({ error: "No active suppliers configured" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      targetEmail = firstSupplier.supplier_email;
+      targetName = firstSupplier.supplier_name;
+      rank = firstSupplier.priority;
+    }
+
     // 1. Load order + items
     const { data: order, error: orderErr } = await supabase
       .from("orders")
@@ -44,38 +74,38 @@ Deno.serve(async (req) => {
       .eq("order_id", order_id)
       .order("sort_order");
 
-    // 2. Find or create Pont-Masson user
+    // 2. Find or create supplier user
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    let pontMassonUser = existingUsers?.users?.find(u => u.email === PONT_MASSON_EMAIL);
+    let supplierUser = existingUsers?.users?.find(u => u.email === targetEmail);
 
-    if (!pontMassonUser) {
+    if (!supplierUser) {
       const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
-        email: PONT_MASSON_EMAIL,
+        email: targetEmail,
         email_confirm: true,
-        user_metadata: { full_name: "Pont-Masson", company_name: "Pont-Masson" },
+        user_metadata: { full_name: targetName, company_name: targetName },
       });
       if (createErr) throw createErr;
-      pontMassonUser = newUser.user;
+      supplierUser = newUser.user;
 
       await supabase.from("profiles").upsert({
-        user_id: pontMassonUser.id,
-        full_name: "Pont-Masson",
-        company_name: "Pont-Masson",
+        user_id: supplierUser.id,
+        full_name: targetName,
+        company_name: targetName,
         supplier_type: "material",
       });
 
       await supabase.from("user_roles").upsert({
-        user_id: pontMassonUser.id,
+        user_id: supplierUser.id,
         role: "supplier",
       });
     }
 
-    // 3. Check if already assigned
+    // 3. Check if already assigned by this supplier
     const { data: existingAssignment } = await supabase
       .from("supplier_assignments")
       .select("id")
       .eq("order_id", order_id)
-      .eq("supplier_id", pontMassonUser.id)
+      .eq("supplier_id", supplierUser.id)
       .maybeSingle();
 
     let assignmentId: string;
@@ -88,9 +118,10 @@ Deno.serve(async (req) => {
         .from("supplier_assignments")
         .insert({
           order_id,
-          supplier_id: pontMassonUser.id,
+          supplier_id: supplierUser.id,
           assignment_type: "material",
           assigned_at: new Date().toISOString(),
+          priority_rank: rank,
         })
         .select("id")
         .single();
@@ -110,14 +141,19 @@ Deno.serve(async (req) => {
       .update({ status: "assigned", updated_at: new Date().toISOString() })
       .eq("id", order_id);
 
-    // 7. Generate magic link
-    const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
-      type: "magiclink",
-      email: PONT_MASSON_EMAIL,
-      options: { redirectTo: `${APP_URL}/supplier` },
-    });
-    if (linkErr) throw linkErr;
-    const magicLink = linkData?.properties?.action_link || `${APP_URL}/supplier`;
+    // 7. Generate response token (no login needed)
+    const { data: tokenData, error: tokenErr } = await supabase
+      .from("supplier_response_tokens")
+      .insert({
+        assignment_id: assignmentId,
+      })
+      .select("token")
+      .single();
+    if (tokenErr) throw tokenErr;
+
+    const responseToken = tokenData.token;
+    const confirmUrl = `${APP_URL}/supplier/respond?token=${responseToken}&action=confirm`;
+    const modifyUrl = `${APP_URL}/supplier/respond?token=${responseToken}`;
 
     // 8. Build items table for email
     const itemsHtml = (items || []).map(item => `
@@ -127,7 +163,7 @@ Deno.serve(async (req) => {
       </tr>
     `).join("");
 
-    // 9. Send email to Pont-Masson
+    // 9. Send email with two action buttons
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -136,7 +172,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: "RenoCart <commande@renocart.ca>",
-        to: [PONT_MASSON_EMAIL],
+        to: [targetEmail],
         subject: `Nouvelle commande RenoCart — ${order.order_number}`,
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
@@ -172,14 +208,19 @@ Deno.serve(async (req) => {
                 <p style="margin:0;font-size:13px;color:#92400e;"><strong>Note client :</strong> ${order.internal_notes}</p>
               </div>` : ""}
 
-              <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:20px;text-align:center;margin-bottom:8px;">
-                <p style="margin:0 0 4px;font-size:14px;color:#166534;font-weight:600;">Vous avez 30 minutes pour répondre</p>
-                <p style="margin:0 0 16px;font-size:13px;color:#16a34a;">Cliquez ci-dessous pour confirmer ou modifier la commande</p>
-                <a href="${magicLink}" style="display:inline-block;background:#1a2e44;color:#fff;text-decoration:none;padding:12px 32px;border-radius:6px;font-weight:600;font-size:15px;">
-                  Voir la commande →
+              <p style="margin:0 0 4px;font-size:14px;color:#166534;font-weight:600;text-align:center;">Vous avez 30 minutes pour répondre</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#16a34a;text-align:center;">Cliquez sur un bouton ci-dessous</p>
+
+              <div style="text-align:center;margin-bottom:16px;">
+                <a href="${confirmUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:14px 40px;border-radius:6px;font-weight:600;font-size:15px;margin-right:12px;">
+                  ✅ Je confirme tout
+                </a>
+                <a href="${modifyUrl}" style="display:inline-block;background:#d97706;color:#fff;text-decoration:none;padding:14px 40px;border-radius:6px;font-weight:600;font-size:15px;">
+                  ⚠️ Je dois modifier
                 </a>
               </div>
-              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;text-align:center;">Ce lien vous connecte directement à votre portail RenoCart.</p>
+
+              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;text-align:center;">Aucune connexion requise — ces boutons vous permettent de répondre directement.</p>
             </div>
           </div>
         `,
