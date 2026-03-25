@@ -224,18 +224,22 @@ export default function OrderDetail() {
         </div>
         <div className="flex gap-2">
           {!materialAssignment && (
-            <Button
-              onClick={handleDispatch}
-              disabled={dispatching}
-              className="bg-rc-navy hover:bg-rc-navy/90 text-white gap-2"
-            >
-              {dispatching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              {dispatching ? 'Envoi…' : 'Dispatch to Pont-Masson'}
-            </Button>
+            <div className="flex flex-col items-start">
+              <Button
+                variant="outline"
+                onClick={handleDispatch}
+                disabled={dispatching}
+                className="gap-2"
+              >
+                {dispatching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {dispatching ? 'Envoi…' : 'Manual Override'}
+              </Button>
+              <span className="text-xs text-muted-foreground mt-1">Auto-dispatch is active</span>
+            </div>
           )}
           <Button
             onClick={() => updateOrderStatus('delivered')}
