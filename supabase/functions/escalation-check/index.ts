@@ -69,14 +69,13 @@ Deno.serve(async (req) => {
         .from("supplier_priority")
         .select("*")
         .eq("is_active", true)
-        .gt("priority", currentRank)
-        .order("priority")
+        .gt("priority_order", currentRank)
+        .order("priority_order")
         .limit(1)
         .maybeSingle();
 
       if (nextSupplier) {
-        // Dispatch to next supplier
-        console.log(`Escalating order ${order.order_number} to ${nextSupplier.supplier_name} (priority ${nextSupplier.priority})`);
+        console.log(`Escalating order ${order.order_number} to ${nextSupplier.name} (priority ${nextSupplier.priority_order})`);
 
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -89,17 +88,16 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             order_id: assignment.order_id,
-            supplier_email: nextSupplier.supplier_email,
-            supplier_name: nextSupplier.supplier_name,
-            priority_rank: nextSupplier.priority,
+            supplier_email: nextSupplier.email,
+            supplier_name: nextSupplier.name,
+            priority_rank: nextSupplier.priority_order,
           }),
         });
 
-        // Notify admin
         await supabase.from("notifications").insert({
           type: "escalation",
           title: `Escalade — ${order.order_number}`,
-          message: `Pas de réponse du fournisseur précédent. Commande envoyée à ${nextSupplier.supplier_name}.`,
+          message: `Pas de réponse du fournisseur précédent. Commande envoyée à ${nextSupplier.name}.`,
           order_id: assignment.order_id,
           is_read: false,
         });

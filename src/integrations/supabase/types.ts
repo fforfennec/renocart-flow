@@ -321,61 +321,37 @@ export type Database = {
       supplier_priority: {
         Row: {
           created_at: string
+          email: string
           id: string
           is_active: boolean
-          priority: number
-          supplier_email: string
-          supplier_name: string
+          name: string
+          priority_order: number
+          supplier_id: string | null
         }
         Insert: {
           created_at?: string
+          email: string
           id?: string
           is_active?: boolean
-          priority?: number
-          supplier_email: string
-          supplier_name: string
+          name: string
+          priority_order?: number
+          supplier_id?: string | null
         }
         Update: {
           created_at?: string
+          email?: string
           id?: string
           is_active?: boolean
-          priority?: number
-          supplier_email?: string
-          supplier_name?: string
-        }
-        Relationships: []
-      }
-      supplier_response_tokens: {
-        Row: {
-          assignment_id: string
-          created_at: string
-          expires_at: string
-          id: string
-          token: string
-          used_at: string | null
-        }
-        Insert: {
-          assignment_id: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          token?: string
-          used_at?: string | null
-        }
-        Update: {
-          assignment_id?: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          token?: string
-          used_at?: string | null
+          name?: string
+          priority_order?: number
+          supplier_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "supplier_response_tokens_assignment_id_fkey"
-            columns: ["assignment_id"]
+            foreignKeyName: "supplier_priority_supplier_id_fkey"
+            columns: ["supplier_id"]
             isOneToOne: false
-            referencedRelation: "supplier_assignments"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

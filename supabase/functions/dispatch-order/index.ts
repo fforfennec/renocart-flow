@@ -5,8 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const RENOCART_EMAIL = "commande@renocart.ca";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -28,6 +26,7 @@ Deno.serve(async (req) => {
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const APP_URL = Deno.env.get("APP_URL") || "https://renocart.ca";
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 
     // Determine which supplier to dispatch to
     let targetEmail: string;
@@ -44,7 +43,7 @@ Deno.serve(async (req) => {
         .from("supplier_priority")
         .select("*")
         .eq("is_active", true)
-        .order("priority")
+        .order("priority_order")
         .limit(1)
         .single();
 
@@ -55,9 +54,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      targetEmail = firstSupplier.supplier_email;
-      targetName = firstSupplier.supplier_name;
-      rank = firstSupplier.priority;
+      targetEmail = firstSupplier.email;
+      targetName = firstSupplier.name;
+      rank = firstSupplier.priority_order;
     }
 
     // 1. Load order + items
@@ -100,7 +99,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Check if already assigned by this supplier
+    // 3. Check if already assigned by this supplier for this order
     const { data: existingAssignment } = await supabase
       .from("supplier_assignments")
       .select("id")
@@ -113,7 +112,6 @@ Deno.serve(async (req) => {
     if (existingAssignment) {
       assignmentId = existingAssignment.id;
     } else {
-      // 4. Create assignment
       const { data: assignment, error: assignErr } = await supabase
         .from("supplier_assignments")
         .insert({
@@ -128,34 +126,32 @@ Deno.serve(async (req) => {
       if (assignErr) throw assignErr;
       assignmentId = assignment.id;
 
-      // 5. Create pending response record
       await supabase.from("supplier_responses").insert({
         assignment_id: assignmentId,
         status: "pending",
       });
     }
 
-    // 6. Update order status to assigned
+    // 4. Update order status
     await supabase
       .from("orders")
       .update({ status: "assigned", updated_at: new Date().toISOString() })
       .eq("id", order_id);
 
-    // 7. Generate response token (no login needed)
-    const { data: tokenData, error: tokenErr } = await supabase
-      .from("supplier_response_tokens")
-      .insert({
-        assignment_id: assignmentId,
-      })
-      .select("token")
-      .single();
-    if (tokenErr) throw tokenErr;
+    // 5. Build URLs
+    // Confirm = direct call to supplier-respond edge function (one-click, no login)
+    const confirmUrl = `${SUPABASE_URL}/functions/v1/supplier-respond?assignment_id=${assignmentId}`;
 
-    const responseToken = tokenData.token;
-    const confirmUrl = `${APP_URL}/supplier/respond?token=${responseToken}&action=confirm`;
-    const modifyUrl = `${APP_URL}/supplier/respond?token=${responseToken}`;
+    // Modify = magic link to supplier portal
+    const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
+      type: "magiclink",
+      email: targetEmail,
+      options: { redirectTo: `${APP_URL}/supplier` },
+    });
+    if (linkErr) throw linkErr;
+    const modifyUrl = linkData?.properties?.action_link || `${APP_URL}/supplier`;
 
-    // 8. Build items table for email
+    // 6. Build items table
     const itemsHtml = (items || []).map(item => `
       <tr>
         <td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;font-size:14px;">${item.name}</td>
@@ -163,7 +159,7 @@ Deno.serve(async (req) => {
       </tr>
     `).join("");
 
-    // 9. Send email with two action buttons
+    // 7. Send email
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -211,16 +207,22 @@ Deno.serve(async (req) => {
               <p style="margin:0 0 4px;font-size:14px;color:#166534;font-weight:600;text-align:center;">Vous avez 30 minutes pour répondre</p>
               <p style="margin:0 0 20px;font-size:13px;color:#16a34a;text-align:center;">Cliquez sur un bouton ci-dessous</p>
 
-              <div style="text-align:center;margin-bottom:16px;">
-                <a href="${confirmUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:14px 40px;border-radius:6px;font-weight:600;font-size:15px;margin-right:12px;">
-                  ✅ Je confirme tout
-                </a>
-                <a href="${modifyUrl}" style="display:inline-block;background:#d97706;color:#fff;text-decoration:none;padding:14px 40px;border-radius:6px;font-weight:600;font-size:15px;">
-                  ⚠️ Je dois modifier
-                </a>
-              </div>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 16px;">
+                <tr>
+                  <td style="padding-right:12px;">
+                    <a href="${confirmUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:14px 32px;border-radius:6px;font-weight:600;font-size:15px;">
+                      ✅ Oui, je confirme
+                    </a>
+                  </td>
+                  <td>
+                    <a href="${modifyUrl}" style="display:inline-block;background:#d97706;color:#fff;text-decoration:none;padding:14px 32px;border-radius:6px;font-weight:600;font-size:15px;">
+                      ✏️ Modifier / Je ne peux pas
+                    </a>
+                  </td>
+                </tr>
+              </table>
 
-              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;text-align:center;">Aucune connexion requise — ces boutons vous permettent de répondre directement.</p>
+              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;text-align:center;">Aucune connexion requise pour confirmer.</p>
             </div>
           </div>
         `,
