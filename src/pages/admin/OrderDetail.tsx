@@ -72,15 +72,29 @@ export default function OrderDetail() {
 
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('supplier_assignments')
-        .select(`
-          *,
-          profiles:supplier_id (full_name, company_name),
-          supplier_responses (*)
-        `)
+        .select(`*, supplier_responses (*)`)
         .eq('order_id', orderId);
 
       if (assignmentsError) throw assignmentsError;
-      setAssignments(assignmentsData as any || []);
+
+      // Fetch profiles separately (no FK relationship)
+      const supplierIds = (assignmentsData || []).map(a => a.supplier_id);
+      let profilesMap: Record<string, { full_name: string; company_name: string | null }> = {};
+      if (supplierIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, company_name')
+          .in('user_id', supplierIds);
+        (profilesData || []).forEach(p => {
+          profilesMap[p.user_id] = { full_name: p.full_name, company_name: p.company_name };
+        });
+      }
+
+      const enriched = (assignmentsData || []).map(a => ({
+        ...a,
+        profiles: profilesMap[a.supplier_id] || null,
+      }));
+      setAssignments(enriched as any);
 
       if (assignmentsData && assignmentsData.length > 0) {
         const responseIds = assignmentsData
