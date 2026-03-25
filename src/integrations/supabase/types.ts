@@ -287,6 +287,7 @@ export type Database = {
           assignment_type: Database["public"]["Enums"]["supplier_type"]
           id: string
           order_id: string
+          priority_rank: number | null
           supplier_id: string
         }
         Insert: {
@@ -295,6 +296,7 @@ export type Database = {
           assignment_type?: Database["public"]["Enums"]["supplier_type"]
           id?: string
           order_id: string
+          priority_rank?: number | null
           supplier_id: string
         }
         Update: {
@@ -303,6 +305,7 @@ export type Database = {
           assignment_type?: Database["public"]["Enums"]["supplier_type"]
           id?: string
           order_id?: string
+          priority_rank?: number | null
           supplier_id?: string
         }
         Relationships: [
@@ -311,6 +314,68 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_priority: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          priority: number
+          supplier_email: string
+          supplier_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          supplier_email: string
+          supplier_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          supplier_email?: string
+          supplier_name?: string
+        }
+        Relationships: []
+      }
+      supplier_response_tokens: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_response_tokens_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_assignments"
             referencedColumns: ["id"]
           },
         ]

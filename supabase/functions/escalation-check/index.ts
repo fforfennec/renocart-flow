@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const RENOCART_EMAIL = "commande@renocart.ca";
-const PONT_MASSON_NAME = "Pont-Masson";
+const ESCALATION_MINUTES = 35;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,19 +20,21 @@ Deno.serve(async (req) => {
   const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
   try {
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const cutoff = new Date(Date.now() - ESCALATION_MINUTES * 60 * 1000).toISOString();
 
-    // Find assignments older than 30 min still pending, not yet escalated
+    // Find assignments older than 35 min still pending, not yet escalated
     const { data: lateAssignments, error } = await supabase
       .from("supplier_assignments")
       .select(`
         id,
         assigned_at,
         order_id,
-        orders (order_number, client_address, delivery_date),
+        supplier_id,
+        priority_rank,
+        orders (order_number, client_address, delivery_date, delivery_time_window, truck_type, internal_notes),
         supplier_responses (status, escalated_at)
       `)
-      .lt("assigned_at", thirtyMinutesAgo)
+      .lt("assigned_at", cutoff)
       .filter("supplier_responses.status", "eq", "pending");
 
     if (error) throw error;
@@ -47,55 +49,103 @@ Deno.serve(async (req) => {
 
     for (const assignment of toEscalate) {
       const order = (assignment as any).orders;
+      const currentRank = assignment.priority_rank || 1;
 
-      // Mark as escalated
+      // Mark current assignment as escalated
       await supabase
         .from("supplier_responses")
-        .update({ escalated_at: new Date().toISOString() })
+        .update({ escalated_at: new Date().toISOString(), status: "expired" })
         .eq("assignment_id", assignment.id);
 
-      // Create in-app notification
-      await supabase.from("notifications").insert({
-        type: "escalation",
-        title: `No response — ${order.order_number}`,
-        message: `${PONT_MASSON_NAME} has not responded to order ${order.order_number} after 30 minutes.`,
-        order_id: assignment.order_id,
-        is_read: false,
-        created_at: new Date().toISOString(),
-      });
+      // Expire any unused tokens for this assignment
+      await supabase
+        .from("supplier_response_tokens")
+        .update({ used_at: new Date().toISOString() })
+        .eq("assignment_id", assignment.id)
+        .is("used_at", null);
 
-      // Send escalation email to RenoCart
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "RenoCart Alerts <commande@renocart.ca>",
-          to: [RENOCART_EMAIL],
-          subject: `⚠️ Aucune réponse — Commande ${order.order_number}`,
-          html: `
-            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
-              <div style="background:#7f1d1d;padding:24px 32px;border-radius:8px 8px 0 0;">
-                <h1 style="color:#fff;margin:0;font-size:20px;">⚠️ Alerte — Aucune réponse</h1>
-              </div>
-              <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;padding:32px;border-radius:0 0 8px 8px;">
-                <p style="font-size:16px;margin:0 0 16px;">
-                  <strong>${PONT_MASSON_NAME}</strong> n'a pas répondu à la commande 
-                  <strong>${order.order_number}</strong> depuis plus de 30 minutes.
-                </p>
-                <div style="background:#f9fafb;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
-                  <p style="margin:0 0 4px;font-size:14px;color:#6b7280;">Adresse de livraison</p>
-                  <p style="margin:0;font-weight:600;">${order.client_address}</p>
-                  <p style="margin:4px 0 0;font-size:14px;color:#6b7280;">Date : ${new Date(order.delivery_date).toLocaleDateString('fr-CA')}</p>
+      // Find the next supplier in priority list
+      const { data: nextSupplier } = await supabase
+        .from("supplier_priority")
+        .select("*")
+        .eq("is_active", true)
+        .gt("priority", currentRank)
+        .order("priority")
+        .limit(1)
+        .maybeSingle();
+
+      if (nextSupplier) {
+        // Dispatch to next supplier
+        console.log(`Escalating order ${order.order_number} to ${nextSupplier.supplier_name} (priority ${nextSupplier.priority})`);
+
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+        await fetch(`${supabaseUrl}/functions/v1/dispatch-order`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${serviceKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            order_id: assignment.order_id,
+            supplier_email: nextSupplier.supplier_email,
+            supplier_name: nextSupplier.supplier_name,
+            priority_rank: nextSupplier.priority,
+          }),
+        });
+
+        // Notify admin
+        await supabase.from("notifications").insert({
+          type: "escalation",
+          title: `Escalade — ${order.order_number}`,
+          message: `Pas de réponse du fournisseur précédent. Commande envoyée à ${nextSupplier.supplier_name}.`,
+          order_id: assignment.order_id,
+          is_read: false,
+        });
+      } else {
+        // No more suppliers — notify admin urgently
+        await supabase.from("notifications").insert({
+          type: "escalation_final",
+          title: `⚠️ Aucun fournisseur — ${order.order_number}`,
+          message: `Tous les fournisseurs ont été contactés sans réponse pour la commande ${order.order_number}.`,
+          order_id: assignment.order_id,
+          is_read: false,
+        });
+
+        // Email alert to RenoCart
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "RenoCart Alerts <commande@renocart.ca>",
+            to: [RENOCART_EMAIL],
+            subject: `⚠️ Aucun fournisseur disponible — ${order.order_number}`,
+            html: `
+              <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+                <div style="background:#7f1d1d;padding:24px 32px;border-radius:8px 8px 0 0;">
+                  <h1 style="color:#fff;margin:0;font-size:20px;">⚠️ Alerte — Aucun fournisseur</h1>
                 </div>
-                <p style="font-size:14px;color:#6b7280;">Connectez-vous au portail admin pour prendre les mesures nécessaires.</p>
+                <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;padding:32px;border-radius:0 0 8px 8px;">
+                  <p style="font-size:16px;margin:0 0 16px;">
+                    Tous les fournisseurs ont été contactés sans réponse pour la commande 
+                    <strong>${order.order_number}</strong>.
+                  </p>
+                  <div style="background:#f9fafb;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
+                    <p style="margin:0 0 4px;font-size:14px;color:#6b7280;">Adresse de livraison</p>
+                    <p style="margin:0;font-weight:600;">${order.client_address}</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#6b7280;">Date : ${new Date(order.delivery_date).toLocaleDateString('fr-CA')}</p>
+                  </div>
+                  <p style="font-size:14px;color:#6b7280;">Connectez-vous au portail admin pour prendre les mesures nécessaires.</p>
+                </div>
               </div>
-            </div>
-          `,
-        }),
-      });
+            `,
+          }),
+        });
+      }
 
       console.log(`Escalated assignment ${assignment.id} for order ${order.order_number}`);
     }

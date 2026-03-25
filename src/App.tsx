@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/Dashboard";
 import SupplierDashboard from "./pages/supplier/Dashboard";
+import SupplierRespond from "./pages/supplier/SupplierRespond";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/admin/*" element={<AdminDashboard />} />
             
             {/* Supplier Routes */}
+            <Route path="/supplier/respond" element={<SupplierRespond />} />
             <Route path="/supplier/*" element={<SupplierDashboard />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
