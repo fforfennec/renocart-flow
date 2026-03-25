@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { Package, Truck, ChevronDown } from 'lucide-react';
+import { Package, Truck, ChevronDown, Send } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,20 @@ import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { AssignmentInfo, getStatusBadge, isLate, LateBadge, getSupplierInitial, getSupplierName } from './OrderCard';
 import { toast } from 'sonner';
+
+function PontMassonTimeBadge({ assignedAt }: { assignedAt: string }) {
+  const [mins, setMins] = useState(() => Math.floor((Date.now() - new Date(assignedAt).getTime()) / 60000));
+  useEffect(() => {
+    const interval = setInterval(() => setMins(Math.floor((Date.now() - new Date(assignedAt).getTime()) / 60000)), 60000);
+    return () => clearInterval(interval);
+  }, [assignedAt]);
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-yellow-700 bg-yellow-100 border border-yellow-300 rounded px-2 py-0.5">
+      <Send className="h-3 w-3" />
+      Pont-Masson — {mins < 1 ? '<1' : mins}min
+    </span>
+  );
+}
 
 type Order = Database['public']['Tables']['orders']['Row'];
 
