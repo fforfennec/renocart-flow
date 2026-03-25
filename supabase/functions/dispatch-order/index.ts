@@ -144,14 +144,7 @@ Deno.serve(async (req) => {
     // Modify = goes through supplier-respond with undo window, then redirects to portal
     const modifyUrl = `${SUPABASE_URL}/functions/v1/supplier-respond?assignment_id=${assignmentId}&action=modify`;
 
-    // Modify = magic link to supplier portal
-    const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
-      type: "magiclink",
-      email: targetEmail,
-      options: { redirectTo: `${APP_URL}/supplier` },
-    });
-    if (linkErr) throw linkErr;
-    const modifyUrl = linkData?.properties?.action_link || `${APP_URL}/supplier`;
+    // Magic link generation removed — modify button now goes through supplier-respond with undo window
 
     // 6. Build items table
     const itemsHtml = (items || []).map(item => `
