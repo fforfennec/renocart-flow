@@ -26,7 +26,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             
             {/* Admin Routes */}
-            <Route path="/admin/*" element={<AdminDashboard />} />
+            <Route path="/admin/*" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
             
             {/* Supplier Routes */}
             <Route path="/supplier/respond" element={<SupplierRespond />} />
