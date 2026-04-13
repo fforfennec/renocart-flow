@@ -206,6 +206,16 @@ const Automations = () => {
             <CompactBranch variant="destructive" title="Personne ne répond" tooltip="Automation arrêtée. Email à tous les fournisseurs. Alerte admin — gestion manuelle requise." />
           </div>
 
+          <FlowArrow label="" />
+
+          {/* Step 5: Manual assignment */}
+          <CompactStep
+            icon={<HandMetal className="h-4 w-4" />}
+            title="Assignation manuelle"
+            color="bg-destructive/10 text-destructive"
+            tooltip="L'automation est terminée. Un admin doit prendre le relais et assigner manuellement la commande à un fournisseur depuis la page de détail."
+          />
+
         </div>
       </div>
     </TooltipProvider>
