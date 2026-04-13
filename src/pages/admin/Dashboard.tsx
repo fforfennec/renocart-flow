@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/NavLink';
@@ -8,6 +8,7 @@ import AdminHistorique from './Historique';
 import AdminStats from './Stats';
 import AdminFAQ from './FAQ';
 import AdminOrderDetail from './OrderDetail';
+import AdminSuppliers from './Suppliers';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
