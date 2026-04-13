@@ -257,7 +257,6 @@ export default function SupplierDetail() {
           )}
         </div>
       </div>
-      </div>
 
       {/* Branches */}
       <Card>
