@@ -295,13 +295,13 @@ export default function SupplierDetail() {
           <h2 className="font-semibold flex items-center gap-2"><User className="h-4 w-4" />Contacts ({contacts.length})</h2>
           <Dialog open={contactDialogOpen} onOpenChange={open => {
             setContactDialogOpen(open);
-            if (!open) { setContactName(''); setContactEmail(''); setContactPhone(''); setContactRole(''); setContactBranch('none'); setContactIsPrimary(false); }
+            if (!open) resetContactForm();
           }}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1"><Plus className="h-3.5 w-3.5" />Contact</Button>
+              <Button variant="outline" size="sm" className="gap-1" onClick={() => resetContactForm()}><Plus className="h-3.5 w-3.5" />Contact</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Ajouter un contact</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editingContactId ? 'Modifier le contact' : 'Ajouter un contact'}</DialogTitle></DialogHeader>
               <div className="space-y-3 pt-2">
                 <div className="space-y-1.5"><Label>Nom complet</Label><Input value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Prénom Nom" /></div>
                 <div className="space-y-1.5"><Label>Email</Label><Input value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="email@..." type="email" /></div>
@@ -320,8 +320,8 @@ export default function SupplierDetail() {
                   </div>
                 )}
                 <div className="flex items-center gap-2"><Switch checked={contactIsPrimary} onCheckedChange={setContactIsPrimary} /><Label>Contact principal</Label></div>
-                <Button onClick={handleAddContact} disabled={saving || !contactName.trim()} className="w-full">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Ajouter
+                <Button onClick={handleSaveContact} disabled={saving || !contactName.trim()} className="w-full">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{editingContactId ? 'Sauvegarder' : 'Ajouter'}
                 </Button>
               </div>
             </DialogContent>
