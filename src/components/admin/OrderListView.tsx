@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Package, Truck, ChevronDown, Send } from 'lucide-react';
 import pontMassonLogo from '@/assets/pont-masson-logo.png';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Database } from '@/integrations/supabase/types';
