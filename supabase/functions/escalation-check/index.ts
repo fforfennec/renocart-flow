@@ -7,6 +7,7 @@ const corsHeaders = {
 
 const RENOCART_EMAIL = "commande@renocart.ca";
 const ESCALATION_MINUTES = 35;
+const INITIAL_HOLD_MINUTES = 5;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
