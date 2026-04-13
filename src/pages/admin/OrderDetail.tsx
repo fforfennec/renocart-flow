@@ -244,19 +244,15 @@ export default function OrderDetail() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const MATERIAL_SUPPLIERS = [
-    { value: 'pont-masson', label: 'Pont-Masson' },
-    { value: 'lefebvre-benoit', label: 'Lefebvre et Benoit' },
-    { value: 'ciot', label: 'Ciot' },
-    { value: 'home-depot', label: 'Home Dépôt' },
-    { value: 'autres', label: 'Autres' },
-  ];
+  const MATERIAL_SUPPLIERS = suppliersList
+    .filter(s => s.type === 'material' || s.type === 'both')
+    .map(s => ({ value: s.id, label: s.name }));
+  MATERIAL_SUPPLIERS.push({ value: 'autres', label: 'Autres' });
 
-  const DSP_OPTIONS = [
-    { value: 'mustapha', label: 'Mustapha' },
-    { value: 'badis', label: 'Badis' },
-    { value: 'autres', label: 'Autres' },
-  ];
+  const DSP_OPTIONS = suppliersList
+    .filter(s => s.type === 'delivery' || s.type === 'both')
+    .map(s => ({ value: s.id, label: s.name }));
+  DSP_OPTIONS.push({ value: 'autres', label: 'Autres' });
 
   const handleQuickSelect = (value: string, type: 'material' | 'delivery') => {
     setSelectedPriorityId(value);
