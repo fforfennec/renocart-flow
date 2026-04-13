@@ -340,7 +340,10 @@ export default function SupplierDetail() {
                     </Select>
                   </div>
                 )}
-                <div className="flex items-center gap-2"><Switch checked={contactIsPrimary} onCheckedChange={setContactIsPrimary} /><Label>Contact principal</Label></div>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2"><Switch checked={contactIsPrimary} onCheckedChange={setContactIsPrimary} /><Label>Contact principal</Label></div>
+                  <div className="flex items-center gap-2"><Switch checked={contactAlwaysCc} onCheckedChange={setContactAlwaysCc} /><Label>Always CC</Label></div>
+                </div>
                 <Button onClick={handleSaveContact} disabled={saving || !contactName.trim()} className="w-full">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{editingContactId ? 'Sauvegarder' : 'Ajouter'}
                 </Button>
