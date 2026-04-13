@@ -364,6 +364,7 @@ export default function SupplierDetail() {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{c.full_name}</span>
                       {c.is_primary && <Badge variant="secondary" className="text-[10px] gap-0.5 px-1.5"><Star className="h-2.5 w-2.5" />Principal</Badge>}
+                      {c.always_cc && <Badge variant="outline" className="text-[10px] px-1.5">CC</Badge>}
                     </div>
                     {c.role && <p className="text-sm text-muted-foreground">{c.role}</p>}
                     {c.email && <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 shrink-0" />{c.email}</p>}
