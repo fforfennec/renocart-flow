@@ -36,6 +36,20 @@ function useMinutesAgo(timestamp: string | null) {
   return minutesAgo;
 }
 
+function ElapsedBadge({ createdAt }: { createdAt: string }) {
+  const minutes = useMinutesAgo(createdAt);
+  if (minutes === null) return null;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const label = h > 0 ? `${h}h${m.toString().padStart(2, '0')}m` : `${m}m`;
+  return (
+    <Badge variant="outline" className={`gap-1 ${minutes > 60 ? 'border-destructive text-destructive' : 'text-muted-foreground'}`}>
+      <Clock className="h-3 w-3" />
+      {label}
+    </Badge>
+  );
+}
+
 export default function OrderDetail() {
   const { orderId } = useParams();
   const navigate = useNavigate();
@@ -363,6 +377,9 @@ export default function OrderDetail() {
                 <AlertCircle className="h-3 w-3" />
                 Late
               </Badge>
+            )}
+            {['pending', 'assigned', 'on_hold'].includes(order.status) && (
+              <ElapsedBadge createdAt={order.created_at} />
             )}
           </div>
           <p className="text-sm text-muted-foreground">Created on {new Date(order.created_at).toLocaleString()}</p>
