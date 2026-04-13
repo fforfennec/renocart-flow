@@ -172,7 +172,7 @@ export default function AdminOverview() {
             <OrderListView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} onOrderRead={handleOrderRead} onOrderUpdate={handleOrderUpdate} />
           )}
           {activeView === 'board' && (
-            <OrderBoardView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} />
+            <OrderBoardView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} onOrderUpdate={handleOrderUpdate} />
           )}
           {activeView === 'calendar' && (
             <OrderCalendarView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} />
