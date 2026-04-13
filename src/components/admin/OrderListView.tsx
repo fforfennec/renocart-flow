@@ -303,6 +303,34 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
                 </DropdownMenu>
               </div>
 
+              {/* Automation toggle */}
+              <div className="w-10 shrink-0 flex justify-center" onClick={e => e.stopPropagation()}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const paused = !(order as any).automation_paused;
+                        const { error } = await supabase.from('orders').update({ automation_paused: paused } as any).eq('id', order.id);
+                        if (error) { toast.error('Erreur'); return; }
+                        onOrderUpdate?.(order.id, { automation_paused: paused } as any);
+                        toast.success(paused ? 'Automation en pause' : 'Automation reprise');
+                      }}
+                      className={`h-8 w-8 rounded-full flex items-center justify-center border transition-colors ${
+                        (order as any).automation_paused
+                          ? 'bg-orange-100 border-orange-300 text-orange-600 hover:bg-orange-200'
+                          : 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
+                      }`}
+                    >
+                      {(order as any).automation_paused ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {(order as any).automation_paused ? 'Automation en pause — cliquer pour reprendre' : 'Automation active — cliquer pour mettre en pause'}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+
               {/* Supplier column - dropdown picker */}
               <div className="w-10 flex flex-col items-center justify-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
                 <SupplierPickerBubble
