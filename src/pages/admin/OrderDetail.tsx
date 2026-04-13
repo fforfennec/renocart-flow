@@ -185,6 +185,46 @@ export default function OrderDetail() {
     return delivery < today;
   };
 
+  const handleManualAssign = async (type: 'material' | 'delivery') => {
+    if (!orderId || !assignEmail || !assignName) {
+      toast.error('Veuillez remplir le nom et l\'email');
+      return;
+    }
+    setAssigningManual(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('dispatch-order', {
+        body: { order_id: orderId, supplier_email: assignEmail, supplier_name: assignName, priority_rank: 99 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`${type === 'material' ? 'Fournisseur' : 'DSP'} assigné avec succès`);
+      setAssignDialogOpen(null);
+      setAssignEmail('');
+      setAssignName('');
+      setSelectedPriorityId('custom');
+      await loadOrderDetails();
+    } catch (error: any) {
+      console.error('Manual assign error:', error);
+      toast.error(error.message || 'Erreur lors de l\'assignation');
+    } finally {
+      setAssigningManual(false);
+    }
+  };
+
+  const handlePrioritySelect = (id: string) => {
+    setSelectedPriorityId(id);
+    if (id === 'custom') {
+      setAssignEmail('');
+      setAssignName('');
+    } else {
+      const supplier = supplierPriority.find(s => s.id === id);
+      if (supplier) {
+        setAssignEmail(supplier.email);
+        setAssignName(supplier.name);
+      }
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
       pending: { variant: 'secondary', label: 'New' },
@@ -197,6 +237,55 @@ export default function OrderDetail() {
     const config = variants[status] || { variant: 'secondary', label: status };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
+
+  const AssignDialog = ({ type }: { type: 'material' | 'delivery' }) => (
+    <Dialog open={assignDialogOpen === type} onOpenChange={(open) => {
+      if (!open) { setAssignDialogOpen(null); setAssignEmail(''); setAssignName(''); setSelectedPriorityId('custom'); }
+      else setAssignDialogOpen(type);
+    }}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <Plus className="h-3.5 w-3.5" />
+          Assigner
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Assigner un {type === 'material' ? 'fournisseur' : 'DSP'}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-2">
+          {supplierPriority.length > 0 && (
+            <div className="space-y-2">
+              <Label>Sélectionner depuis la liste</Label>
+              <Select value={selectedPriorityId} onValueChange={handlePrioritySelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un fournisseur..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {supplierPriority.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name} ({s.email})</SelectItem>
+                  ))}
+                  <SelectItem value="custom">Personnalisé...</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label>Nom</Label>
+            <Input value={assignName} onChange={e => setAssignName(e.target.value)} placeholder="Nom du fournisseur" />
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input value={assignEmail} onChange={e => setAssignEmail(e.target.value)} placeholder="email@exemple.com" type="email" />
+          </div>
+          <Button onClick={() => handleManualAssign(type)} disabled={assigningManual || !assignEmail || !assignName} className="w-full gap-2">
+            {assigningManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {assigningManual ? 'Envoi...' : 'Assigner et envoyer le courriel'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 
   if (loading) {
     return (
