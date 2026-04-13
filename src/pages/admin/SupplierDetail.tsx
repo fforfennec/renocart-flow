@@ -51,8 +51,9 @@ export default function SupplierDetail() {
   const [branchPhone, setBranchPhone] = useState('');
   const [branchIsHQ, setBranchIsHQ] = useState(false);
 
-  // Add Contact
+  // Add/Edit Contact
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
