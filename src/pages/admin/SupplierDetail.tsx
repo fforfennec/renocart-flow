@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
@@ -202,6 +203,20 @@ export default function SupplierDetail() {
     if (error) { toast.error('Erreur'); return; }
     toast.success('Contact supprimé');
     loadData();
+  };
+
+  const handleDeleteSupplier = async () => {
+    try {
+      // Delete related data first (contacts, branches), then supplier
+      await supabase.from('supplier_contacts').delete().eq('supplier_id', supplierId!);
+      await supabase.from('supplier_branches').delete().eq('supplier_id', supplierId!);
+      const { error } = await supabase.from('suppliers').delete().eq('id', supplierId!);
+      if (error) throw error;
+      toast.success('Fournisseur supprimé');
+      navigate('/admin/suppliers');
+    } catch (e: any) {
+      toast.error(e.message || 'Erreur lors de la suppression');
+    }
   };
 
   if (loading) return <div className="p-6 text-center text-muted-foreground">Chargement...</div>;
