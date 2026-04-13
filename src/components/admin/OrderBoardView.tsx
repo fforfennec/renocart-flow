@@ -4,7 +4,31 @@ import { AssignmentInfo, isLate, LateBadge } from './OrderCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useState, useEffect, DragEvent } from 'react';
-import { Package, Truck } from 'lucide-react';
+import { Package, Truck, Clock } from 'lucide-react';
+
+const TIMER_STATUSES = ['pending', 'assigned', 'on_hold'];
+
+function useElapsedMinutes(createdAt: string, status: string) {
+  const [minutes, setMinutes] = useState(0);
+  const active = TIMER_STATUSES.includes(status);
+  useEffect(() => {
+    if (!active) return;
+    const calc = () => setMinutes(Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000));
+    calc();
+    const id = setInterval(calc, 60000);
+    return () => clearInterval(id);
+  }, [createdAt, active]);
+  return active ? minutes : null;
+}
+
+function formatElapsed(mins: number) {
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h < 24) return `${h}h${m > 0 ? m + 'm' : ''}`;
+  const d = Math.floor(h / 24);
+  return `${d}j ${h % 24}h`;
+}
 
 type Order = Database['public']['Tables']['orders']['Row'];
 
