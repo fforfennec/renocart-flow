@@ -260,13 +260,12 @@ export default function OrderDetail() {
       setAssignName('');
       setAssignEmail('');
     } else {
-      const options = type === 'material' ? MATERIAL_SUPPLIERS : DSP_OPTIONS;
-      const selected = options.find(o => o.value === value);
-      if (selected) {
-        setAssignName(selected.label);
-        // Find email from supplier_priority table
-        const match = supplierPriority.find(s => s.name.toLowerCase() === selected.label.toLowerCase());
-        setAssignEmail(match?.email || '');
+      const supplier = suppliersList.find(s => s.id === value);
+      if (supplier) {
+        setAssignName(supplier.name);
+        const primaryContact = supplier.contacts.find(c => c.is_primary);
+        const fallbackContact = supplier.contacts[0];
+        setAssignEmail(primaryContact?.email || fallbackContact?.email || '');
       }
     }
   };
