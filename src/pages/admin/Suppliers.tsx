@@ -22,7 +22,7 @@ export default function AdminSuppliers() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'material' | 'delivery'>('all');
+  const [filterType, setFilterType] = useState<string>('all');
 
   const [addOpen, setAddOpen] = useState(false);
   const [addName, setAddName] = useState('');
@@ -91,8 +91,10 @@ export default function AdminSuppliers() {
                 <Select value={addType} onValueChange={setAddType}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="material">Fournisseur Matériaux</SelectItem>
-                    <SelectItem value="delivery">DSP – Livraison</SelectItem>
+                    <SelectItem value="material">Matériaux</SelectItem>
+                    <SelectItem value="delivery">DSP</SelectItem>
+                    <SelectItem value="both">Fournisseur + DSP</SelectItem>
+                    <SelectItem value="other">Autre</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -111,11 +113,11 @@ export default function AdminSuppliers() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Rechercher..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
         </div>
-        <div className="flex gap-1">
-          {(['all', 'material', 'delivery'] as const).map(t => (
+        <div className="flex gap-1 flex-wrap">
+          {(['all', 'material', 'delivery', 'both', 'other'] as const).map(t => (
             <Button key={t} variant={filterType === t ? 'default' : 'outline'} size="sm" onClick={() => setFilterType(t)}
               className={filterType === t ? 'bg-rc-gold text-rc-navy hover:bg-rc-gold/90' : ''}>
-              {t === 'all' ? 'Tous' : t === 'material' ? 'Matériaux' : 'DSP'}
+              {t === 'all' ? 'Tous' : t === 'material' ? 'Matériaux' : t === 'delivery' ? 'DSP' : t === 'both' ? 'Fourn. + DSP' : 'Autre'}
             </Button>
           ))}
         </div>
@@ -138,15 +140,15 @@ export default function AdminSuppliers() {
                 <img src={supplier.logo_url} alt={supplier.name} className="w-10 h-10 rounded-lg object-contain border bg-background p-0.5" />
               ) : (
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                  supplier.type === 'material' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'
+                  supplier.type === 'delivery' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'
                 }`}>
-                  {supplier.type === 'material' ? <Package className="h-5 w-5" /> : <Truck className="h-5 w-5" />}
+                  {supplier.type === 'delivery' ? <Truck className="h-5 w-5" /> : <Package className="h-5 w-5" />}
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-foreground">{supplier.name}</h3>
-                  <Badge variant="outline" className="text-xs">{supplier.type === 'material' ? 'Matériaux' : 'DSP'}</Badge>
+                  <Badge variant="outline" className="text-xs">{supplier.type === 'material' ? 'Matériaux' : supplier.type === 'delivery' ? 'DSP' : supplier.type === 'both' ? 'Fourn. + DSP' : 'Autre'}</Badge>
                 </div>
                 {supplier.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{supplier.notes}</p>}
               </div>

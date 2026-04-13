@@ -42,7 +42,10 @@ export default function SupplierDetail() {
   // Edit supplier
   const [editName, setEditName] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [editType, setEditType] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+
+  const typeLabel = (t: string) => t === 'material' ? 'Matériaux' : t === 'delivery' ? 'DSP' : t === 'both' ? 'Fournisseur + DSP' : 'Autre';
 
   // Add Branch
   const [branchDialogOpen, setBranchDialogOpen] = useState(false);
@@ -72,6 +75,7 @@ export default function SupplierDetail() {
       if (supRes.error) throw supRes.error;
       setSupplier(supRes.data);
       setEditName(supRes.data.name);
+      setEditType(supRes.data.type);
       setEditNotes(supRes.data.notes || '');
       setBranches(brRes.data || []);
       setContacts(coRes.data || []);
@@ -89,7 +93,7 @@ export default function SupplierDetail() {
     if (!supplierId || !editName.trim()) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from('suppliers').update({ name: editName.trim(), notes: editNotes || null }).eq('id', supplierId);
+      const { error } = await supabase.from('suppliers').update({ name: editName.trim(), type: editType, notes: editNotes || null }).eq('id', supplierId);
       if (error) throw error;
       toast.success('Fournisseur mis à jour');
       setIsEditing(false);
@@ -223,20 +227,33 @@ export default function SupplierDetail() {
         </div>
         <div className="flex-1">
           {isEditing ? (
-            <div className="flex items-center gap-2">
-              <Input value={editName} onChange={e => setEditName(e.target.value)} className="text-xl font-bold max-w-xs" />
-              <Button size="sm" onClick={handleSaveSupplier} disabled={saving}>Sauvegarder</Button>
-              <Button size="sm" variant="ghost" onClick={() => { setIsEditing(false); setEditName(supplier.name); }}>Annuler</Button>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input value={editName} onChange={e => setEditName(e.target.value)} className="text-xl font-bold max-w-xs" />
+                <Select value={editType} onValueChange={setEditType}>
+                  <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="material">Matériaux</SelectItem>
+                    <SelectItem value="delivery">DSP</SelectItem>
+                    <SelectItem value="both">Fournisseur + DSP</SelectItem>
+                    <SelectItem value="other">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Input value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notes..." className="max-w-md" />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleSaveSupplier} disabled={saving}>Sauvegarder</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setIsEditing(false); setEditName(supplier.name); setEditType(supplier.type); }}>Annuler</Button>
+              </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-rc-navy cursor-pointer hover:underline" onClick={() => setIsEditing(true)}>{supplier.name}</h1>
-              <Badge variant="outline">{supplier.type === 'material' ? 'Matériaux' : 'DSP'}</Badge>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-rc-navy cursor-pointer hover:underline" onClick={() => setIsEditing(true)}>{supplier.name}</h1>
+                <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setIsEditing(true)}>{typeLabel(supplier.type)}</Badge>
+              </div>
+              {supplier.notes && <p className="text-sm text-muted-foreground mt-1">{supplier.notes}</p>}
             </div>
-          )}
-          {supplier.notes && !isEditing && <p className="text-sm text-muted-foreground mt-1">{supplier.notes}</p>}
-          {isEditing && (
-            <Input value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notes..." className="mt-2 max-w-md" />
           )}
         </div>
       </div>
