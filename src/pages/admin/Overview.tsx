@@ -21,10 +21,35 @@ export default function AdminOverview() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [activeView, setActiveView] = useState<ViewType>('list');
   const [assignmentsByOrder, setAssignmentsByOrder] = useState<Record<string, AssignmentInfo[]>>({});
+  const [automationsPaused, setAutomationsPaused] = useState<boolean | null>(null);
 
   useEffect(() => {
     loadOrders();
+    loadAutomationState();
   }, []);
+
+  const loadAutomationState = async () => {
+    const { data } = await supabase
+      .from('app_settings' as any)
+      .select('value')
+      .eq('key', 'automations_paused')
+      .single();
+    if (data) setAutomationsPaused((data as any).value === 'true');
+  };
+
+  const toggleAutomations = async () => {
+    const newValue = !automationsPaused;
+    const { error } = await supabase
+      .from('app_settings' as any)
+      .update({ value: String(newValue), updated_at: new Date().toISOString() } as any)
+      .eq('key', 'automations_paused');
+    if (error) {
+      toast.error('Failed to update automation state');
+      return;
+    }
+    setAutomationsPaused(newValue);
+    toast.success(newValue ? 'Automations paused' : 'Automations resumed');
+  };
 
   const loadOrders = async () => {
     try {
