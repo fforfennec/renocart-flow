@@ -379,6 +379,7 @@ export type Database = {
       }
       supplier_contacts: {
         Row: {
+          always_cc: boolean
           branch_id: string | null
           created_at: string
           email: string | null
@@ -391,6 +392,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          always_cc?: boolean
           branch_id?: string | null
           created_at?: string
           email?: string | null
@@ -403,6 +405,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          always_cc?: boolean
           branch_id?: string | null
           created_at?: string
           email?: string | null

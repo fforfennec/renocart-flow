@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, MapPin, Phone, Mail, User, Plus,
-  Trash2, Star, Loader2, Package, Truck, ImagePlus
+  Trash2, Star, Loader2, Package, Truck, ImagePlus, AlertTriangle
 } from 'lucide-react';
 
 type Supplier = {
@@ -26,7 +26,7 @@ type Branch = {
 type Contact = {
   id: string; supplier_id: string; branch_id: string | null; full_name: string;
   email: string | null; phone: string | null; role: string | null; is_primary: boolean;
-  created_at: string; updated_at: string;
+  always_cc: boolean; created_at: string; updated_at: string;
 };
 
 export default function SupplierDetail() {
@@ -63,6 +63,9 @@ export default function SupplierDetail() {
   const [contactRole, setContactRole] = useState('');
   const [contactBranch, setContactBranch] = useState<string>('none');
   const [contactIsPrimary, setContactIsPrimary] = useState(false);
+  const [contactAlwaysCc, setContactAlwaysCc] = useState(false);
+
+  const hasPrimaryContact = contacts.some(c => c.is_primary);
 
   const loadData = useCallback(async () => {
     if (!supplierId) return;
@@ -155,7 +158,7 @@ export default function SupplierDetail() {
 
   const resetContactForm = () => {
     setEditingContactId(null);
-    setContactName(''); setContactEmail(''); setContactPhone(''); setContactRole(''); setContactBranch('none'); setContactIsPrimary(false);
+    setContactName(''); setContactEmail(''); setContactPhone(''); setContactRole(''); setContactBranch('none'); setContactIsPrimary(false); setContactAlwaysCc(false);
   };
 
   const openEditContact = (c: Contact) => {
@@ -166,6 +169,7 @@ export default function SupplierDetail() {
     setContactRole(c.role || '');
     setContactBranch(c.branch_id || 'none');
     setContactIsPrimary(c.is_primary);
+    setContactAlwaysCc(c.always_cc);
     setContactDialogOpen(true);
   };
 
@@ -176,7 +180,7 @@ export default function SupplierDetail() {
       const payload = {
         supplier_id: supplierId, full_name: contactName.trim(),
         email: contactEmail || null, phone: contactPhone || null, role: contactRole || null,
-        branch_id: contactBranch === 'none' ? null : contactBranch, is_primary: contactIsPrimary,
+        branch_id: contactBranch === 'none' ? null : contactBranch, is_primary: contactIsPrimary, always_cc: contactAlwaysCc,
       };
       if (editingContactId) {
         const { error } = await supabase.from('supplier_contacts').update(payload).eq('id', editingContactId);
@@ -250,6 +254,7 @@ export default function SupplierDetail() {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold text-rc-navy cursor-pointer hover:underline" onClick={() => setIsEditing(true)}>{supplier.name}</h1>
+                {!hasPrimaryContact && <span title="Aucun contact principal défini"><AlertTriangle className="h-5 w-5 text-destructive" /></span>}
                 <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setIsEditing(true)}>{typeLabel(supplier.type)}</Badge>
               </div>
               {supplier.notes && <p className="text-sm text-muted-foreground mt-1">{supplier.notes}</p>}
@@ -336,7 +341,10 @@ export default function SupplierDetail() {
                     </Select>
                   </div>
                 )}
-                <div className="flex items-center gap-2"><Switch checked={contactIsPrimary} onCheckedChange={setContactIsPrimary} /><Label>Contact principal</Label></div>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2"><Switch checked={contactIsPrimary} onCheckedChange={setContactIsPrimary} /><Label>Contact principal</Label></div>
+                  <div className="flex items-center gap-2"><Switch checked={contactAlwaysCc} onCheckedChange={setContactAlwaysCc} /><Label>Always CC</Label></div>
+                </div>
                 <Button onClick={handleSaveContact} disabled={saving || !contactName.trim()} className="w-full">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{editingContactId ? 'Sauvegarder' : 'Ajouter'}
                 </Button>
@@ -356,6 +364,7 @@ export default function SupplierDetail() {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{c.full_name}</span>
                       {c.is_primary && <Badge variant="secondary" className="text-[10px] gap-0.5 px-1.5"><Star className="h-2.5 w-2.5" />Principal</Badge>}
+                      {c.always_cc && <Badge variant="outline" className="text-[10px] px-1.5">CC</Badge>}
                     </div>
                     {c.role && <p className="text-sm text-muted-foreground">{c.role}</p>}
                     {c.email && <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 shrink-0" />{c.email}</p>}

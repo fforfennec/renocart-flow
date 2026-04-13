@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Search, Package, Truck, Loader2, ChevronRight } from 'lucide-react';
+import { Plus, Search, Package, Truck, Loader2, ChevronRight, AlertTriangle } from 'lucide-react';
 
 type Supplier = {
   id: string; name: string; type: string; notes: string | null; logo_url: string | null;
@@ -20,6 +20,7 @@ type Supplier = {
 export default function AdminSuppliers() {
   const navigate = useNavigate();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [suppliersWithoutPrimary, setSuppliersWithoutPrimary] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -32,9 +33,15 @@ export default function AdminSuppliers() {
 
   const loadSuppliers = useCallback(async () => {
     try {
-      const { data, error } = await supabase.from('suppliers').select('*').order('name');
-      if (error) throw error;
-      setSuppliers(data || []);
+      const [supRes, contactsRes] = await Promise.all([
+        supabase.from('suppliers').select('*').order('name'),
+        supabase.from('supplier_contacts').select('supplier_id').eq('is_primary', true),
+      ]);
+      if (supRes.error) throw supRes.error;
+      setSuppliers(supRes.data || []);
+      const primarySet = new Set((contactsRes.data || []).map(c => c.supplier_id));
+      const noPrimary = new Set((supRes.data || []).filter(s => !primarySet.has(s.id)).map(s => s.id));
+      setSuppliersWithoutPrimary(noPrimary);
     } catch (e) {
       console.error(e);
       toast.error('Erreur de chargement');
@@ -148,6 +155,7 @@ export default function AdminSuppliers() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-foreground">{supplier.name}</h3>
+                  {suppliersWithoutPrimary.has(supplier.id) && <span title="Aucun contact principal"><AlertTriangle className="h-4 w-4 text-destructive" /></span>}
                   <Badge variant="outline" className="text-xs">{supplier.type === 'material' ? 'Matériaux' : supplier.type === 'delivery' ? 'DSP' : supplier.type === 'both' ? 'Fourn. + DSP' : 'Autre'}</Badge>
                 </div>
                 {supplier.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{supplier.notes}</p>}
