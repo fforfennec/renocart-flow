@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, AlertCircle, List, LayoutGrid, CalendarDays } from 'lucide-react';
+import { Search, AlertCircle, List, LayoutGrid, CalendarDays, Play, Pause } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { AssignmentInfo } from '@/components/admin/OrderCard';
