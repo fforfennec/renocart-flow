@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, AlertCircle, List, LayoutGrid, CalendarDays } from 'lucide-react';
+import { Search, AlertCircle, List, LayoutGrid, CalendarDays, Play, Pause } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { AssignmentInfo } from '@/components/admin/OrderCard';
@@ -21,10 +21,35 @@ export default function AdminOverview() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [activeView, setActiveView] = useState<ViewType>('list');
   const [assignmentsByOrder, setAssignmentsByOrder] = useState<Record<string, AssignmentInfo[]>>({});
+  const [automationsPaused, setAutomationsPaused] = useState<boolean | null>(null);
 
   useEffect(() => {
     loadOrders();
+    loadAutomationState();
   }, []);
+
+  const loadAutomationState = async () => {
+    const { data } = await supabase
+      .from('app_settings' as any)
+      .select('value')
+      .eq('key', 'automations_paused')
+      .single();
+    if (data) setAutomationsPaused((data as any).value === 'true');
+  };
+
+  const toggleAutomations = async () => {
+    const newValue = !automationsPaused;
+    const { error } = await supabase
+      .from('app_settings' as any)
+      .update({ value: String(newValue), updated_at: new Date().toISOString() } as any)
+      .eq('key', 'automations_paused');
+    if (error) {
+      toast.error('Failed to update automation state');
+      return;
+    }
+    setAutomationsPaused(newValue);
+    toast.success(newValue ? 'Automations paused' : 'Automations resumed');
+  };
 
   const loadOrders = async () => {
     try {
@@ -116,9 +141,37 @@ export default function AdminOverview() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-rc-navy">Orders Overview</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage all orders and deliveries</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-rc-navy">Orders Overview</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage all orders and deliveries</p>
+        </div>
+
+        {/* Automation Toggle */}
+        {automationsPaused !== null && (
+          <div className="flex flex-col items-end gap-2">
+            <Button
+              onClick={toggleAutomations}
+              variant={automationsPaused ? 'outline' : 'default'}
+              className={automationsPaused
+                ? 'border-orange-400 text-orange-600 hover:bg-orange-50 gap-2'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white gap-2'
+              }
+              size="lg"
+            >
+              {automationsPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+              {automationsPaused ? 'Resume Automations' : 'Automations Active'}
+            </Button>
+            {automationsPaused ? (
+              <p className="text-sm text-orange-600 font-medium flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                Automations paused — manual dispatch required
+              </p>
+            ) : (
+              <p className="text-sm text-emerald-600 font-medium">✓ All automations are running</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Search */}
