@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bot, ArrowDown, Clock, Mail, CheckCircle, XCircle, AlertTriangle, Play, Pause, Users, Star, Plus, X, Info } from 'lucide-react';
+import { Bot, ArrowDown, Clock, Mail, CheckCircle, XCircle, AlertTriangle, Play, Pause, Users, Star, Plus, X, Info, HandMetal, ShieldAlert } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -110,6 +110,14 @@ const Automations = () => {
           </div>
         </div>
 
+        {/* Important notice */}
+        <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3">
+          <ShieldAlert className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground">
+            <strong>Seuls les fournisseurs ajoutés sur cette page</strong> recevront des emails automatiques. Les fournisseurs du CRM non listés ici ne seront jamais contactés par l'automation.
+          </p>
+        </div>
+
         {/* Compact Workflow */}
         <div className="space-y-0">
 
@@ -197,6 +205,16 @@ const Automations = () => {
             <CompactBranch variant="success" title="Un fournisseur accepte" tooltip="Automation arrêtée. Email envoyé aux autres fournisseurs pour les informer. Commande → Fulfilling." />
             <CompactBranch variant="destructive" title="Personne ne répond" tooltip="Automation arrêtée. Email à tous les fournisseurs. Alerte admin — gestion manuelle requise." />
           </div>
+
+          <FlowArrow label="" />
+
+          {/* Step 5: Manual assignment */}
+          <CompactStep
+            icon={<HandMetal className="h-4 w-4" />}
+            title="Assignation manuelle"
+            color="bg-destructive/10 text-destructive"
+            tooltip="L'automation est terminée. Un admin doit prendre le relais et assigner manuellement la commande à un fournisseur depuis la page de détail."
+          />
 
         </div>
       </div>
