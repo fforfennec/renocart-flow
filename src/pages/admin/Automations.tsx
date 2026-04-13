@@ -110,6 +110,14 @@ const Automations = () => {
           </div>
         </div>
 
+        {/* Important notice */}
+        <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3">
+          <ShieldAlert className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground">
+            <strong>Seuls les fournisseurs ajoutés sur cette page</strong> recevront des emails automatiques. Les fournisseurs du CRM non listés ici ne seront jamais contactés par l'automation.
+          </p>
+        </div>
+
         {/* Compact Workflow */}
         <div className="space-y-0">
 
