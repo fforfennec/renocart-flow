@@ -72,15 +72,16 @@ const Automations = () => {
     const supplier = suppliers.find(s => s.id === supplierId);
     if (!supplier) return;
     const { data: contacts } = await supabase.from('supplier_contacts').select('email').eq('supplier_id', supplierId).eq('is_primary', true).limit(1);
-    const email = contacts?.[0]?.email || '';
+    const email = contacts?.[0]?.email || 'no-email@placeholder.com';
     const existing = priorityList.find(p => p.supplier_id === supplierId);
     if (existing) {
       await supabase.from('supplier_priority').update({ priority_order: 1 } as any).eq('id', existing.id);
     } else {
-      await supabase.from('supplier_priority').insert({ supplier_id: supplierId, name: supplier.name, email, priority_order: 1, is_active: true } as any);
+      const { error } = await supabase.from('supplier_priority').insert({ supplier_id: supplierId, name: supplier.name, email, priority_order: 1, is_active: true } as any);
+      if (error) { console.error('Insert error:', error); toast.error('Erreur'); return; }
     }
     toast.success(`${supplier.name} → prioritaire`);
-    loadAll();
+    await loadAll();
   };
 
   const handleAddBroadcast = async (supplierId: string) => {
