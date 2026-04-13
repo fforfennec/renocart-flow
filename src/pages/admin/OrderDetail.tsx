@@ -9,6 +9,10 @@ import pontMassonLogo from '@/assets/pont-masson-logo.png';
 import OrderSidebar from '@/components/admin/OrderSidebar';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type OrderItem = Database['public']['Tables']['order_items']['Row'];
