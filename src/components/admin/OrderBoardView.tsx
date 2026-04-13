@@ -27,6 +27,20 @@ export default function OrderBoardView({ orders, assignmentsByOrder, onOrderUpda
   const navigate = useNavigate();
   const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [supplierLogos, setSupplierLogos] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    supabase.from('suppliers').select('name, logo_url').not('logo_url', 'is', null).then(({ data }) => {
+      const map: Record<string, string> = {};
+      (data || []).forEach(s => { if (s.logo_url) map[s.name.toLowerCase()] = s.logo_url; });
+      setSupplierLogos(map);
+    });
+  }, []);
+
+  const getLogoForAssignment = (a: AssignmentInfo) => {
+    const name = ((a.profiles as any)?.company_name || (a.profiles as any)?.full_name || '').toLowerCase();
+    return supplierLogos[name] || null;
+  };
 
   const handleDragStart = (e: DragEvent, orderId: string) => {
     setDraggedOrderId(orderId);
