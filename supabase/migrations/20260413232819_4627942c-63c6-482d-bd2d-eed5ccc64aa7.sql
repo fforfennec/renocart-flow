@@ -1,0 +1,2 @@
+ALTER TABLE public.supplier_priority DROP CONSTRAINT supplier_priority_supplier_id_fkey;
+ALTER TABLE public.supplier_priority ADD CONSTRAINT supplier_priority_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES public.suppliers(id) ON DELETE SET NULL;

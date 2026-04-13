@@ -32,11 +32,23 @@ const Automations = () => {
     ]);
     if (settingsRes.data) setAutomationsPaused((settingsRes.data as any).value === 'true');
     if (suppliersRes.data) setSuppliers(suppliersRes.data);
-    if (priorityRes.data && priorityRes.data.length > 0) {
+    if (priorityRes.data) {
       setPriorityList(priorityRes.data);
-      const first = priorityRes.data[0];
-      if (first.supplier_id) setPrioritizedSupplier(first.supplier_id);
-      setBroadcastSuppliers(priorityRes.data.slice(1).filter((p: PriorityEntry) => p.supplier_id).map((p: PriorityEntry) => p.supplier_id!));
+      const first = priorityRes.data.find((p: PriorityEntry) => p.priority_order === 1);
+      if (first?.supplier_id) {
+        setPrioritizedSupplier(first.supplier_id);
+      } else {
+        setPrioritizedSupplier(null);
+      }
+      setBroadcastSuppliers(
+        priorityRes.data
+          .filter((p: PriorityEntry) => p.supplier_id && p.priority_order !== 1)
+          .map((p: PriorityEntry) => p.supplier_id!)
+      );
+    } else {
+      setPriorityList([]);
+      setPrioritizedSupplier(null);
+      setBroadcastSuppliers([]);
     }
     setLoading(false);
   };
@@ -60,26 +72,31 @@ const Automations = () => {
     const supplier = suppliers.find(s => s.id === supplierId);
     if (!supplier) return;
     const { data: contacts } = await supabase.from('supplier_contacts').select('email').eq('supplier_id', supplierId).eq('is_primary', true).limit(1);
-    const email = contacts?.[0]?.email || '';
+    const email = contacts?.[0]?.email || 'no-email@placeholder.com';
     const existing = priorityList.find(p => p.supplier_id === supplierId);
     if (existing) {
       await supabase.from('supplier_priority').update({ priority_order: 1 } as any).eq('id', existing.id);
     } else {
-      await supabase.from('supplier_priority').insert({ supplier_id: supplierId, name: supplier.name, email, priority_order: 1, is_active: true } as any);
+      const { error } = await supabase.from('supplier_priority').insert({ supplier_id: supplierId, name: supplier.name, email, priority_order: 1, is_active: true } as any);
+      if (error) { console.error('Insert error:', error); toast.error('Erreur'); return; }
     }
     toast.success(`${supplier.name} → prioritaire`);
-    loadAll();
+    await loadAll();
   };
 
   const handleAddBroadcast = async (supplierId: string) => {
-    setBroadcastSuppliers(prev => [...prev, supplierId]);
     const supplier = suppliers.find(s => s.id === supplierId);
     if (!supplier) return;
     const { data: contacts } = await supabase.from('supplier_contacts').select('email').eq('supplier_id', supplierId).eq('is_primary', true).limit(1);
-    const email = contacts?.[0]?.email || '';
-    await supabase.from('supplier_priority').insert({ supplier_id: supplierId, name: supplier.name, email, priority_order: broadcastSuppliers.length + 2, is_active: true } as any);
+    const email = contacts?.[0]?.email || 'no-email@placeholder.com';
+    const { error } = await supabase.from('supplier_priority').insert({ supplier_id: supplierId, name: supplier.name, email, priority_order: broadcastSuppliers.length + 2, is_active: true } as any);
+    if (error) {
+      console.error('Insert error:', error);
+      toast.error('Erreur lors de l\'ajout');
+      return;
+    }
     toast.success(`${supplier.name} ajouté`);
-    loadAll();
+    await loadAll();
   };
 
   const handleRemoveBroadcast = async (supplierId: string) => {
