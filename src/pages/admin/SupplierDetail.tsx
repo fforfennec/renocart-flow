@@ -26,7 +26,7 @@ type Branch = {
 type Contact = {
   id: string; supplier_id: string; branch_id: string | null; full_name: string;
   email: string | null; phone: string | null; role: string | null; is_primary: boolean;
-  created_at: string; updated_at: string;
+  always_cc: boolean; created_at: string; updated_at: string;
 };
 
 export default function SupplierDetail() {
@@ -63,6 +63,9 @@ export default function SupplierDetail() {
   const [contactRole, setContactRole] = useState('');
   const [contactBranch, setContactBranch] = useState<string>('none');
   const [contactIsPrimary, setContactIsPrimary] = useState(false);
+  const [contactAlwaysCc, setContactAlwaysCc] = useState(false);
+
+  const hasPrimaryContact = contacts.some(c => c.is_primary);
 
   const loadData = useCallback(async () => {
     if (!supplierId) return;
