@@ -14,7 +14,7 @@ export type AssignmentInfo = {
 export const getStatusBadge = (status: string) => {
   const variants: Record<string, { variant: any; label: string }> = {
     pending: { variant: 'secondary', label: 'New' },
-    in_progress: { variant: 'default', label: 'Contacted' },
+    in_progress: { variant: 'default', label: 'Fulfilling' },
     assigned: { variant: 'default', label: 'Assigned' },
     on_hold: { variant: 'outline', label: 'On Hold' },
     delivered: { variant: 'outline', label: 'Done' },

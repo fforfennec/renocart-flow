@@ -235,7 +235,7 @@ export default function OrderDetail() {
     const variants: Record<string, { variant: any; label: string }> = {
       pending: { variant: 'secondary', label: 'New' },
       assigned: { variant: 'default', label: 'Assigned' },
-      in_progress: { variant: 'default', label: 'Contacted' },
+      in_progress: { variant: 'default', label: 'Fulfilling' },
       on_hold: { variant: 'outline', label: 'On Hold' },
       delivered: { variant: 'outline', label: 'Done' },
       cancelled: { variant: 'destructive', label: 'Cancelled' },

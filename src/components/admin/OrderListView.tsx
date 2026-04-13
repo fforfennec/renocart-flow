@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { Package, Truck, ChevronDown, Send } from 'lucide-react';
+import { Package, Truck, ChevronDown, Send, Clock } from 'lucide-react';
 import pontMassonLogo from '@/assets/pont-masson-logo.png';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -12,16 +12,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { AssignmentInfo, getStatusBadge, isLate, LateBadge, getSupplierInitial, getSupplierName } from './OrderCard';
 import { toast } from 'sonner';
 
-function PontMassonTimeBadge({ assignedAt }: { assignedAt: string }) {
-  const [mins, setMins] = useState(() => Math.floor((Date.now() - new Date(assignedAt).getTime()) / 60000));
+function ElapsedTimeBadge({ createdAt }: { createdAt: string }) {
+  const [mins, setMins] = useState(() => Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000));
   useEffect(() => {
-    const interval = setInterval(() => setMins(Math.floor((Date.now() - new Date(assignedAt).getTime()) / 60000)), 60000);
+    const interval = setInterval(() => setMins(Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000)), 60000);
     return () => clearInterval(interval);
-  }, [assignedAt]);
+  }, [createdAt]);
+  const label = mins < 60 ? `${mins}m` : mins < 1440 ? `${Math.floor(mins / 60)}h${mins % 60 > 0 ? (mins % 60) + 'm' : ''}` : `${Math.floor(mins / 1440)}j`;
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-yellow-700 bg-yellow-100 border border-yellow-300 rounded px-2 py-0.5">
-      <Send className="h-3 w-3" />
-      Pont-Masson — {mins < 1 ? '<1' : mins}min
+    <span className={`inline-flex items-center gap-1 text-xs font-medium rounded px-2 py-0.5 ${mins > 60 ? 'text-destructive bg-destructive/10 border border-destructive/20' : 'text-muted-foreground bg-muted border'}`}>
+      <Clock className="h-3 w-3" />
+      {label}
     </span>
   );
 }
@@ -44,7 +45,7 @@ const ACTION_OPTIONS = [
 
 const STATUS_OPTIONS = [
   { label: 'New', value: 'pending' },
-  { label: 'Contacted', value: 'in_progress' },
+  { label: 'Fulfilling', value: 'in_progress' },
   { label: 'Assigned', value: 'assigned' },
   { label: 'On Hold', value: 'on_hold' },
   { label: 'Done', value: 'delivered' },
@@ -125,8 +126,8 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
                   {getStatusBadge(order.status)}
                   {isLate(order.delivery_date, order.status) && <LateBadge />}
                 </div>
-                {order.status === 'assigned' && materialSuppliers.length > 0 && materialSuppliers[0].assigned_at && (
-                  <PontMassonTimeBadge assignedAt={materialSuppliers[0].assigned_at} />
+                {['pending', 'assigned', 'on_hold'].includes(order.status) && (
+                  <ElapsedTimeBadge createdAt={order.created_at} />
                 )}
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p><span className="font-medium">Client:</span> {order.client_name}</p>
