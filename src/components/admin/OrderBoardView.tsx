@@ -135,17 +135,33 @@ export default function OrderBoardView({ orders, assignmentsByOrder, onOrderUpda
                       {new Date(order.delivery_date).toLocaleDateString('fr-CA')} · {order.delivery_time_window}
                     </p>
                     {(supplier || dsp) && (
-                      <div className="flex gap-1 flex-wrap pt-0.5">
-                        {supplier && (
-                          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium truncate max-w-[100px]">
-                            {(supplier.profiles as any)?.company_name || (supplier.profiles as any)?.full_name || '?'}
-                          </span>
-                        )}
-                        {dsp && (
-                          <span className="text-[10px] bg-accent text-accent-foreground px-1.5 py-0.5 rounded font-medium truncate max-w-[100px]">
-                            {(dsp.profiles as any)?.company_name || (dsp.profiles as any)?.full_name || '?'}
-                          </span>
-                        )}
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        {supplier && (() => {
+                          const logo = getLogoForAssignment(supplier);
+                          const name = (supplier.profiles as any)?.company_name || (supplier.profiles as any)?.full_name || '?';
+                          return logo ? (
+                            <div className="h-5 w-5 rounded-full bg-white border flex items-center justify-center overflow-hidden" title={name}>
+                              <img src={logo} alt={name} className="h-4 w-4 object-contain" />
+                            </div>
+                          ) : (
+                            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium truncate max-w-[100px]">
+                              {name}
+                            </span>
+                          );
+                        })()}
+                        {dsp && (() => {
+                          const logo = getLogoForAssignment(dsp);
+                          const name = (dsp.profiles as any)?.company_name || (dsp.profiles as any)?.full_name || '?';
+                          return logo ? (
+                            <div className="h-5 w-5 rounded-full bg-white border flex items-center justify-center overflow-hidden" title={name}>
+                              <img src={logo} alt={name} className="h-4 w-4 object-contain" />
+                            </div>
+                          ) : (
+                            <span className="text-[10px] bg-accent text-accent-foreground px-1.5 py-0.5 rounded font-medium truncate max-w-[100px]">
+                              {name}
+                            </span>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
