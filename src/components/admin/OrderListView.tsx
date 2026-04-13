@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { Package, Truck, ChevronDown, Send, Clock, Plus } from 'lucide-react';
+import { Package, Truck, ChevronDown, Send, Clock, Plus, Play, Pause, Bot } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -212,8 +212,10 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
         <div className="flex-1">Order</div>
         <div className="w-28 text-center">Action</div>
         <div className="w-32 text-center">Status</div>
+        <div className="w-10 text-center" title="Automation"><Bot className="h-3.5 w-3.5 mx-auto" /></div>
         <div className="w-10 text-center" title="Supplier"><Package className="h-3.5 w-3.5 mx-auto" /></div>
         <div className="w-10 text-center" title="DSP"><Truck className="h-3.5 w-3.5 mx-auto" /></div>
+        <div className="w-20 text-right">Created</div>
         <div className="w-20 text-right">Created</div>
       </div>
 
@@ -299,6 +301,34 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+              </div>
+
+              {/* Automation toggle */}
+              <div className="w-10 shrink-0 flex justify-center" onClick={e => e.stopPropagation()}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const paused = !(order as any).automation_paused;
+                        const { error } = await supabase.from('orders').update({ automation_paused: paused } as any).eq('id', order.id);
+                        if (error) { toast.error('Erreur'); return; }
+                        onOrderUpdate?.(order.id, { automation_paused: paused } as any);
+                        toast.success(paused ? 'Automation en pause' : 'Automation reprise');
+                      }}
+                      className={`h-8 w-8 rounded-full flex items-center justify-center border transition-colors ${
+                        (order as any).automation_paused
+                          ? 'bg-orange-100 border-orange-300 text-orange-600 hover:bg-orange-200'
+                          : 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
+                      }`}
+                    >
+                      {(order as any).automation_paused ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {(order as any).automation_paused ? 'Automation en pause — cliquer pour reprendre' : 'Automation active — cliquer pour mettre en pause'}
+                  </TooltipContent>
+                </Tooltip>
               </div>
 
               {/* Supplier column - dropdown picker */}

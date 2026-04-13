@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
         order_id,
         supplier_id,
         priority_rank,
-        orders (order_number, client_address, delivery_date, delivery_time_window, truck_type, internal_notes),
+        orders (order_number, client_address, delivery_date, delivery_time_window, truck_type, internal_notes, automation_paused),
         supplier_responses (status, escalated_at)
       `)
       .lt("assigned_at", cutoff)
@@ -53,6 +53,8 @@ Deno.serve(async (req) => {
     if (error) throw error;
 
     const toEscalate = (lateAssignments || []).filter(a => {
+      const order = (a as any).orders;
+      if (order?.automation_paused) return false; // Skip orders with paused automation
       const responses = (a as any).supplier_responses || [];
       const pending = responses.find((r: any) => r.status === "pending");
       return pending && !pending.escalated_at;
