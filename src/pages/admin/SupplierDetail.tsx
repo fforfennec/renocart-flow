@@ -149,19 +149,42 @@ export default function SupplierDetail() {
     loadData();
   };
 
-  const handleAddContact = async () => {
+  const resetContactForm = () => {
+    setEditingContactId(null);
+    setContactName(''); setContactEmail(''); setContactPhone(''); setContactRole(''); setContactBranch('none'); setContactIsPrimary(false);
+  };
+
+  const openEditContact = (c: Contact) => {
+    setEditingContactId(c.id);
+    setContactName(c.full_name);
+    setContactEmail(c.email || '');
+    setContactPhone(c.phone || '');
+    setContactRole(c.role || '');
+    setContactBranch(c.branch_id || 'none');
+    setContactIsPrimary(c.is_primary);
+    setContactDialogOpen(true);
+  };
+
+  const handleSaveContact = async () => {
     if (!supplierId || !contactName.trim()) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from('supplier_contacts').insert({
+      const payload = {
         supplier_id: supplierId, full_name: contactName.trim(),
         email: contactEmail || null, phone: contactPhone || null, role: contactRole || null,
         branch_id: contactBranch === 'none' ? null : contactBranch, is_primary: contactIsPrimary,
-      });
-      if (error) throw error;
-      toast.success('Contact ajouté');
+      };
+      if (editingContactId) {
+        const { error } = await supabase.from('supplier_contacts').update(payload).eq('id', editingContactId);
+        if (error) throw error;
+        toast.success('Contact mis à jour');
+      } else {
+        const { error } = await supabase.from('supplier_contacts').insert(payload);
+        if (error) throw error;
+        toast.success('Contact ajouté');
+      }
       setContactDialogOpen(false);
-      setContactName(''); setContactEmail(''); setContactPhone(''); setContactRole(''); setContactBranch('none'); setContactIsPrimary(false);
+      resetContactForm();
       loadData();
     } catch (e: any) { toast.error(e.message || 'Erreur'); } finally { setSaving(false); }
   };
