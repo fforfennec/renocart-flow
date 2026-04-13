@@ -47,18 +47,19 @@ export default function OrderDetail() {
   const [dispatching, setDispatching] = useState(false);
 
   const [supplierPriority, setSupplierPriority] = useState<any[]>([]);
-  const [assignDialogOpen, setAssignDialogOpen] = useState<'material' | 'delivery' | null>(null);
-  const [assignEmail, setAssignEmail] = useState('');
-  const [assignName, setAssignName] = useState('');
-  const [assigningManual, setAssigningManual] = useState(false);
-  const [selectedPriorityId, setSelectedPriorityId] = useState<string>('custom');
-
-  const materialAssignment = assignments.find(a => a.assignment_type === 'material');
-  const minutesAgo = useMinutesAgo(materialAssignment?.assigned_at ?? null);
+  const [suppliersList, setSuppliersList] = useState<{ id: string; name: string; type: string; contacts: { email: string; is_primary: boolean }[] }[]>([]);
 
   useEffect(() => {
     supabase.from('supplier_priority').select('*').eq('is_active', true).order('priority_order').then(({ data }) => {
       setSupplierPriority(data || []);
+    });
+    supabase.from('suppliers').select('id, name, type').then(async ({ data: suppliers }) => {
+      if (!suppliers) return;
+      const withContacts = await Promise.all(suppliers.map(async (s) => {
+        const { data: contacts } = await supabase.from('supplier_contacts').select('email, is_primary').eq('supplier_id', s.id);
+        return { ...s, contacts: contacts || [] };
+      }));
+      setSuppliersList(withContacts);
     });
   }, []);
 
