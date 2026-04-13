@@ -254,6 +254,7 @@ export default function SupplierDetail() {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold text-rc-navy cursor-pointer hover:underline" onClick={() => setIsEditing(true)}>{supplier.name}</h1>
+                {!hasPrimaryContact && <span title="Aucun contact principal défini"><AlertTriangle className="h-5 w-5 text-destructive" /></span>}
                 <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setIsEditing(true)}>{typeLabel(supplier.type)}</Badge>
               </div>
               {supplier.notes && <p className="text-sm text-muted-foreground mt-1">{supplier.notes}</p>}
