@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, MapPin, Phone, Mail, User, Plus,
-  Trash2, Star, Loader2, Package, Truck, ImagePlus
+  Trash2, Star, Loader2, Package, Truck, ImagePlus, AlertTriangle
 } from 'lucide-react';
 
 type Supplier = {
