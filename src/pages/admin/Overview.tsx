@@ -57,9 +57,10 @@ export default function AdminOverview() {
       // Auto-archive old delivered orders (3+ business days)
       await supabase.rpc('archive_old_delivered_orders');
 
-      const [ordersRes, assignmentsRes] = await Promise.all([
+      const [ordersRes, assignmentsRes, suppliersRes] = await Promise.all([
         supabase.from('orders').select('*').neq('status', 'archived').order('created_at', { ascending: false }),
         supabase.from('supplier_assignments').select('order_id, supplier_id, assignment_type, assigned_at'),
+        supabase.from('suppliers').select('id, name, logo_url'),
       ]);
 
       if (ordersRes.error) throw ordersRes.error;
@@ -79,12 +80,21 @@ export default function AdminOverview() {
           });
         }
 
+        // Build a name→logo_url map from CRM suppliers
+        const logoMap: Record<string, string> = {};
+        (suppliersRes.data || []).forEach(s => {
+          if (s.logo_url) logoMap[s.name.toLowerCase()] = s.logo_url;
+        });
+
         const map: Record<string, AssignmentInfo[]> = {};
         assignmentsRes.data.forEach((a) => {
           if (!map[a.order_id]) map[a.order_id] = [];
+          const profile = profilesMap[a.supplier_id] || null;
+          const name = (profile?.company_name || profile?.full_name || '').toLowerCase();
           map[a.order_id].push({
             ...a,
-            profiles: profilesMap[a.supplier_id] || null,
+            profiles: profile,
+            logo_url: logoMap[name] || null,
           } as any);
         });
         setAssignmentsByOrder(map);
