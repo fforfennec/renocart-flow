@@ -158,7 +158,7 @@ export default function SupplierDetail() {
 
   const resetContactForm = () => {
     setEditingContactId(null);
-    setContactName(''); setContactEmail(''); setContactPhone(''); setContactRole(''); setContactBranch('none'); setContactIsPrimary(false);
+    setContactName(''); setContactEmail(''); setContactPhone(''); setContactRole(''); setContactBranch('none'); setContactIsPrimary(false); setContactAlwaysCc(false);
   };
 
   const openEditContact = (c: Contact) => {
@@ -169,6 +169,7 @@ export default function SupplierDetail() {
     setContactRole(c.role || '');
     setContactBranch(c.branch_id || 'none');
     setContactIsPrimary(c.is_primary);
+    setContactAlwaysCc(c.always_cc);
     setContactDialogOpen(true);
   };
 
@@ -179,7 +180,7 @@ export default function SupplierDetail() {
       const payload = {
         supplier_id: supplierId, full_name: contactName.trim(),
         email: contactEmail || null, phone: contactPhone || null, role: contactRole || null,
-        branch_id: contactBranch === 'none' ? null : contactBranch, is_primary: contactIsPrimary,
+        branch_id: contactBranch === 'none' ? null : contactBranch, is_primary: contactIsPrimary, always_cc: contactAlwaysCc,
       };
       if (editingContactId) {
         const { error } = await supabase.from('supplier_contacts').update(payload).eq('id', editingContactId);
