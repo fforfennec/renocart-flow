@@ -193,7 +193,7 @@ export default function OrderDetail() {
     setAssigningManual(true);
     try {
       const { data, error } = await supabase.functions.invoke('dispatch-order', {
-        body: { order_id: orderId, supplier_email: assignEmail, supplier_name: assignName, priority_rank: 99 },
+        body: { order_id: orderId, supplier_email: assignEmail, supplier_name: assignName, priority_rank: 99, assignment_type: type },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -201,7 +201,7 @@ export default function OrderDetail() {
       setAssignDialogOpen(null);
       setAssignEmail('');
       setAssignName('');
-      setSelectedPriorityId('custom');
+      setSelectedPriorityId('');
       await loadOrderDetails();
     } catch (error: any) {
       console.error('Manual assign error:', error);
@@ -367,24 +367,6 @@ export default function OrderDetail() {
           <p className="text-sm text-muted-foreground">Created on {new Date(order.created_at).toLocaleString()}</p>
         </div>
         <div className="flex gap-2">
-          {!materialAssignment && (
-            <div className="flex flex-col items-start">
-              <Button
-                variant="outline"
-                onClick={handleDispatch}
-                disabled={dispatching}
-                className="gap-2"
-              >
-                {dispatching ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-                {dispatching ? 'Envoi…' : 'Manual Override'}
-              </Button>
-              <span className="text-xs text-muted-foreground mt-1">Auto-dispatch is active</span>
-            </div>
-          )}
           <Button
             onClick={() => updateOrderStatus('delivered')}
             disabled={order.status === 'delivered'}
@@ -408,16 +390,6 @@ export default function OrderDetail() {
           </Button>
         </div>
       </div>
-
-      {/* Dispatch info banner */}
-      {materialAssignment && minutesAgo !== null && (
-        <div className="flex items-center gap-3 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-          <Send className="h-4 w-4 shrink-0" />
-          <span className="font-medium">
-            Envoyé à Pont-Masson — {minutesAgo < 1 ? 'à l\'instant' : `il y a ${minutesAgo} min`}
-          </span>
-        </div>
-      )}
 
       {/* Order Info Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
