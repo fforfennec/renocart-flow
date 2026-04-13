@@ -19,6 +19,12 @@ function getAutomationLane(order: Order, assignments: AssignmentInfo[], response
   // Fulfilling = in_progress or any response confirmed
   if (order.status === 'in_progress') return 'fulfilling';
 
+  // Initial hold: new order less than 5 min old with no assignments
+  const ageMinutes = (Date.now() - new Date(order.created_at).getTime()) / 60000;
+  if (order.status === 'pending' && (!assignments || assignments.length === 0) && ageMinutes < 5) {
+    return 'initial_hold';
+  }
+
   // Check if there are escalated responses (broadcast phase)
   const hasEscalated = responses?.some(r => r.escalated_at !== null);
   const hasBroadcast = (assignments?.length || 0) > 1 || hasEscalated;
@@ -82,6 +88,7 @@ function MiniOrderCard({ order }: { order: Order }) {
 }
 
 const LANES: { key: AutomationLane; label: string; icon: React.ReactNode; color: string }[] = [
+  { key: 'initial_hold', label: 'En attente (5 min)', icon: <Pause className="h-4 w-4" />, color: 'bg-warning/10 text-warning' },
   { key: 'waiting_priority', label: 'Prioritaire', icon: <Mail className="h-4 w-4" />, color: 'bg-secondary text-secondary-foreground' },
   { key: 'waiting_broadcast', label: 'Broadcast', icon: <Users className="h-4 w-4" />, color: 'bg-primary/10 text-primary' },
   { key: 'fulfilling', label: 'Fulfilling', icon: <ArrowRight className="h-4 w-4" />, color: 'bg-green-100 text-green-700' },
@@ -90,6 +97,7 @@ const LANES: { key: AutomationLane; label: string; icon: React.ReactNode; color:
 
 export default function OrderAutomationView({ orders, assignmentsByOrder, responsesByOrder }: Props) {
   const laneOrders: Record<AutomationLane, Order[]> = {
+    initial_hold: [],
     waiting_priority: [],
     waiting_broadcast: [],
     fulfilling: [],
@@ -104,7 +112,7 @@ export default function OrderAutomationView({ orders, assignmentsByOrder, respon
   });
 
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="grid grid-cols-5 gap-4">
       {LANES.map(lane => (
         <div key={lane.key} className="space-y-2">
           {/* Lane header */}
