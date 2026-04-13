@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
@@ -204,6 +205,20 @@ export default function SupplierDetail() {
     loadData();
   };
 
+  const handleDeleteSupplier = async () => {
+    try {
+      // Delete related data first (contacts, branches), then supplier
+      await supabase.from('supplier_contacts').delete().eq('supplier_id', supplierId!);
+      await supabase.from('supplier_branches').delete().eq('supplier_id', supplierId!);
+      const { error } = await supabase.from('suppliers').delete().eq('id', supplierId!);
+      if (error) throw error;
+      toast.success('Fournisseur supprimé');
+      navigate('/admin/suppliers');
+    } catch (e: any) {
+      toast.error(e.message || 'Erreur lors de la suppression');
+    }
+  };
+
   if (loading) return <div className="p-6 text-center text-muted-foreground">Chargement...</div>;
   if (!supplier) return <div className="p-6 text-center text-muted-foreground">Fournisseur introuvable</div>;
 
@@ -261,6 +276,27 @@ export default function SupplierDetail() {
             </div>
           )}
         </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Supprimer ce fournisseur ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible. Tous les contacts et succursales associés seront également supprimés.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteSupplier} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {/* Branches */}
