@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN automation_paused boolean NOT NULL DEFAULT false;

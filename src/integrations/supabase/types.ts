@@ -219,6 +219,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          automation_paused: boolean
           client_address: string
           client_name: string
           client_phone: string | null
@@ -234,6 +235,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          automation_paused?: boolean
           client_address: string
           client_name: string
           client_phone?: string | null
@@ -249,6 +251,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          automation_paused?: boolean
           client_address?: string
           client_name?: string
           client_phone?: string | null
