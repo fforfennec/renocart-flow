@@ -212,8 +212,10 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
         <div className="flex-1">Order</div>
         <div className="w-28 text-center">Action</div>
         <div className="w-32 text-center">Status</div>
+        <div className="w-10 text-center" title="Automation"><Bot className="h-3.5 w-3.5 mx-auto" /></div>
         <div className="w-10 text-center" title="Supplier"><Package className="h-3.5 w-3.5 mx-auto" /></div>
         <div className="w-10 text-center" title="DSP"><Truck className="h-3.5 w-3.5 mx-auto" /></div>
+        <div className="w-20 text-right">Created</div>
         <div className="w-20 text-right">Created</div>
       </div>
 
