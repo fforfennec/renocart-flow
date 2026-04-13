@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bot, ArrowDown, Clock, Mail, CheckCircle, XCircle, AlertTriangle, Play, Pause, Users, Star, Plus, X, Info, HandMetal, ShieldAlert } from 'lucide-react';
+import { Bot, ArrowDown, Clock, Mail, CheckCircle, XCircle, AlertTriangle, Play, Pause, Users, Star, Plus, X, Info, HandMetal, ShieldAlert, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -172,15 +173,22 @@ const Automations = () => {
               {broadcastSuppliers.map(id => {
                 const s = getSupplier(id);
                 return (
-                  <div key={id} className="relative group">
-                    <SupplierBubble supplier={s} />
-                    <button
-                      onClick={() => handleRemoveBroadcast(id)}
-                      className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full h-3.5 w-3.5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </div>
+                  <DropdownMenu key={id}>
+                    <DropdownMenuTrigger asChild>
+                      <div className="cursor-pointer">
+                        <SupplierBubble supplier={s} />
+                      </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center" className="w-36">
+                      <DropdownMenuItem
+                        onClick={() => handleRemoveBroadcast(id)}
+                        className="gap-2 text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Retirer
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 );
               })}
               {availableForBroadcast.length > 0 && (
