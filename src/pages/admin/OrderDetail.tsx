@@ -47,6 +47,11 @@ export default function OrderDetail() {
   const [dispatching, setDispatching] = useState(false);
 
   const [supplierPriority, setSupplierPriority] = useState<any[]>([]);
+  const [assignDialogOpen, setAssignDialogOpen] = useState<'material' | 'delivery' | null>(null);
+  const [assignEmail, setAssignEmail] = useState('');
+  const [assignName, setAssignName] = useState('');
+  const [assigningManual, setAssigningManual] = useState(false);
+  const [selectedPriorityId, setSelectedPriorityId] = useState<string>('custom');
   const [suppliersList, setSuppliersList] = useState<{ id: string; name: string; type: string; contacts: { email: string; is_primary: boolean }[] }[]>([]);
 
   useEffect(() => {
