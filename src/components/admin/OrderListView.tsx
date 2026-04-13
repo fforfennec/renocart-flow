@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { Package, Truck, ChevronDown, Send, Clock } from 'lucide-react';
-import pontMassonLogo from '@/assets/pont-masson-logo.png';
+import { Package, Truck, ChevronDown, Send, Clock, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +27,7 @@ function ElapsedTimeBadge({ createdAt }: { createdAt: string }) {
 }
 
 type Order = Database['public']['Tables']['orders']['Row'];
+type CrmSupplier = { id: string; name: string; type: string; logo_url: string | null };
 
 interface Props {
   orders: Order[];
@@ -53,8 +53,124 @@ const STATUS_OPTIONS = [
   { label: 'Returned', value: 'returned' },
 ];
 
+function SupplierPickerBubble({
+  orderId,
+  assignmentType,
+  currentAssignments,
+  crmSuppliers,
+  onAssigned,
+  icon,
+}: {
+  orderId: string;
+  assignmentType: 'material' | 'delivery';
+  currentAssignments: AssignmentInfo[];
+  crmSuppliers: CrmSupplier[];
+  onAssigned: () => void;
+  icon: React.ReactNode;
+}) {
+  const [assigning, setAssigning] = useState(false);
+  const filteredSuppliers = crmSuppliers.filter(
+    s => s.type === assignmentType || s.type === 'both' || (assignmentType === 'material' && s.type === 'material') || (assignmentType === 'delivery' && s.type === 'delivery')
+  );
+
+  const handleSelect = async (supplier: CrmSupplier) => {
+    setAssigning(true);
+    try {
+      // Get primary contact email
+      const { data: contacts } = await supabase
+        .from('supplier_contacts')
+        .select('email, full_name')
+        .eq('supplier_id', supplier.id)
+        .eq('is_primary', true)
+        .limit(1);
+      const email = contacts?.[0]?.email || '';
+      const name = supplier.name;
+
+      // Call dispatch
+      const { data, error } = await supabase.functions.invoke('dispatch-order', {
+        body: { orderId, supplierName: name, supplierEmail: email, assignmentType },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`${name} assigné`);
+      onAssigned();
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  if (currentAssignments.length > 0) {
+    const s = currentAssignments[0];
+    const logoUrl = (s as any).logo_url;
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <div className="h-8 w-8 rounded-full bg-background border flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+            {logoUrl ? (
+              <img src={logoUrl} alt={getSupplierName(s)} className="h-6 w-6 object-contain" />
+            ) : (
+              <span className="text-[10px] font-bold text-muted-foreground">{getSupplierInitial(s)}</span>
+            )}
+          </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="center" className="w-48">
+          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Changer le fournisseur</div>
+          <DropdownMenuSeparator />
+          {filteredSuppliers.map(sup => (
+            <DropdownMenuItem key={sup.id} onClick={() => handleSelect(sup)} disabled={assigning} className="gap-2">
+              {sup.logo_url ? (
+                <img src={sup.logo_url} className="h-4 w-4 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="h-4 w-4 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <span className="text-[8px] font-bold">{sup.name.slice(0, 2).toUpperCase()}</span>
+                </div>
+              )}
+              {sup.name}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <div className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors">
+          {icon}
+        </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="center" className="w-48">
+        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Assigner un fournisseur</div>
+        <DropdownMenuSeparator />
+        {filteredSuppliers.map(sup => (
+          <DropdownMenuItem key={sup.id} onClick={() => handleSelect(sup)} disabled={assigning} className="gap-2">
+            {sup.logo_url ? (
+              <img src={sup.logo_url} className="h-4 w-4 rounded-full object-cover shrink-0" />
+            ) : (
+              <div className="h-4 w-4 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <span className="text-[8px] font-bold">{sup.name.slice(0, 2).toUpperCase()}</span>
+              </div>
+            )}
+            {sup.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export default function OrderListView({ orders, assignmentsByOrder, onOrderRead, onOrderUpdate }: Props) {
   const navigate = useNavigate();
+  const [crmSuppliers, setCrmSuppliers] = useState<CrmSupplier[]>([]);
+
+  useEffect(() => {
+    supabase.from('suppliers').select('id, name, type, logo_url').order('name').then(({ data }) => {
+      if (data) setCrmSuppliers(data);
+    });
+  }, []);
 
   const handleAction = async (e: React.MouseEvent, order: Order, action: string) => {
     e.stopPropagation();
@@ -82,6 +198,11 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
       onOrderUpdate?.(orderId, { status });
       toast.success('Order updated');
     }
+  };
+
+  const handleSupplierAssigned = () => {
+    // Trigger a refresh - parent component should handle this
+    window.location.reload();
   };
 
   return (
@@ -180,59 +301,28 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
                 </DropdownMenu>
               </div>
 
-              {/* Supplier column - clickable */}
+              {/* Supplier column - dropdown picker */}
               <div className="w-10 flex flex-col items-center justify-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                {materialSuppliers.length > 0 ? materialSuppliers.map((s, i) => {
-                  const logoUrl = (s as any).logo_url;
-                  return (
-                    <Tooltip key={i}>
-                      <TooltipTrigger asChild>
-                        <div
-                          className="h-8 w-8 rounded-full bg-white border flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-                          onClick={() => navigate(`/admin/orders/${order.id}`)}
-                        >
-                          {logoUrl ? (
-                            <img src={logoUrl} alt={getSupplierName(s)} className="h-6 w-6 object-contain" />
-                          ) : (
-                            <img src={pontMassonLogo} alt={getSupplierName(s)} className="h-6 w-6 object-contain" />
-                          )}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>{getSupplierName(s)} — Cliquer pour changer</TooltipContent>
-                    </Tooltip>
-                  );
-                }) : (
-                  <div
-                    className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
-                    onClick={() => navigate(`/admin/orders/${order.id}`)}
-                  >
-                    <Package className="h-3.5 w-3.5 text-muted-foreground/40" />
-                  </div>
-                )}
+                <SupplierPickerBubble
+                  orderId={order.id}
+                  assignmentType="material"
+                  currentAssignments={materialSuppliers}
+                  crmSuppliers={crmSuppliers}
+                  onAssigned={handleSupplierAssigned}
+                  icon={<Package className="h-3.5 w-3.5 text-muted-foreground/40" />}
+                />
               </div>
 
-              {/* DSP column - clickable */}
+              {/* DSP column - dropdown picker */}
               <div className="w-10 flex flex-col items-center justify-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                {dspSuppliers.length > 0 ? dspSuppliers.map((s, i) => (
-                  <Tooltip key={i}>
-                    <TooltipTrigger asChild>
-                      <div
-                        className="h-8 w-8 rounded-full bg-accent/50 flex items-center justify-center text-xs font-bold text-accent-foreground cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-                        onClick={() => navigate(`/admin/orders/${order.id}`)}
-                      >
-                        {getSupplierInitial(s)}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>{getSupplierName(s)} — Cliquer pour changer</TooltipContent>
-                  </Tooltip>
-                )) : (
-                  <div
-                    className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
-                    onClick={() => navigate(`/admin/orders/${order.id}`)}
-                  >
-                    <Truck className="h-3.5 w-3.5 text-muted-foreground/40" />
-                  </div>
-                )}
+                <SupplierPickerBubble
+                  orderId={order.id}
+                  assignmentType="delivery"
+                  currentAssignments={dspSuppliers}
+                  crmSuppliers={crmSuppliers}
+                  onAssigned={handleSupplierAssigned}
+                  icon={<Truck className="h-3.5 w-3.5 text-muted-foreground/40" />}
+                />
               </div>
 
               {/* Date column */}
