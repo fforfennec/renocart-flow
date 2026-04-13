@@ -2,12 +2,12 @@ import { useNavigate } from 'react-router-dom';
 import { Database } from '@/integrations/supabase/types';
 import { AssignmentInfo, isLate, LateBadge } from './OrderCard';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Mail, Users, HandMetal, ArrowRight } from 'lucide-react';
+import { Clock, Mail, Users, HandMetal, ArrowRight, Pause } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 
-type AutomationLane = 'waiting_priority' | 'waiting_broadcast' | 'fulfilling' | 'manual';
+type AutomationLane = 'initial_hold' | 'waiting_priority' | 'waiting_broadcast' | 'fulfilling' | 'manual';
 
 interface Props {
   orders: Order[];

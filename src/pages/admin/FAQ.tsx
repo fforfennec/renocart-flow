@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ArrowDown, Clock, Mail, CheckCircle, XCircle, AlertTriangle, Users } from 'lucide-react';
+import { ArrowDown, Clock, Mail, CheckCircle, XCircle, AlertTriangle, Users, Pause } from 'lucide-react';
 
 export default function AdminFAQ() {
   return (
@@ -24,8 +24,21 @@ export default function AdminFAQ() {
                 </p>
                 <div className="space-y-1">
                   <StepCard
+                    icon={<Pause className="h-5 w-5" />}
+                    title="Nouvelle commande — En attente"
+                    subtitle="Délai de 5 minutes avant le premier envoi"
+                    color="bg-warning/10 text-warning"
+                  >
+                    <p className="text-sm text-muted-foreground">
+                      Chaque nouvelle commande est mise en attente pendant 5 minutes. Cela permet à un admin d'intervenir, de vérifier ou de mettre en pause l'automation avant qu'elle ne démarre.
+                    </p>
+                  </StepCard>
+
+                  <FlowArrow />
+
+                  <StepCard
                     icon={<Mail className="h-5 w-5" />}
-                    title="Nouvelle commande"
+                    title="Envoi au fournisseur prioritaire"
                     subtitle="Envoi automatique au fournisseur prioritaire"
                     color="bg-secondary text-secondary-foreground"
                   >
@@ -102,7 +115,11 @@ export default function AdminFAQ() {
 
                 <div className="mt-4 pt-4 border-t">
                   <p className="text-sm font-medium mb-3">Paramètres actuels</p>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Attente initiale</p>
+                      <p className="font-semibold text-lg">5 min</p>
+                    </div>
                     <div>
                       <p className="text-muted-foreground">Délai prioritaire</p>
                       <p className="font-semibold text-lg">35 min</p>

@@ -139,10 +139,22 @@ const Automations = () => {
         {/* Compact Workflow */}
         <div className="space-y-0">
 
+          {/* Step 0: Hold */}
+          <CompactStep
+            icon={<Pause className="h-4 w-4" />}
+            title="Nouvelle commande — En attente"
+            color="bg-warning/10 text-warning"
+            tooltip="La commande est mise en attente pendant 5 minutes avant que l'automation ne démarre. Cela permet à un admin d'intervenir manuellement si nécessaire."
+          >
+            <p className="text-xs text-muted-foreground mt-1">La commande reste en attente 5 min avant le premier envoi.</p>
+          </CompactStep>
+
+          <FlowArrow label="5 min" />
+
           {/* Step 1 */}
           <CompactStep
             icon={<Mail className="h-4 w-4" />}
-            title="Nouvelle commande"
+            title="Envoi au fournisseur prioritaire"
             color="bg-secondary text-secondary-foreground"
             tooltip="Email envoyé au contact principal + CC du fournisseur prioritaire avec un lien de confirmation."
           >
