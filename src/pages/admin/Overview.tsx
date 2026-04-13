@@ -2,17 +2,18 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, AlertCircle, List, LayoutGrid, CalendarDays, Play, Pause } from 'lucide-react';
+import { Search, AlertCircle, List, LayoutGrid, CalendarDays, Play, Pause, Bot } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { AssignmentInfo } from '@/components/admin/OrderCard';
 import OrderListView from '@/components/admin/OrderListView';
 import OrderBoardView from '@/components/admin/OrderBoardView';
 import OrderCalendarView from '@/components/admin/OrderCalendarView';
+import OrderAutomationView from '@/components/admin/OrderAutomationView';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type FilterType = 'all' | 'new' | 'contacted' | 'done' | 'late';
-type ViewType = 'list' | 'board' | 'calendar';
+type ViewType = 'list' | 'board' | 'calendar' | 'automation';
 
 export default function AdminOverview() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -136,6 +137,7 @@ export default function AdminOverview() {
     { key: 'list', label: 'List', icon: <List className="h-4 w-4" /> },
     { key: 'board', label: 'Board', icon: <LayoutGrid className="h-4 w-4" /> },
     { key: 'calendar', label: 'Calendar', icon: <CalendarDays className="h-4 w-4" /> },
+    { key: 'automation', label: 'Automation', icon: <Bot className="h-4 w-4" /> },
   ];
 
   return (
@@ -229,6 +231,9 @@ export default function AdminOverview() {
           )}
           {activeView === 'calendar' && (
             <OrderCalendarView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} />
+          )}
+          {activeView === 'automation' && (
+            <OrderAutomationView orders={filteredOrders} assignmentsByOrder={assignmentsByOrder} />
           )}
         </>
       )}
