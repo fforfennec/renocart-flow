@@ -155,6 +155,7 @@ export default function AdminSuppliers() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-foreground">{supplier.name}</h3>
+                  {suppliersWithoutPrimary.has(supplier.id) && <span title="Aucun contact principal"><AlertTriangle className="h-4 w-4 text-destructive" /></span>}
                   <Badge variant="outline" className="text-xs">{supplier.type === 'material' ? 'Matériaux' : supplier.type === 'delivery' ? 'DSP' : supplier.type === 'both' ? 'Fourn. + DSP' : 'Autre'}</Badge>
                 </div>
                 {supplier.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{supplier.notes}</p>}
