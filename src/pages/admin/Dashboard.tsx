@@ -94,6 +94,7 @@ const AdminDashboard = () => {
           <Route path="/orders/:orderId" element={<AdminOrderDetail />} />
           <Route path="/historique" element={<AdminHistorique />} />
           <Route path="/suppliers" element={<AdminSuppliers />} />
+          <Route path="/suppliers/:supplierId" element={<SupplierDetail />} />
           <Route path="/stats" element={<AdminStats />} />
           <Route path="/faq" element={<AdminFAQ />} />
         </Routes>
