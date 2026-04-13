@@ -4,11 +4,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, AlertCircle, Package, Truck, User, Phone, MapPin, Calendar, Clock, Send, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Package, Truck, User, Phone, MapPin, Calendar, Clock, Send, Loader2, Plus } from 'lucide-react';
 import pontMassonLogo from '@/assets/pont-masson-logo.png';
 import OrderSidebar from '@/components/admin/OrderSidebar';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type OrderItem = Database['public']['Tables']['order_items']['Row'];
@@ -42,8 +46,21 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [dispatching, setDispatching] = useState(false);
 
+  const [supplierPriority, setSupplierPriority] = useState<any[]>([]);
+  const [assignDialogOpen, setAssignDialogOpen] = useState<'material' | 'delivery' | null>(null);
+  const [assignEmail, setAssignEmail] = useState('');
+  const [assignName, setAssignName] = useState('');
+  const [assigningManual, setAssigningManual] = useState(false);
+  const [selectedPriorityId, setSelectedPriorityId] = useState<string>('custom');
+
   const materialAssignment = assignments.find(a => a.assignment_type === 'material');
   const minutesAgo = useMinutesAgo(materialAssignment?.assigned_at ?? null);
+
+  useEffect(() => {
+    supabase.from('supplier_priority').select('*').eq('is_active', true).order('priority_order').then(({ data }) => {
+      setSupplierPriority(data || []);
+    });
+  }, []);
 
   useEffect(() => {
     if (orderId) {
@@ -168,6 +185,46 @@ export default function OrderDetail() {
     return delivery < today;
   };
 
+  const handleManualAssign = async (type: 'material' | 'delivery') => {
+    if (!orderId || !assignEmail || !assignName) {
+      toast.error('Veuillez remplir le nom et l\'email');
+      return;
+    }
+    setAssigningManual(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('dispatch-order', {
+        body: { order_id: orderId, supplier_email: assignEmail, supplier_name: assignName, priority_rank: 99 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`${type === 'material' ? 'Fournisseur' : 'DSP'} assigné avec succès`);
+      setAssignDialogOpen(null);
+      setAssignEmail('');
+      setAssignName('');
+      setSelectedPriorityId('custom');
+      await loadOrderDetails();
+    } catch (error: any) {
+      console.error('Manual assign error:', error);
+      toast.error(error.message || 'Erreur lors de l\'assignation');
+    } finally {
+      setAssigningManual(false);
+    }
+  };
+
+  const handlePrioritySelect = (id: string) => {
+    setSelectedPriorityId(id);
+    if (id === 'custom') {
+      setAssignEmail('');
+      setAssignName('');
+    } else {
+      const supplier = supplierPriority.find(s => s.id === id);
+      if (supplier) {
+        setAssignEmail(supplier.email);
+        setAssignName(supplier.name);
+      }
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
       pending: { variant: 'secondary', label: 'New' },
@@ -180,6 +237,55 @@ export default function OrderDetail() {
     const config = variants[status] || { variant: 'secondary', label: status };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
+
+  const AssignDialog = ({ type }: { type: 'material' | 'delivery' }) => (
+    <Dialog open={assignDialogOpen === type} onOpenChange={(open) => {
+      if (!open) { setAssignDialogOpen(null); setAssignEmail(''); setAssignName(''); setSelectedPriorityId('custom'); }
+      else setAssignDialogOpen(type);
+    }}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <Plus className="h-3.5 w-3.5" />
+          Assigner
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Assigner un {type === 'material' ? 'fournisseur' : 'DSP'}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-2">
+          {supplierPriority.length > 0 && (
+            <div className="space-y-2">
+              <Label>Sélectionner depuis la liste</Label>
+              <Select value={selectedPriorityId} onValueChange={handlePrioritySelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un fournisseur..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {supplierPriority.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name} ({s.email})</SelectItem>
+                  ))}
+                  <SelectItem value="custom">Personnalisé...</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label>Nom</Label>
+            <Input value={assignName} onChange={e => setAssignName(e.target.value)} placeholder="Nom du fournisseur" />
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input value={assignEmail} onChange={e => setAssignEmail(e.target.value)} placeholder="email@exemple.com" type="email" />
+          </div>
+          <Button onClick={() => handleManualAssign(type)} disabled={assigningManual || !assignEmail || !assignName} className="w-full gap-2">
+            {assigningManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {assigningManual ? 'Envoi...' : 'Assigner et envoyer le courriel'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 
   if (loading) {
     return (
@@ -417,11 +523,12 @@ export default function OrderDetail() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Material Suppliers */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Package className="h-5 w-5" />
               Fournisseurs Matériaux
             </CardTitle>
+            <AssignDialog type="material" />
           </CardHeader>
           <CardContent>
             {(() => {
@@ -468,11 +575,12 @@ export default function OrderDetail() {
 
         {/* Delivery Service Partner */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Truck className="h-5 w-5" />
               DSP – Livraison
             </CardTitle>
+            <AssignDialog type="delivery" />
           </CardHeader>
           <CardContent>
             {(() => {
