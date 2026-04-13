@@ -66,13 +66,13 @@ export default function OrderDetail() {
   const [assignName, setAssignName] = useState('');
   const [assigningManual, setAssigningManual] = useState(false);
   const [selectedPriorityId, setSelectedPriorityId] = useState<string>('custom');
-  const [suppliersList, setSuppliersList] = useState<{ id: string; name: string; type: string; contacts: { email: string; is_primary: boolean }[] }[]>([]);
+  const [suppliersList, setSuppliersList] = useState<{ id: string; name: string; type: string; logo_url: string | null; contacts: { email: string; is_primary: boolean }[] }[]>([]);
 
   useEffect(() => {
     supabase.from('supplier_priority').select('*').eq('is_active', true).order('priority_order').then(({ data }) => {
       setSupplierPriority(data || []);
     });
-    supabase.from('suppliers').select('id, name, type').then(async ({ data: suppliers }) => {
+    supabase.from('suppliers').select('id, name, type, logo_url').then(async ({ data: suppliers }) => {
       if (!suppliers) return;
       const withContacts = await Promise.all(suppliers.map(async (s) => {
         const { data: contacts } = await supabase.from('supplier_contacts').select('email, is_primary').eq('supplier_id', s.id);
@@ -260,13 +260,13 @@ export default function OrderDetail() {
 
   const MATERIAL_SUPPLIERS = suppliersList
     .filter(s => s.type === 'material' || s.type === 'both')
-    .map(s => ({ value: s.id, label: s.name }));
-  MATERIAL_SUPPLIERS.push({ value: 'autres', label: 'Autres' });
+    .map(s => ({ value: s.id, label: s.name, logo_url: s.logo_url }));
+  MATERIAL_SUPPLIERS.push({ value: 'autres', label: 'Autres', logo_url: null });
 
   const DSP_OPTIONS = suppliersList
     .filter(s => s.type === 'delivery' || s.type === 'both')
-    .map(s => ({ value: s.id, label: s.name }));
-  DSP_OPTIONS.push({ value: 'autres', label: 'Autres' });
+    .map(s => ({ value: s.id, label: s.name, logo_url: s.logo_url }));
+  DSP_OPTIONS.push({ value: 'autres', label: 'Autres', logo_url: null });
 
   const handleQuickSelect = (value: string, type: 'material' | 'delivery') => {
     setSelectedPriorityId(value);
@@ -312,7 +312,12 @@ export default function OrderDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   {options.map(o => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    <SelectItem key={o.value} value={o.value}>
+                      <span className="flex items-center gap-2">
+                        {o.logo_url && <img src={o.logo_url} className="h-4 w-4 rounded-full object-cover" />}
+                        {o.label}
+                      </span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
