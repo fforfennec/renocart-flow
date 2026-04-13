@@ -139,7 +139,12 @@ const Automations = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {suppliers.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>
+                      <span className="flex items-center gap-2">
+                        {s.logo_url && <img src={s.logo_url} className="h-4 w-4 rounded-full object-cover" />}
+                        {s.name}
+                      </span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
