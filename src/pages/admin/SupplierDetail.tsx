@@ -51,8 +51,9 @@ export default function SupplierDetail() {
   const [branchPhone, setBranchPhone] = useState('');
   const [branchIsHQ, setBranchIsHQ] = useState(false);
 
-  // Add Contact
+  // Add/Edit Contact
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -148,19 +149,42 @@ export default function SupplierDetail() {
     loadData();
   };
 
-  const handleAddContact = async () => {
+  const resetContactForm = () => {
+    setEditingContactId(null);
+    setContactName(''); setContactEmail(''); setContactPhone(''); setContactRole(''); setContactBranch('none'); setContactIsPrimary(false);
+  };
+
+  const openEditContact = (c: Contact) => {
+    setEditingContactId(c.id);
+    setContactName(c.full_name);
+    setContactEmail(c.email || '');
+    setContactPhone(c.phone || '');
+    setContactRole(c.role || '');
+    setContactBranch(c.branch_id || 'none');
+    setContactIsPrimary(c.is_primary);
+    setContactDialogOpen(true);
+  };
+
+  const handleSaveContact = async () => {
     if (!supplierId || !contactName.trim()) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from('supplier_contacts').insert({
+      const payload = {
         supplier_id: supplierId, full_name: contactName.trim(),
         email: contactEmail || null, phone: contactPhone || null, role: contactRole || null,
         branch_id: contactBranch === 'none' ? null : contactBranch, is_primary: contactIsPrimary,
-      });
-      if (error) throw error;
-      toast.success('Contact ajouté');
+      };
+      if (editingContactId) {
+        const { error } = await supabase.from('supplier_contacts').update(payload).eq('id', editingContactId);
+        if (error) throw error;
+        toast.success('Contact mis à jour');
+      } else {
+        const { error } = await supabase.from('supplier_contacts').insert(payload);
+        if (error) throw error;
+        toast.success('Contact ajouté');
+      }
       setContactDialogOpen(false);
-      setContactName(''); setContactEmail(''); setContactPhone(''); setContactRole(''); setContactBranch('none'); setContactIsPrimary(false);
+      resetContactForm();
       loadData();
     } catch (e: any) { toast.error(e.message || 'Erreur'); } finally { setSaving(false); }
   };
@@ -271,13 +295,13 @@ export default function SupplierDetail() {
           <h2 className="font-semibold flex items-center gap-2"><User className="h-4 w-4" />Contacts ({contacts.length})</h2>
           <Dialog open={contactDialogOpen} onOpenChange={open => {
             setContactDialogOpen(open);
-            if (!open) { setContactName(''); setContactEmail(''); setContactPhone(''); setContactRole(''); setContactBranch('none'); setContactIsPrimary(false); }
+            if (!open) resetContactForm();
           }}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1"><Plus className="h-3.5 w-3.5" />Contact</Button>
+              <Button variant="outline" size="sm" className="gap-1" onClick={() => resetContactForm()}><Plus className="h-3.5 w-3.5" />Contact</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Ajouter un contact</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editingContactId ? 'Modifier le contact' : 'Ajouter un contact'}</DialogTitle></DialogHeader>
               <div className="space-y-3 pt-2">
                 <div className="space-y-1.5"><Label>Nom complet</Label><Input value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Prénom Nom" /></div>
                 <div className="space-y-1.5"><Label>Email</Label><Input value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="email@..." type="email" /></div>
@@ -296,8 +320,8 @@ export default function SupplierDetail() {
                   </div>
                 )}
                 <div className="flex items-center gap-2"><Switch checked={contactIsPrimary} onCheckedChange={setContactIsPrimary} /><Label>Contact principal</Label></div>
-                <Button onClick={handleAddContact} disabled={saving || !contactName.trim()} className="w-full">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Ajouter
+                <Button onClick={handleSaveContact} disabled={saving || !contactName.trim()} className="w-full">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{editingContactId ? 'Sauvegarder' : 'Ajouter'}
                 </Button>
               </div>
             </DialogContent>
@@ -311,7 +335,7 @@ export default function SupplierDetail() {
               {contacts.map(c => {
                 const branch = branches.find(b => b.id === c.branch_id);
                 return (
-                  <div key={c.id} className="border rounded-lg p-4 bg-muted/10 space-y-1.5 group relative">
+                  <div key={c.id} onClick={() => openEditContact(c)} className="border rounded-lg p-4 bg-muted/10 space-y-1.5 group relative cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-colors">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{c.full_name}</span>
                       {c.is_primary && <Badge variant="secondary" className="text-[10px] gap-0.5 px-1.5"><Star className="h-2.5 w-2.5" />Principal</Badge>}
@@ -320,7 +344,7 @@ export default function SupplierDetail() {
                     {c.email && <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 shrink-0" />{c.email}</p>}
                     {c.phone && <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 shrink-0" />{c.phone}</p>}
                     {branch && <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 shrink-0" />{branch.name}</p>}
-                    <button onClick={() => handleDeleteContact(c.id)} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteContact(c.id); }} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
