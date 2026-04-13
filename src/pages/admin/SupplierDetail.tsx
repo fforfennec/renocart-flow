@@ -246,7 +246,17 @@ export default function SupplierDetail() {
                 <Button size="sm" variant="ghost" onClick={() => { setIsEditing(false); setEditName(supplier.name); setEditType(supplier.type); }}>Annuler</Button>
               </div>
             </div>
+          ) : (
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-rc-navy cursor-pointer hover:underline" onClick={() => setIsEditing(true)}>{supplier.name}</h1>
+                <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => setIsEditing(true)}>{typeLabel(supplier.type)}</Badge>
+              </div>
+              {supplier.notes && <p className="text-sm text-muted-foreground mt-1">{supplier.notes}</p>}
+            </div>
+          )}
         </div>
+      </div>
       </div>
 
       {/* Branches */}
