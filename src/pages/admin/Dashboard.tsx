@@ -9,6 +9,7 @@ import AdminStats from './Stats';
 import AdminFAQ from './FAQ';
 import AdminOrderDetail from './OrderDetail';
 import AdminSuppliers from './Suppliers';
+import SupplierDetail from './SupplierDetail';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
