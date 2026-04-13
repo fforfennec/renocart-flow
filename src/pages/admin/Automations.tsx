@@ -84,14 +84,18 @@ const Automations = () => {
   };
 
   const handleAddBroadcast = async (supplierId: string) => {
-    setBroadcastSuppliers(prev => [...prev, supplierId]);
     const supplier = suppliers.find(s => s.id === supplierId);
     if (!supplier) return;
     const { data: contacts } = await supabase.from('supplier_contacts').select('email').eq('supplier_id', supplierId).eq('is_primary', true).limit(1);
-    const email = contacts?.[0]?.email || '';
-    await supabase.from('supplier_priority').insert({ supplier_id: supplierId, name: supplier.name, email, priority_order: broadcastSuppliers.length + 2, is_active: true } as any);
+    const email = contacts?.[0]?.email || 'no-email@placeholder.com';
+    const { error } = await supabase.from('supplier_priority').insert({ supplier_id: supplierId, name: supplier.name, email, priority_order: broadcastSuppliers.length + 2, is_active: true } as any);
+    if (error) {
+      console.error('Insert error:', error);
+      toast.error('Erreur lors de l\'ajout');
+      return;
+    }
     toast.success(`${supplier.name} ajouté`);
-    loadAll();
+    await loadAll();
   };
 
   const handleRemoveBroadcast = async (supplierId: string) => {
