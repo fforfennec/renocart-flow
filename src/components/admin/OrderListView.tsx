@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Package, Truck, ChevronDown, Send } from 'lucide-react';
 import pontMassonLogo from '@/assets/pont-masson-logo.png';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Database } from '@/integrations/supabase/types';
@@ -178,37 +179,56 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
                 </DropdownMenu>
               </div>
 
-              {/* Supplier column */}
-              <div className="w-10 flex flex-col items-center justify-center gap-1 shrink-0">
-              {materialSuppliers.length > 0 ? materialSuppliers.map((s, i) => (
-                  <Tooltip key={i}>
-                    <TooltipTrigger asChild>
-                      <div className="h-8 w-8 rounded-full bg-white border flex items-center justify-center overflow-hidden">
-                        <img src={pontMassonLogo} alt={getSupplierName(s)} className="h-6 w-6 object-contain" />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>{getSupplierName(s)}</TooltipContent>
-                  </Tooltip>
-                )) : (
-                  <div className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+              {/* Supplier column - clickable */}
+              <div className="w-10 flex flex-col items-center justify-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                {materialSuppliers.length > 0 ? materialSuppliers.map((s, i) => {
+                  const logoUrl = (s as any).logo_url;
+                  return (
+                    <Tooltip key={i}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="h-8 w-8 rounded-full bg-white border flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                          onClick={() => navigate(`/admin/orders/${order.id}`)}
+                        >
+                          {logoUrl ? (
+                            <img src={logoUrl} alt={getSupplierName(s)} className="h-6 w-6 object-contain" />
+                          ) : (
+                            <img src={pontMassonLogo} alt={getSupplierName(s)} className="h-6 w-6 object-contain" />
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>{getSupplierName(s)} — Cliquer pour changer</TooltipContent>
+                    </Tooltip>
+                  );
+                }) : (
+                  <div
+                    className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => navigate(`/admin/orders/${order.id}`)}
+                  >
                     <Package className="h-3.5 w-3.5 text-muted-foreground/40" />
                   </div>
                 )}
               </div>
 
-              {/* DSP column */}
-              <div className="w-10 flex flex-col items-center justify-center gap-1 shrink-0">
+              {/* DSP column - clickable */}
+              <div className="w-10 flex flex-col items-center justify-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
                 {dspSuppliers.length > 0 ? dspSuppliers.map((s, i) => (
                   <Tooltip key={i}>
                     <TooltipTrigger asChild>
-                      <div className="h-8 w-8 rounded-full bg-accent/50 flex items-center justify-center text-xs font-bold text-accent-foreground">
+                      <div
+                        className="h-8 w-8 rounded-full bg-accent/50 flex items-center justify-center text-xs font-bold text-accent-foreground cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                        onClick={() => navigate(`/admin/orders/${order.id}`)}
+                      >
                         {getSupplierInitial(s)}
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>{getSupplierName(s)}</TooltipContent>
+                    <TooltipContent>{getSupplierName(s)} — Cliquer pour changer</TooltipContent>
                   </Tooltip>
                 )) : (
-                  <div className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                  <div
+                    className="h-8 w-8 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => navigate(`/admin/orders/${order.id}`)}
+                  >
                     <Truck className="h-3.5 w-3.5 text-muted-foreground/40" />
                   </div>
                 )}

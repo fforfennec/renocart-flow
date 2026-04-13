@@ -9,6 +9,7 @@ import AdminStats from './Stats';
 import AdminFAQ from './FAQ';
 import AdminOrderDetail from './OrderDetail';
 import AdminSuppliers from './Suppliers';
+import SupplierDetail from './SupplierDetail';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
@@ -93,6 +94,7 @@ const AdminDashboard = () => {
           <Route path="/orders/:orderId" element={<AdminOrderDetail />} />
           <Route path="/historique" element={<AdminHistorique />} />
           <Route path="/suppliers" element={<AdminSuppliers />} />
+          <Route path="/suppliers/:supplierId" element={<SupplierDetail />} />
           <Route path="/stats" element={<AdminStats />} />
           <Route path="/faq" element={<AdminFAQ />} />
         </Routes>
