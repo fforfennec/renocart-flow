@@ -59,6 +59,14 @@ const AdminDashboard = () => {
             <span>Fournisseurs & DSP</span>
           </NavLink>
           <NavLink 
+            to="/admin/automations"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
+            <Bot size={20} />
+            <span>Automations</span>
+          </NavLink>
+          <NavLink 
             to="/admin/faq"
             className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
             activeClassName="bg-white/10 !text-white"
