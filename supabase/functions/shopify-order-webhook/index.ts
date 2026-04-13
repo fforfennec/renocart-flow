@@ -192,29 +192,8 @@ Deno.serve(async (req) => {
       `Imported order ${orderNumber} with ${items.length} items`
     );
 
-    // Auto-dispatch to Pont-Masson
-    try {
-      const dispatchRes = await fetch(
-        `${supabaseUrl}/functions/v1/dispatch-order`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${supabaseServiceKey}`,
-            apikey: supabaseServiceKey,
-          },
-          body: JSON.stringify({ order_id: newOrder.id }),
-        }
-      );
-      if (!dispatchRes.ok) {
-        const err = await dispatchRes.text();
-        console.error(`Auto-dispatch failed for ${orderNumber}:`, err);
-      } else {
-        console.log(`Auto-dispatched order ${orderNumber} to Pont-Masson`);
-      }
-    } catch (e) {
-      console.error(`Auto-dispatch error for ${orderNumber}:`, e);
-    }
+    // Auto-dispatch is now handled by escalation-check after a 5-minute hold period.
+    // Orders remain in "pending" status until the automation picks them up.
 
     return new Response(
       JSON.stringify({ success: true, order_number: orderNumber, items: items.length }),
