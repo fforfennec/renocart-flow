@@ -46,8 +46,21 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [dispatching, setDispatching] = useState(false);
 
+  const [supplierPriority, setSupplierPriority] = useState<any[]>([]);
+  const [assignDialogOpen, setAssignDialogOpen] = useState<'material' | 'delivery' | null>(null);
+  const [assignEmail, setAssignEmail] = useState('');
+  const [assignName, setAssignName] = useState('');
+  const [assigningManual, setAssigningManual] = useState(false);
+  const [selectedPriorityId, setSelectedPriorityId] = useState<string>('custom');
+
   const materialAssignment = assignments.find(a => a.assignment_type === 'material');
   const minutesAgo = useMinutesAgo(materialAssignment?.assigned_at ?? null);
+
+  useEffect(() => {
+    supabase.from('supplier_priority').select('*').eq('is_active', true).order('priority_order').then(({ data }) => {
+      setSupplierPriority(data || []);
+    });
+  }, []);
 
   useEffect(() => {
     if (orderId) {
