@@ -4,7 +4,9 @@ import { AssignmentInfo, isLate, LateBadge } from './OrderCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useState, useEffect, DragEvent } from 'react';
-import { Package, Truck, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
+
+type Order = Database['public']['Tables']['orders']['Row'];
 
 const TIMER_STATUSES = ['pending', 'assigned', 'on_hold'];
 
@@ -30,8 +32,6 @@ function formatElapsed(mins: number) {
   return `${d}j ${h % 24}h`;
 }
 
-type Order = Database['public']['Tables']['orders']['Row'];
-
 interface Props {
   orders: Order[];
   assignmentsByOrder: Record<string, AssignmentInfo[]>;
@@ -46,6 +46,84 @@ const COLUMNS = [
   { key: 'delivered', label: 'Livré', color: 'border-t-green-500' },
   { key: 'cancelled', label: 'Annulé', color: 'border-t-destructive' },
 ];
+
+function BoardCard({
+  order,
+  assignments,
+  isDragging,
+  getLogoForAssignment,
+  onDragStart,
+  onClick,
+}: {
+  order: Order;
+  assignments: AssignmentInfo[];
+  isDragging: boolean;
+  getLogoForAssignment: (a: AssignmentInfo) => string | null;
+  onDragStart: (e: DragEvent, id: string) => void;
+  onClick: () => void;
+}) {
+  const supplier = assignments.find(a => a.assignment_type === 'material');
+  const dsp = assignments.find(a => a.assignment_type === 'delivery');
+  const elapsed = useElapsedMinutes(order.created_at, order.status);
+
+  return (
+    <div
+      draggable
+      onDragStart={(e) => onDragStart(e, order.id)}
+      onClick={onClick}
+      className={`bg-background border rounded-lg p-3 hover:shadow-md transition-all cursor-grab active:cursor-grabbing space-y-1.5 ${
+        isDragging ? 'opacity-40 scale-95' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-semibold text-sm text-rc-navy">{order.order_number}</span>
+        <div className="flex items-center gap-1.5">
+          {elapsed !== null && (
+            <span className={`flex items-center gap-0.5 text-[10px] font-medium ${elapsed > 60 ? 'text-destructive' : 'text-muted-foreground'}`}>
+              <Clock className="h-3 w-3" />
+              {formatElapsed(elapsed)}
+            </span>
+          )}
+          {isLate(order.delivery_date, order.status) && <LateBadge />}
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground truncate">{order.client_name}</p>
+      <p className="text-xs text-muted-foreground">
+        {new Date(order.delivery_date).toLocaleDateString('fr-CA')} · {order.delivery_time_window}
+      </p>
+      {(supplier || dsp) && (
+        <div className="flex items-center gap-1.5 pt-0.5">
+          {supplier && (() => {
+            const logo = getLogoForAssignment(supplier);
+            const name = (supplier.profiles as any)?.company_name || (supplier.profiles as any)?.full_name || '?';
+            return logo ? (
+              <div className="h-5 w-5 rounded-full bg-white border flex items-center justify-center overflow-hidden" title={name}>
+                <img src={logo} alt={name} className="h-4 w-4 object-contain" />
+              </div>
+            ) : (
+              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium truncate max-w-[100px]">
+                {name}
+              </span>
+            );
+          })()}
+          {dsp && (() => {
+            const logo = getLogoForAssignment(dsp);
+            const name = (dsp.profiles as any)?.company_name || (dsp.profiles as any)?.full_name || '?';
+            return logo ? (
+              <div className="h-5 w-5 rounded-full bg-white border flex items-center justify-center overflow-hidden" title={name}>
+                <img src={logo} alt={name} className="h-4 w-4 object-contain" />
+              </div>
+            ) : (
+              <span className="text-[10px] bg-accent text-accent-foreground px-1.5 py-0.5 rounded font-medium truncate max-w-[100px]">
+                {name}
+              </span>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function OrderBoardView({ orders, assignmentsByOrder, onOrderUpdate }: Props) {
   const navigate = useNavigate();
@@ -89,7 +167,6 @@ export default function OrderBoardView({ orders, assignmentsByOrder, onOrderUpda
     const order = orders.find(o => o.id === draggedOrderId);
     if (!order || order.status === newStatus) { setDraggedOrderId(null); return; }
 
-    // Optimistic update
     onOrderUpdate?.(draggedOrderId, { status: newStatus });
 
     try {
@@ -102,7 +179,6 @@ export default function OrderBoardView({ orders, assignmentsByOrder, onOrderUpda
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Erreur lors du changement de statut');
-      // Revert
       onOrderUpdate?.(draggedOrderId, { status: order.status });
     }
     setDraggedOrderId(null);
@@ -124,7 +200,6 @@ export default function OrderBoardView({ orders, assignmentsByOrder, onOrderUpda
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, col.key)}
           >
-            {/* Column header */}
             <div className={`flex items-center gap-2 px-3 py-2.5 border-t-[3px] rounded-t-lg ${col.color}`}>
               <h3 className="font-semibold text-sm text-foreground">{col.label}</h3>
               <span className="text-xs text-muted-foreground bg-background rounded-full px-2 py-0.5 font-medium">
@@ -132,12 +207,9 @@ export default function OrderBoardView({ orders, assignmentsByOrder, onOrderUpda
               </span>
             </div>
 
-            {/* Cards */}
             <div className="flex-1 p-2 space-y-2 overflow-y-auto">
               {columnOrders.map((order) => {
                 const assignments = assignmentsByOrder[order.id] || [];
-                const supplier = assignments.find(a => a.assignment_type === 'material');
-                const dsp = assignments.find(a => a.assignment_type === 'delivery');
                 const isDragging = draggedOrderId === order.id;
 
                 return (
@@ -150,28 +222,6 @@ export default function OrderBoardView({ orders, assignmentsByOrder, onOrderUpda
                     onDragStart={handleDragStart}
                     onClick={() => navigate(`/admin/orders/${order.id}`)}
                   />
-                          ) : (
-                            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium truncate max-w-[100px]">
-                              {name}
-                            </span>
-                          );
-                        })()}
-                        {dsp && (() => {
-                          const logo = getLogoForAssignment(dsp);
-                          const name = (dsp.profiles as any)?.company_name || (dsp.profiles as any)?.full_name || '?';
-                          return logo ? (
-                            <div className="h-5 w-5 rounded-full bg-white border flex items-center justify-center overflow-hidden" title={name}>
-                              <img src={logo} alt={name} className="h-4 w-4 object-contain" />
-                            </div>
-                          ) : (
-                            <span className="text-[10px] bg-accent text-accent-foreground px-1.5 py-0.5 rounded font-medium truncate max-w-[100px]">
-                              {name}
-                            </span>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
                 );
               })}
               {columnOrders.length === 0 && (
