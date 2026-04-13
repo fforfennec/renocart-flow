@@ -213,7 +213,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, escalated: toEscalate.length }),
+      JSON.stringify({ success: true, initialDispatched, escalated: toEscalate.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
