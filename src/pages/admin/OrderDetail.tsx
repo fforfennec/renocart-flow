@@ -523,11 +523,12 @@ export default function OrderDetail() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Material Suppliers */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Package className="h-5 w-5" />
               Fournisseurs Matériaux
             </CardTitle>
+            <AssignDialog type="material" />
           </CardHeader>
           <CardContent>
             {(() => {
