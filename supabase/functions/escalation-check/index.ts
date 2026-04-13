@@ -34,6 +34,54 @@ Deno.serve(async (req) => {
       });
     }
 
+    // --- INITIAL DISPATCH: orders older than 5 min with no assignments ---
+    const holdCutoff = new Date(Date.now() - INITIAL_HOLD_MINUTES * 60 * 1000).toISOString();
+    const { data: pendingOrders } = await supabase
+      .from("orders")
+      .select("id, order_number, automation_paused")
+      .eq("status", "pending")
+      .eq("automation_paused", false)
+      .lt("created_at", holdCutoff);
+
+    let initialDispatched = 0;
+    for (const order of pendingOrders || []) {
+      // Check if already has assignments
+      const { count } = await supabase
+        .from("supplier_assignments")
+        .select("id", { count: "exact", head: true })
+        .eq("order_id", order.id);
+      if ((count || 0) > 0) continue;
+
+      // Get priority 1 supplier
+      const { data: prioritySupplier } = await supabase
+        .from("supplier_priority")
+        .select("*")
+        .eq("is_active", true)
+        .eq("priority_order", 1)
+        .maybeSingle();
+
+      if (prioritySupplier) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        await fetch(`${supabaseUrl}/functions/v1/dispatch-order`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${serviceKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            order_id: order.id,
+            supplier_email: prioritySupplier.email,
+            supplier_name: prioritySupplier.name,
+            priority_rank: prioritySupplier.priority_order,
+          }),
+        });
+        console.log(`Initial dispatch: ${order.order_number} → ${prioritySupplier.name}`);
+        initialDispatched++;
+      }
+    }
+
+    // --- ESCALATION: existing assignments older than 35 min ---
     const cutoff = new Date(Date.now() - ESCALATION_MINUTES * 60 * 1000).toISOString();
 
     // Find assignments older than 35 min still pending, not yet escalated
