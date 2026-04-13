@@ -20,6 +20,19 @@ Deno.serve(async (req) => {
   const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
   try {
+    // Check if automations are paused
+    const { data: pauseSetting } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "automations_paused")
+      .single();
+
+    if (pauseSetting?.value === "true") {
+      return new Response(JSON.stringify({ skipped: true, reason: "Automations paused" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const cutoff = new Date(Date.now() - ESCALATION_MINUTES * 60 * 1000).toISOString();
 
     // Find assignments older than 35 min still pending, not yet escalated
