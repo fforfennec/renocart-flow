@@ -126,8 +126,8 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
                   {getStatusBadge(order.status)}
                   {isLate(order.delivery_date, order.status) && <LateBadge />}
                 </div>
-                {order.status === 'assigned' && materialSuppliers.length > 0 && materialSuppliers[0].assigned_at && (
-                  <PontMassonTimeBadge assignedAt={materialSuppliers[0].assigned_at} />
+                {['pending', 'assigned', 'on_hold'].includes(order.status) && (
+                  <ElapsedTimeBadge createdAt={order.created_at} />
                 )}
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p><span className="font-medium">Client:</span> {order.client_name}</p>
