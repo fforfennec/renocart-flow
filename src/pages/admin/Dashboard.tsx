@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/NavLink';
@@ -8,6 +8,7 @@ import AdminHistorique from './Historique';
 import AdminStats from './Stats';
 import AdminFAQ from './FAQ';
 import AdminOrderDetail from './OrderDetail';
+import AdminSuppliers from './Suppliers';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
@@ -48,6 +49,14 @@ const AdminDashboard = () => {
             <span>Stats</span>
           </NavLink>
           <NavLink 
+            to="/admin/suppliers"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
+            <Truck size={20} />
+            <span>Fournisseurs & DSP</span>
+          </NavLink>
+          <NavLink 
             to="/admin/faq"
             className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
             activeClassName="bg-white/10 !text-white"
@@ -83,6 +92,7 @@ const AdminDashboard = () => {
           <Route path="/" element={<AdminOverview />} />
           <Route path="/orders/:orderId" element={<AdminOrderDetail />} />
           <Route path="/historique" element={<AdminHistorique />} />
+          <Route path="/suppliers" element={<AdminSuppliers />} />
           <Route path="/stats" element={<AdminStats />} />
           <Route path="/faq" element={<AdminFAQ />} />
         </Routes>

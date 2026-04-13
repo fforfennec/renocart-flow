@@ -318,6 +318,101 @@ export type Database = {
           },
         ]
       }
+      supplier_branches: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_headquarters: boolean
+          name: string
+          phone: string | null
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_headquarters?: boolean
+          name: string
+          phone?: string | null
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_headquarters?: boolean
+          name?: string
+          phone?: string | null
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_branches_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_contacts: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          is_primary: boolean
+          phone: string | null
+          role: string | null
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          is_primary?: boolean
+          phone?: string | null
+          role?: string | null
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_primary?: boolean
+          phone?: string | null
+          role?: string | null
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_contacts_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_contacts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_priority: {
         Row: {
           created_at: string
@@ -411,6 +506,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      suppliers: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          notes: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          notes?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          notes?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
