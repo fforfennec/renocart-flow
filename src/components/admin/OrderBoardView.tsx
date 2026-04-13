@@ -17,7 +17,7 @@ interface Props {
 const COLUMNS = [
   { key: 'pending', label: 'Nouveau', color: 'border-t-muted-foreground' },
   { key: 'assigned', label: 'Assigné', color: 'border-t-blue-500' },
-  { key: 'in_progress', label: 'En cours', color: 'border-t-amber-500' },
+  { key: 'in_progress', label: 'Fulfilling', color: 'border-t-amber-500' },
   { key: 'on_hold', label: 'En attente', color: 'border-t-orange-400' },
   { key: 'delivered', label: 'Livré', color: 'border-t-green-500' },
   { key: 'cancelled', label: 'Annulé', color: 'border-t-destructive' },

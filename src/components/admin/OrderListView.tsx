@@ -44,7 +44,7 @@ const ACTION_OPTIONS = [
 
 const STATUS_OPTIONS = [
   { label: 'New', value: 'pending' },
-  { label: 'Contacted', value: 'in_progress' },
+  { label: 'Fulfilling', value: 'in_progress' },
   { label: 'Assigned', value: 'assigned' },
   { label: 'On Hold', value: 'on_hold' },
   { label: 'Done', value: 'delivered' },
