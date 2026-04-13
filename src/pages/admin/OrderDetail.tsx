@@ -364,6 +364,9 @@ export default function OrderDetail() {
                 Late
               </Badge>
             )}
+            {['pending', 'assigned', 'on_hold'].includes(order.status) && (
+              <ElapsedBadge createdAt={order.created_at} />
+            )}
           </div>
           <p className="text-sm text-muted-foreground">Created on {new Date(order.created_at).toLocaleString()}</p>
         </div>
