@@ -3,7 +3,8 @@ import { Database } from '@/integrations/supabase/types';
 import { AssignmentInfo, isLate, LateBadge } from './OrderCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useState, DragEvent } from 'react';
+import { useState, useEffect, DragEvent } from 'react';
+import { Package, Truck } from 'lucide-react';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 
