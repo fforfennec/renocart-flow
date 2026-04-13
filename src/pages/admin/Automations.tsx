@@ -32,11 +32,23 @@ const Automations = () => {
     ]);
     if (settingsRes.data) setAutomationsPaused((settingsRes.data as any).value === 'true');
     if (suppliersRes.data) setSuppliers(suppliersRes.data);
-    if (priorityRes.data && priorityRes.data.length > 0) {
+    if (priorityRes.data) {
       setPriorityList(priorityRes.data);
-      const first = priorityRes.data[0];
-      if (first.supplier_id) setPrioritizedSupplier(first.supplier_id);
-      setBroadcastSuppliers(priorityRes.data.slice(1).filter((p: PriorityEntry) => p.supplier_id).map((p: PriorityEntry) => p.supplier_id!));
+      const first = priorityRes.data.find((p: PriorityEntry) => p.priority_order === 1);
+      if (first?.supplier_id) {
+        setPrioritizedSupplier(first.supplier_id);
+      } else {
+        setPrioritizedSupplier(null);
+      }
+      setBroadcastSuppliers(
+        priorityRes.data
+          .filter((p: PriorityEntry) => p.supplier_id && p.priority_order !== 1)
+          .map((p: PriorityEntry) => p.supplier_id!)
+      );
+    } else {
+      setPriorityList([]);
+      setPrioritizedSupplier(null);
+      setBroadcastSuppliers([]);
     }
     setLoading(false);
   };
