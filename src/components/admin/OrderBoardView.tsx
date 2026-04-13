@@ -141,32 +141,15 @@ export default function OrderBoardView({ orders, assignmentsByOrder, onOrderUpda
                 const isDragging = draggedOrderId === order.id;
 
                 return (
-                  <div
+                  <BoardCard
                     key={order.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, order.id)}
+                    order={order}
+                    assignments={assignments}
+                    isDragging={isDragging}
+                    getLogoForAssignment={getLogoForAssignment}
+                    onDragStart={handleDragStart}
                     onClick={() => navigate(`/admin/orders/${order.id}`)}
-                    className={`bg-background border rounded-lg p-3 hover:shadow-md transition-all cursor-grab active:cursor-grabbing space-y-1.5 ${
-                      isDragging ? 'opacity-40 scale-95' : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-sm text-rc-navy">{order.order_number}</span>
-                      {isLate(order.delivery_date, order.status) && <LateBadge />}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">{order.client_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(order.delivery_date).toLocaleDateString('fr-CA')} · {order.delivery_time_window}
-                    </p>
-                    {(supplier || dsp) && (
-                      <div className="flex items-center gap-1.5 pt-0.5">
-                        {supplier && (() => {
-                          const logo = getLogoForAssignment(supplier);
-                          const name = (supplier.profiles as any)?.company_name || (supplier.profiles as any)?.full_name || '?';
-                          return logo ? (
-                            <div className="h-5 w-5 rounded-full bg-white border flex items-center justify-center overflow-hidden" title={name}>
-                              <img src={logo} alt={name} className="h-4 w-4 object-contain" />
-                            </div>
+                  />
                           ) : (
                             <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium truncate max-w-[100px]">
                               {name}
