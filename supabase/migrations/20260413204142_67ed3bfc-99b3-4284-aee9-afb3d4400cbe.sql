@@ -1,0 +1,1 @@
+ALTER TABLE public.supplier_contacts ADD COLUMN always_cc boolean NOT NULL DEFAULT false;
