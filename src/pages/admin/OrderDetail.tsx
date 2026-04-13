@@ -238,54 +238,91 @@ export default function OrderDetail() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const AssignDialog = ({ type }: { type: 'material' | 'delivery' }) => (
-    <Dialog open={assignDialogOpen === type} onOpenChange={(open) => {
-      if (!open) { setAssignDialogOpen(null); setAssignEmail(''); setAssignName(''); setSelectedPriorityId('custom'); }
-      else setAssignDialogOpen(type);
-    }}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
-          Assigner
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Assigner un {type === 'material' ? 'fournisseur' : 'DSP'}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 pt-2">
-          {supplierPriority.length > 0 && (
+  const MATERIAL_SUPPLIERS = [
+    { value: 'pont-masson', label: 'Pont-Masson' },
+    { value: 'lefebvre-benoit', label: 'Lefebvre et Benoit' },
+    { value: 'ciot', label: 'Ciot' },
+    { value: 'home-depot', label: 'Home Dépôt' },
+    { value: 'autres', label: 'Autres' },
+  ];
+
+  const DSP_OPTIONS = [
+    { value: 'mustapha', label: 'Mustapha' },
+    { value: 'badis', label: 'Badis' },
+    { value: 'autres', label: 'Autres' },
+  ];
+
+  const handleQuickSelect = (value: string, type: 'material' | 'delivery') => {
+    setSelectedPriorityId(value);
+    if (value === 'autres') {
+      setAssignName('');
+      setAssignEmail('');
+    } else {
+      const options = type === 'material' ? MATERIAL_SUPPLIERS : DSP_OPTIONS;
+      const selected = options.find(o => o.value === value);
+      if (selected) {
+        setAssignName(selected.label);
+        // Find email from supplier_priority table
+        const match = supplierPriority.find(s => s.name.toLowerCase() === selected.label.toLowerCase());
+        setAssignEmail(match?.email || '');
+      }
+    }
+  };
+
+  const AssignDialog = ({ type }: { type: 'material' | 'delivery' }) => {
+    const options = type === 'material' ? MATERIAL_SUPPLIERS : DSP_OPTIONS;
+    const isCustom = selectedPriorityId === 'autres';
+
+    return (
+      <Dialog open={assignDialogOpen === type} onOpenChange={(open) => {
+        if (!open) { setAssignDialogOpen(null); setAssignEmail(''); setAssignName(''); setSelectedPriorityId(''); }
+        else setAssignDialogOpen(type);
+      }}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            Assigner
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assigner un {type === 'material' ? 'fournisseur' : 'DSP'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label>Sélectionner depuis la liste</Label>
-              <Select value={selectedPriorityId} onValueChange={handlePrioritySelect}>
+              <Label>{type === 'material' ? 'Fournisseur' : 'DSP'}</Label>
+              <Select value={selectedPriorityId} onValueChange={(v) => handleQuickSelect(v, type)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Choisir un fournisseur..." />
+                  <SelectValue placeholder={`Choisir un ${type === 'material' ? 'fournisseur' : 'DSP'}...`} />
                 </SelectTrigger>
                 <SelectContent>
-                  {supplierPriority.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name} ({s.email})</SelectItem>
+                  {options.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                   ))}
-                  <SelectItem value="custom">Personnalisé...</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          )}
-          <div className="space-y-2">
-            <Label>Nom</Label>
-            <Input value={assignName} onChange={e => setAssignName(e.target.value)} placeholder="Nom du fournisseur" />
+            {isCustom && (
+              <>
+                <div className="space-y-2">
+                  <Label>Nom</Label>
+                  <Input value={assignName} onChange={e => setAssignName(e.target.value)} placeholder="Nom" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input value={assignEmail} onChange={e => setAssignEmail(e.target.value)} placeholder="email@exemple.com" type="email" />
+                </div>
+              </>
+            )}
+            <Button onClick={() => handleManualAssign(type)} disabled={assigningManual || !assignEmail || !assignName} className="w-full gap-2">
+              {assigningManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {assigningManual ? 'Envoi...' : 'Assigner et envoyer le courriel'}
+            </Button>
           </div>
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <Input value={assignEmail} onChange={e => setAssignEmail(e.target.value)} placeholder="email@exemple.com" type="email" />
-          </div>
-          <Button onClick={() => handleManualAssign(type)} disabled={assigningManual || !assignEmail || !assignName} className="w-full gap-2">
-            {assigningManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {assigningManual ? 'Envoi...' : 'Assigner et envoyer le courriel'}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+        </DialogContent>
+      </Dialog>
+    );
+  };
 
   if (loading) {
     return (
