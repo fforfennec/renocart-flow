@@ -335,7 +335,7 @@ export default function SupplierDetail() {
               {contacts.map(c => {
                 const branch = branches.find(b => b.id === c.branch_id);
                 return (
-                  <div key={c.id} className="border rounded-lg p-4 bg-muted/10 space-y-1.5 group relative">
+                  <div key={c.id} onClick={() => openEditContact(c)} className="border rounded-lg p-4 bg-muted/10 space-y-1.5 group relative cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-colors">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{c.full_name}</span>
                       {c.is_primary && <Badge variant="secondary" className="text-[10px] gap-0.5 px-1.5"><Star className="h-2.5 w-2.5" />Principal</Badge>}
@@ -344,7 +344,7 @@ export default function SupplierDetail() {
                     {c.email && <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 shrink-0" />{c.email}</p>}
                     {c.phone && <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 shrink-0" />{c.phone}</p>}
                     {branch && <p className="text-sm text-muted-foreground flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 shrink-0" />{branch.name}</p>}
-                    <button onClick={() => handleDeleteContact(c.id)} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteContact(c.id); }} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
