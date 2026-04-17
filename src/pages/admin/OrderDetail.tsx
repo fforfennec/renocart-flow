@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, AlertCircle, Package, Truck, User, Phone, MapPin, Calendar, Clock, Send, Loader2, Plus } from 'lucide-react';
 import pontMassonLogo from '@/assets/pont-masson-logo.png';
 import OrderSidebar from '@/components/admin/OrderSidebar';
+import OrderTimeline from '@/components/admin/OrderTimeline';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -390,6 +391,7 @@ export default function OrderDetail() {
           <p className="text-sm text-muted-foreground">Created on {new Date(order.created_at).toLocaleString()}</p>
         </div>
         <div className="flex gap-2">
+          <OrderTimeline orderId={orderId!} />
           <Button
             onClick={() => updateOrderStatus('delivered')}
             disabled={order.status === 'delivered'}

@@ -107,6 +107,15 @@ Deno.serve(async (req) => {
             }),
           });
           console.log(`Sent cancellation email to ${prevEmail} for order ${order.order_number}`);
+          await supabase.from("order_events").insert({
+            order_id,
+            event_type: "email_sent",
+            title: `📧 Email d'annulation envoyé — ${prevName}`,
+            description: `Destinataire: ${prevEmail}`,
+            supplier_id: prev.supplier_id,
+            supplier_name: prevName,
+            metadata: { kind: "cancellation", recipient: prevEmail },
+          });
         }
 
         // Mark previous response as cancelled
@@ -255,6 +264,16 @@ Deno.serve(async (req) => {
             </div>
           `,
         }),
+      });
+
+      await supabase.from("order_events").insert({
+        order_id,
+        event_type: "email_sent",
+        title: `📧 Email envoyé au fournisseur ${rank === 1 ? "prioritaire" : `(rang ${rank})`} — ${targetName}`,
+        description: `Destinataire: ${targetEmail}`,
+        supplier_id: supplierUser.id,
+        supplier_name: targetName,
+        metadata: { kind: "dispatch", recipient: targetEmail, priority_rank: rank, assignment_type: type },
       });
     }
 
