@@ -107,6 +107,15 @@ Deno.serve(async (req) => {
             }),
           });
           console.log(`Sent cancellation email to ${prevEmail} for order ${order.order_number}`);
+          await supabase.from("order_events").insert({
+            order_id,
+            event_type: "email_sent",
+            title: `📧 Email d'annulation envoyé — ${prevName}`,
+            description: `Destinataire: ${prevEmail}`,
+            supplier_id: prev.supplier_id,
+            supplier_name: prevName,
+            metadata: { kind: "cancellation", recipient: prevEmail },
+          });
         }
 
         // Mark previous response as cancelled
