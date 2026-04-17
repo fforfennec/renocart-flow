@@ -391,6 +391,7 @@ export default function OrderDetail() {
           <p className="text-sm text-muted-foreground">Created on {new Date(order.created_at).toLocaleString()}</p>
         </div>
         <div className="flex gap-2">
+          <OrderTimeline orderId={orderId!} />
           <Button
             onClick={() => updateOrderStatus('delivered')}
             disabled={order.status === 'delivered'}
