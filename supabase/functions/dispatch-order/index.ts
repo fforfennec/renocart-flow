@@ -265,6 +265,16 @@ Deno.serve(async (req) => {
           `,
         }),
       });
+
+      await supabase.from("order_events").insert({
+        order_id,
+        event_type: "email_sent",
+        title: `📧 Email envoyé au fournisseur ${rank === 1 ? "prioritaire" : `(rang ${rank})`} — ${targetName}`,
+        description: `Destinataire: ${targetEmail}`,
+        supplier_id: supplierUser.id,
+        supplier_name: targetName,
+        metadata: { kind: "dispatch", recipient: targetEmail, priority_rank: rank, assignment_type: type },
+      });
     }
 
     return new Response(
