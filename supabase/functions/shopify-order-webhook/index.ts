@@ -175,6 +175,8 @@ Deno.serve(async (req) => {
         image_url: imageUrl,
         sort_order: idx,
         client_note: null,
+        product_type: item.product_type || null,
+        vendor: item.vendor || null,
       });
     }
 
