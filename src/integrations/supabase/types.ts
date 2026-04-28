@@ -195,9 +195,11 @@ export type Database = {
           image_url: string | null
           name: string
           order_id: string
+          product_type: string | null
           quantity: number
           sku: string | null
           sort_order: number | null
+          vendor: string | null
         }
         Insert: {
           client_note?: string | null
@@ -205,9 +207,11 @@ export type Database = {
           image_url?: string | null
           name: string
           order_id: string
+          product_type?: string | null
           quantity?: number
           sku?: string | null
           sort_order?: number | null
+          vendor?: string | null
         }
         Update: {
           client_note?: string | null
@@ -215,9 +219,11 @@ export type Database = {
           image_url?: string | null
           name?: string
           order_id?: string
+          product_type?: string | null
           quantity?: number
           sku?: string | null
           sort_order?: number | null
+          vendor?: string | null
         }
         Relationships: [
           {
