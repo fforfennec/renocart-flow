@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, AlertCircle, Package, Truck, User, Phone, MapPin, Calendar, Clock, Send, Loader2, Plus } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Package, Truck, User, Phone, MapPin, Calendar, Clock, Send, Loader2, Plus, ChevronRight } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import pontMassonLogo from '@/assets/pont-masson-logo.png';
 import OrderSidebar from '@/components/admin/OrderSidebar';
 import OrderTimeline from '@/components/admin/OrderTimeline';
@@ -527,7 +528,22 @@ export default function OrderDetail() {
                         )}
                       </td>
                       <td className="py-3">
-                        <p className="font-medium">{item.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium">{item.name}</p>
+                          {(item.product_type || item.vendor) && (
+                            <TooltipProvider delayDuration={100}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="text-xs">
+                                  {item.product_type && <div><span className="text-muted-foreground">Type:</span> {item.product_type}</div>}
+                                  {item.vendor && <div><span className="text-muted-foreground">Vendor:</span> {item.vendor}</div>}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
                         {item.sku && <p className="text-sm text-muted-foreground">SKU: {item.sku}</p>}
                         {item.client_note && (
                           <p className="text-sm text-muted-foreground italic">Note: {item.client_note}</p>
