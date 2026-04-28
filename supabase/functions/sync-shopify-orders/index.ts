@@ -142,7 +142,7 @@ async function backfillExistingOrderImages(
 ) {
   const { data: existingItems, error } = await supabase
     .from("order_items")
-    .select("id, sort_order, image_url")
+    .select("id, sort_order, image_url, product_type, vendor")
     .eq("order_id", existingOrderId)
     .order("sort_order", { ascending: true });
 
@@ -152,24 +152,35 @@ async function backfillExistingOrderImages(
 
   for (let idx = 0; idx < lineItems.length; idx++) {
     const dbItem = existingItems?.find((item) => (item.sort_order ?? 0) === idx);
-    if (!dbItem || dbItem.image_url) continue;
+    if (!dbItem) continue;
 
     const lineItem = lineItems[idx];
-    let imageUrl = lineItem.image?.src || null;
+    const patch: Record<string, unknown> = {};
 
-    if (!imageUrl && lineItem.product_id) {
-      imageUrl = await fetchProductImage(lineItem.product_id, shopifyToken);
+    if (!dbItem.image_url) {
+      let imageUrl = lineItem.image?.src || null;
+      if (!imageUrl && lineItem.product_id) {
+        imageUrl = await fetchProductImage(lineItem.product_id, shopifyToken);
+      }
+      if (imageUrl) patch.image_url = imageUrl;
     }
 
-    if (!imageUrl) continue;
+    if (!dbItem.product_type && lineItem.product_type) {
+      patch.product_type = lineItem.product_type;
+    }
+    if (!dbItem.vendor && lineItem.vendor) {
+      patch.vendor = lineItem.vendor;
+    }
+
+    if (Object.keys(patch).length === 0) continue;
 
     const { error: updateError } = await supabase
       .from("order_items")
-      .update({ image_url: imageUrl })
+      .update(patch)
       .eq("id", dbItem.id);
 
     if (updateError) {
-      console.error(`Failed to update image for item ${dbItem.id}:`, updateError);
+      console.error(`Failed to update item ${dbItem.id}:`, updateError);
       continue;
     }
 
