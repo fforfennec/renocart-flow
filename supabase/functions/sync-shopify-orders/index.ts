@@ -31,6 +31,8 @@ interface ShopifyOrder {
     image?: { src: string } | null;
     product_id: number;
     variant_id: number;
+    product_type?: string | null;
+    vendor?: string | null;
   }>;
   created_at: string;
   fulfillment_status: string | null;
@@ -124,6 +126,8 @@ async function buildItemsWithImages(
       image_url: imageUrl,
       sort_order: idx,
       client_note: null,
+      product_type: item.product_type || null,
+      vendor: item.vendor || null,
     });
   }
 
