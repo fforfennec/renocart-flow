@@ -200,12 +200,26 @@ export default function OrderDetail() {
     }
   };
 
-  const isLate = (deliveryDate: string, status: string) => {
-    if (status === 'delivered') return false;
+  const updateOrderField = async (field: keyof Order, value: any) => {
+    if (!orderId || !order) return;
+    setOrder({ ...order, [field]: value } as Order);
+    const { error } = await supabase
+      .from('orders')
+      .update({ [field]: value, updated_at: new Date().toISOString() })
+      .eq('id', orderId);
+    if (error) {
+      toast.error('Failed to save');
+      loadOrderDetails();
+    }
+  };
+
+  const isLate = (deliveryDate: string | null, status: string) => {
+    if (!deliveryDate || status === 'delivered') return false;
     const today = new Date();
     const delivery = new Date(deliveryDate);
     return delivery < today;
   };
+
 
   const handleManualAssign = async (type: 'material' | 'delivery') => {
     if (!orderId || !assignEmail || !assignName) {
