@@ -283,6 +283,7 @@ export type Database = {
           id: string
           internal_notes: string | null
           order_number: string
+          shipping_method: string | null
           status: string
           truck_type: string | null
           updated_at: string
@@ -299,6 +300,7 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           order_number: string
+          shipping_method?: string | null
           status?: string
           truck_type?: string | null
           updated_at?: string
@@ -315,6 +317,7 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           order_number?: string
+          shipping_method?: string | null
           status?: string
           truck_type?: string | null
           updated_at?: string

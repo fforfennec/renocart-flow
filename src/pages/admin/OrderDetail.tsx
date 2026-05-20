@@ -473,6 +473,10 @@ export default function OrderDetail() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
+              <Label className="text-sm font-medium text-muted-foreground">Shipping Method (Shopify)</Label>
+              <p className="font-medium mt-1">{(order as any).shipping_method || <span className="text-muted-foreground italic">Not provided</span>}</p>
+            </div>
+            <div>
               <Label className="text-sm font-medium text-muted-foreground">Delivery Date</Label>
               <Input
                 type="date"

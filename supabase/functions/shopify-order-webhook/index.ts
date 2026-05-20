@@ -130,6 +130,7 @@ Deno.serve(async (req) => {
       addr?.phone || shopifyOrder.customer?.phone || null;
 
     // Insert order
+    const shippingMethod = shopifyOrder.shipping_lines?.[0]?.title || null;
     const { data: newOrder, error: orderErr } = await supabase
       .from("orders")
       .insert({
@@ -142,6 +143,7 @@ Deno.serve(async (req) => {
         status: "pending",
         internal_notes: shopifyOrder.note || null,
         truck_type: null,
+        shipping_method: shippingMethod,
       })
       .select("id")
       .single();
