@@ -489,12 +489,20 @@ export default function OrderDetail() {
               <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Time Window
               </Label>
-              <Input
-                placeholder="e.g. 7h/9h"
+              <Select
                 value={order.delivery_time_window || ''}
-                onChange={(e) => updateOrderField('delivery_time_window', e.target.value || null)}
-                className="mt-1"
-              />
+                onValueChange={(v) => updateOrderField('delivery_time_window', v || null)}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select a time window" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AM">AM (Before noon)</SelectItem>
+                  <SelectItem value="PM">PM (After noon)</SelectItem>
+                  <SelectItem value="Early">Early (Before 10AM)</SelectItem>
+                  <SelectItem value="Day">Day (Anytime of the day)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
