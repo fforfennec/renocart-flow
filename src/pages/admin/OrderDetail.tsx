@@ -517,11 +517,10 @@ export default function OrderDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Boom">Boom</SelectItem>
-                  <SelectItem value="Flatbed">Flatbed</SelectItem>
-                  <SelectItem value="Boîte fermée">Boîte fermée</SelectItem>
-                  <SelectItem value="Cube">Cube</SelectItem>
-                  <SelectItem value="Pickup">Pickup</SelectItem>
-                  <SelectItem value="Autre">Autre</SelectItem>
+                  <SelectItem value="Boom 90ft">Boom 90ft</SelectItem>
+                  <SelectItem value="Van/Cube">Van/Cube</SelectItem>
+                  <SelectItem value="Hiab">Hiab</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
