@@ -205,7 +205,7 @@ export default function OrderDetail() {
     setOrder({ ...order, [field]: value } as Order);
     const { error } = await supabase
       .from('orders')
-      .update({ [field]: value, updated_at: new Date().toISOString() })
+      .update({ [field]: value, updated_at: new Date().toISOString() } as any)
       .eq('id', orderId);
     if (error) {
       toast.error('Failed to save');
