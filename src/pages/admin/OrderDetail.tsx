@@ -459,34 +459,59 @@ export default function OrderDetail() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Delivery Date</p>
-              <p className="font-medium">{new Date(order.delivery_date).toLocaleDateString('fr-CA')}</p>
+              <Label className="text-sm font-medium text-muted-foreground">Delivery Date</Label>
+              <Input
+                type="date"
+                value={order.delivery_date || ''}
+                onChange={(e) => updateOrderField('delivery_date', e.target.value || null)}
+                className="mt-1"
+              />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Time Window</p>
-              <p className="font-medium flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                {order.delivery_time_window}
-              </p>
+              <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Clock className="h-4 w-4" /> Time Window
+              </Label>
+              <Input
+                placeholder="e.g. 7h/9h"
+                value={order.delivery_time_window || ''}
+                onChange={(e) => updateOrderField('delivery_time_window', e.target.value || null)}
+                className="mt-1"
+              />
             </div>
-            {order.truck_type && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Truck Type</p>
-                <p className="font-medium flex items-center gap-2">
-                  <Truck className="h-4 w-4" />
-                  {order.truck_type}
-                </p>
-              </div>
-            )}
-            {order.internal_notes && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Internal Notes</p>
-                <p className="text-sm bg-muted p-2 rounded">{order.internal_notes}</p>
-              </div>
-            )}
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Truck className="h-4 w-4" /> Truck Type
+              </Label>
+              <Select
+                value={order.truck_type || ''}
+                onValueChange={(v) => updateOrderField('truck_type', v || null)}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Choose truck type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Boom">Boom</SelectItem>
+                  <SelectItem value="Flatbed">Flatbed</SelectItem>
+                  <SelectItem value="Boîte fermée">Boîte fermée</SelectItem>
+                  <SelectItem value="Cube">Cube</SelectItem>
+                  <SelectItem value="Pickup">Pickup</SelectItem>
+                  <SelectItem value="Autre">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">Note</Label>
+              <Input
+                placeholder="Add a note..."
+                value={order.internal_notes || ''}
+                onChange={(e) => updateOrderField('internal_notes', e.target.value || null)}
+                className="mt-1"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
+
 
       {/* Materials */}
       <Card>
