@@ -278,8 +278,8 @@ export type Database = {
           client_phone: string | null
           created_at: string
           created_by: string | null
-          delivery_date: string
-          delivery_time_window: string
+          delivery_date: string | null
+          delivery_time_window: string | null
           id: string
           internal_notes: string | null
           order_number: string
@@ -294,8 +294,8 @@ export type Database = {
           client_phone?: string | null
           created_at?: string
           created_by?: string | null
-          delivery_date: string
-          delivery_time_window: string
+          delivery_date?: string | null
+          delivery_time_window?: string | null
           id?: string
           internal_notes?: string | null
           order_number: string
@@ -310,8 +310,8 @@ export type Database = {
           client_phone?: string | null
           created_at?: string
           created_by?: string | null
-          delivery_date?: string
-          delivery_time_window?: string
+          delivery_date?: string | null
+          delivery_time_window?: string | null
           id?: string
           internal_notes?: string | null
           order_number?: string
