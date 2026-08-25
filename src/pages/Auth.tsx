@@ -106,6 +106,36 @@ const Auth = () => {
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
+
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Mode test</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => { bypassSignIn('admin'); navigate('/admin'); }}
+                className="w-full"
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Admin
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => { bypassSignIn('supplier'); navigate('/supplier'); }}
+                className="w-full"
+              >
+                <Truck className="mr-2 h-4 w-4" />
+                Fournisseur
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
