@@ -129,7 +129,9 @@ export default function OrderSidebar({ orderId }: Props) {
       .eq('order_id', orderId)
       .order('created_at', { ascending: true });
 
-    if (data) setMessages(data);
+    if (data) {
+      setMessages(data.map(m => ({ ...m, source: (m.source || 'app') as MessageSource })));
+    }
   };
 
   const handleSend = async () => {
