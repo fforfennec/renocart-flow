@@ -239,25 +239,37 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          email_message_id: string | null
           id: string
+          is_broadcast: boolean
           order_id: string
           sender_name: string
+          source: string
+          supplier_id: string | null
           user_id: string
         }
         Insert: {
           content: string
           created_at?: string
+          email_message_id?: string | null
           id?: string
+          is_broadcast?: boolean
           order_id: string
           sender_name: string
+          source?: string
+          supplier_id?: string | null
           user_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          email_message_id?: string | null
           id?: string
+          is_broadcast?: boolean
           order_id?: string
           sender_name?: string
+          source?: string
+          supplier_id?: string | null
           user_id?: string
         }
         Relationships: [

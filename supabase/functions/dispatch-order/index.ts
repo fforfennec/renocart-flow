@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createRawEmail, sendGmailMessage } from "../_shared/gmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +25,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 
     const targetEmail = supplier_email;
@@ -66,56 +66,53 @@ Deno.serve(async (req) => {
         const prevEmail = prevUser?.user?.email;
         const prevName = prevProfile?.company_name || prevProfile?.full_name || "Fournisseur";
 
-        // Send cancellation email
-        if (prevEmail && RESEND_API_KEY) {
-          await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${RESEND_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from: "RenoCart <commande@renocart.ca>",
-              to: [prevEmail],
-              subject: `Annulation — Commande ${order.order_number}`,
-              html: `
-                <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
-                  <div style="background:#7f1d1d;padding:24px 32px;border-radius:8px 8px 0 0;">
-                    <h1 style="color:#fff;margin:0;font-size:22px;">RenoCart</h1>
-                    <p style="color:#fca5a5;margin:4px 0 0;font-size:14px;">Commande annulée</p>
-                  </div>
-                  <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;padding:32px;border-radius:0 0 8px 8px;">
-                    <h2 style="margin:0 0 16px;font-size:20px;">Commande ${order.order_number}</h2>
-                    <p style="font-size:15px;color:#374151;margin:0 0 16px;">
-                      Bonjour ${prevName},
-                    </p>
-                    <p style="font-size:15px;color:#374151;margin:0 0 24px;">
-                      Nous vous informons que la commande <strong>${order.order_number}</strong> 
-                      a été réassignée à un autre fournisseur. Veuillez annuler cette commande de votre côté si nécessaire.
-                    </p>
-                    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:12px 16px;">
-                      <p style="margin:0;font-size:14px;color:#991b1b;font-weight:600;">
-                        ❌ Aucune action n'est requise de votre part pour cette commande.
-                      </p>
-                    </div>
-                    <p style="margin:24px 0 0;font-size:12px;color:#9ca3af;text-align:center;">
-                      Merci de votre compréhension.
-                    </p>
-                  </div>
+        // Send cancellation email via Gmail
+        if (prevEmail) {
+          try {
+            const cancelHtml = `
+              <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+                <div style="background:#7f1d1d;padding:24px 32px;border-radius:8px 8px 0 0;">
+                  <h1 style="color:#fff;margin:0;font-size:22px;">RenoCart</h1>
+                  <p style="color:#fca5a5;margin:4px 0 0;font-size:14px;">Commande annulée</p>
                 </div>
-              `,
-            }),
-          });
-          console.log(`Sent cancellation email to ${prevEmail} for order ${order.order_number}`);
-          await supabase.from("order_events").insert({
-            order_id,
-            event_type: "email_sent",
-            title: `📧 Email d'annulation envoyé — ${prevName}`,
-            description: `Destinataire: ${prevEmail}`,
-            supplier_id: prev.supplier_id,
-            supplier_name: prevName,
-            metadata: { kind: "cancellation", recipient: prevEmail },
-          });
+                <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;padding:32px;border-radius:0 0 8px 8px;">
+                  <h2 style="margin:0 0 16px;font-size:20px;">Commande ${order.order_number}</h2>
+                  <p style="font-size:15px;color:#374151;margin:0 0 16px;">
+                    Bonjour ${prevName},
+                  </p>
+                  <p style="font-size:15px;color:#374151;margin:0 0 24px;">
+                    Nous vous informons que la commande <strong>${order.order_number}</strong>
+                    a été réassignée à un autre fournisseur. Veuillez annuler cette commande de votre côté si nécessaire.
+                  </p>
+                  <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:12px 16px;">
+                    <p style="margin:0;font-size:14px;color:#991b1b;font-weight:600;">
+                      ❌ Aucune action n'est requise de votre part pour cette commande.
+                    </p>
+                  </div>
+                  <p style="margin:24px 0 0;font-size:12px;color:#9ca3af;text-align:center;">
+                    Merci de votre compréhension.
+                  </p>
+                </div>
+              </div>
+            `;
+
+            await sendGmailMessage(
+              createRawEmail(prevEmail, `Annulation — Commande ${order.order_number}`, cancelHtml, { html: true })
+            );
+
+            console.log(`Sent cancellation email to ${prevEmail} for order ${order.order_number}`);
+            await supabase.from("order_events").insert({
+              order_id,
+              event_type: "email_sent",
+              title: `📧 Email d'annulation envoyé — ${prevName}`,
+              description: `Destinataire: ${prevEmail}`,
+              supplier_id: prev.supplier_id,
+              supplier_name: prevName,
+              metadata: { kind: "cancellation", recipient: prevEmail },
+            });
+          } catch (cancelErr) {
+            console.error("Failed to send cancellation email via Gmail:", cancelErr);
+          }
         }
 
         // Mark previous response as cancelled
@@ -195,75 +192,78 @@ Deno.serve(async (req) => {
       </tr>
     `).join("");
 
-    // 8. Send email to new supplier
-    if (RESEND_API_KEY) {
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "RenoCart <commande@renocart.ca>",
-          to: [targetEmail],
-          subject: `Nouvelle commande RenoCart — ${order.order_number}`,
-          html: `
-            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
-              <div style="background:#1a2e44;padding:24px 32px;border-radius:8px 8px 0 0;">
-                <h1 style="color:#fff;margin:0;font-size:22px;">RenoCart</h1>
-                <p style="color:#c9a84c;margin:4px 0 0;font-size:14px;">Nouvelle commande à confirmer</p>
-              </div>
+    // 8. Send email to new supplier via Gmail
+    try {
+      const dispatchHtml = `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+          <div style="background:#1a2e44;padding:24px 32px;border-radius:8px 8px 0 0;">
+            <h1 style="color:#fff;margin:0;font-size:22px;">RenoCart</h1>
+            <p style="color:#c9a84c;margin:4px 0 0;font-size:14px;">Nouvelle commande à confirmer</p>
+          </div>
 
-              <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;padding:32px;border-radius:0 0 8px 8px;">
-                <h2 style="margin:0 0 4px;font-size:20px;">Commande ${order.order_number}</h2>
-                <p style="color:#6b7280;margin:0 0 24px;font-size:14px;">Reçue le ${new Date().toLocaleDateString('fr-CA', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}</p>
+          <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;padding:32px;border-radius:0 0 8px 8px;">
+            <h2 style="margin:0 0 4px;font-size:20px;">Commande ${order.order_number}</h2>
+            <p style="color:#6b7280;margin:0 0 24px;font-size:14px;">Reçue le ${new Date().toLocaleDateString('fr-CA', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}</p>
 
-                <div style="background:#f9fafb;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
-                  <p style="margin:0 0 6px;font-size:13px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Livraison</p>
-                  <p style="margin:0;font-size:15px;font-weight:600;">${order.client_address}</p>
-                  <p style="margin:4px 0 0;font-size:14px;color:#6b7280;">Date : ${new Date(order.delivery_date).toLocaleDateString('fr-CA')} &nbsp;|&nbsp; ${order.delivery_time_window}</p>
-                  ${order.truck_type ? `<p style="margin:4px 0 0;font-size:14px;color:#6b7280;">Camion : ${order.truck_type}</p>` : ""}
-                </div>
-
-                <p style="margin:0 0 12px;font-size:13px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Matériaux requis</p>
-                <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-                  <thead>
-                    <tr style="background:#f3f4f6;">
-                      <th style="padding:8px 16px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;">Article</th>
-                      <th style="padding:8px 16px;text-align:center;font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;">Quantité</th>
-                    </tr>
-                  </thead>
-                  <tbody>${itemsHtml}</tbody>
-                </table>
-
-                ${order.internal_notes ? `
-                <div style="background:#fefce8;border:1px solid #fde68a;border-radius:6px;padding:12px 16px;margin-bottom:24px;">
-                  <p style="margin:0;font-size:13px;color:#92400e;"><strong>Note client :</strong> ${order.internal_notes}</p>
-                </div>` : ""}
-
-                <p style="margin:0 0 4px;font-size:14px;color:#166534;font-weight:600;text-align:center;">Vous avez 30 minutes pour répondre</p>
-                <p style="margin:0 0 20px;font-size:13px;color:#16a34a;text-align:center;">Cliquez sur un bouton ci-dessous</p>
-
-                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 16px;">
-                  <tr>
-                    <td style="padding-right:12px;">
-                      <a href="${confirmUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:14px 32px;border-radius:6px;font-weight:600;font-size:15px;">
-                        ✅ Oui, je confirme
-                      </a>
-                    </td>
-                    <td>
-                      <a href="${modifyUrl}" style="display:inline-block;background:#d97706;color:#fff;text-decoration:none;padding:14px 32px;border-radius:6px;font-weight:600;font-size:15px;">
-                        ✏️ Modifier / Je ne peux pas
-                      </a>
-                    </td>
-                  </tr>
-                </table>
-
-                <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;text-align:center;">Aucune connexion requise pour confirmer.</p>
-              </div>
+            <div style="background:#f9fafb;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
+              <p style="margin:0 0 6px;font-size:13px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Livraison</p>
+              <p style="margin:0;font-size:15px;font-weight:600;">${order.client_address}</p>
+              <p style="margin:4px 0 0;font-size:14px;color:#6b7280;">Date : ${new Date(order.delivery_date).toLocaleDateString('fr-CA')} &nbsp;|&nbsp; ${order.delivery_time_window}</p>
+              ${order.truck_type ? `<p style="margin:4px 0 0;font-size:14px;color:#6b7280;">Camion : ${order.truck_type}</p>` : ""}
             </div>
-          `,
-        }),
+
+            <p style="margin:0 0 12px;font-size:13px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Matériaux requis</p>
+            <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+              <thead>
+                <tr style="background:#f3f4f6;">
+                  <th style="padding:8px 16px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;">Article</th>
+                  <th style="padding:8px 16px;text-align:center;font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;">Quantité</th>
+                </tr>
+              </thead>
+              <tbody>${itemsHtml}</tbody>
+            </table>
+
+            ${order.internal_notes ? `
+            <div style="background:#fefce8;border:1px solid #fde68a;border-radius:6px;padding:12px 16px;margin-bottom:24px;">
+              <p style="margin:0;font-size:13px;color:#92400e;"><strong>Note client :</strong> ${order.internal_notes}</p>
+            </div>` : ""}
+
+            <p style="margin:0 0 4px;font-size:14px;color:#166534;font-weight:600;text-align:center;">Vous avez 30 minutes pour répondre</p>
+            <p style="margin:0 0 20px;font-size:13px;color:#16a34a;text-align:center;">Cliquez sur un bouton ci-dessous</p>
+
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 16px;">
+              <tr>
+                <td style="padding-right:12px;">
+                  <a href="${confirmUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:14px 32px;border-radius:6px;font-weight:600;font-size:15px;">
+                    ✅ Oui, je confirme
+                  </a>
+                </td>
+                <td>
+                  <a href="${modifyUrl}" style="display:inline-block;background:#d97706;color:#fff;text-decoration:none;padding:14px 32px;border-radius:6px;font-weight:600;font-size:15px;">
+                    ✏️ Modifier / Je ne peux pas
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;text-align:center;">Aucune connexion requise pour confirmer. Répondez simplement à cet email pour communiquer avec RenoCart.</p>
+          </div>
+        </div>
+      `;
+
+      await sendGmailMessage(
+        createRawEmail(targetEmail, `Commande ${order.order_number} — Nouvelle commande à confirmer`, dispatchHtml, { html: true })
+      );
+
+      // Seed the conversation in the app
+      await supabase.from("order_messages").insert({
+        order_id,
+        user_id: supplierUser.id,
+        sender_name: targetName,
+        content: `Courriel de dispatch envoyé à ${targetEmail}. Le fournisseur peut répondre directement par email.`,
+        supplier_id: supplierUser.id,
+        source: "app",
+        is_broadcast: false,
       });
 
       await supabase.from("order_events").insert({
@@ -275,6 +275,9 @@ Deno.serve(async (req) => {
         supplier_name: targetName,
         metadata: { kind: "dispatch", recipient: targetEmail, priority_rank: rank, assignment_type: type },
       });
+    } catch (emailErr) {
+      console.error("Failed to send dispatch email via Gmail:", emailErr);
+      // Do not fail the dispatch if email sending fails; assignment is already created.
     }
 
     return new Response(
