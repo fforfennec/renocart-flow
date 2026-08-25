@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, Lock, Send, PanelRightClose } from 'lucide-react';
+import { MessageSquare, Lock, Send, PanelRightClose, Mail, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
 }
 
 type Tab = 'internal' | 'chat';
+type MessageSource = 'app' | 'email';
 
 interface Message {
   id: string;
@@ -18,6 +19,16 @@ interface Message {
   sender_name: string;
   created_at: string;
   user_id: string;
+  supplier_id: string | null;
+  source: MessageSource;
+  is_broadcast: boolean;
+}
+
+interface SupplierThread {
+  supplier_id: string;
+  supplier_name: string;
+  lastMessageAt: string;
+  unread: number;
 }
 
 export default function OrderSidebar({ orderId }: Props) {
@@ -29,9 +40,11 @@ export default function OrderSidebar({ orderId }: Props) {
   const [newText, setNewText] = useState('');
   const [sending, setSending] = useState(false);
   const [unreadComments, setUnreadComments] = useState(0);
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | 'all'>('all');
+  const [showSupplierList, setShowSupplierList] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const lastSeenRef = useRef({ internal: 0, chat: 0 });
+
+  const isAdmin = userRole === 'admin';
 
   useEffect(() => {
     loadComments();
@@ -47,7 +60,7 @@ export default function OrderSidebar({ orderId }: Props) {
       }, (payload) => {
         const msg = payload.new as Message;
         setComments(prev => [...prev, msg]);
-        if (!open || activeTab !== 'internal') {
+        if (!open || activeTab !== 'internal' || msg.user_id !== user?.id) {
           setUnreadComments(prev => prev + 1);
         }
       })
@@ -63,9 +76,6 @@ export default function OrderSidebar({ orderId }: Props) {
       }, (payload) => {
         const msg = payload.new as Message;
         setMessages(prev => [...prev, msg]);
-        if (!open || activeTab !== 'chat') {
-          setUnreadMessages(prev => prev + 1);
-        }
       })
       .subscribe();
 
@@ -73,17 +83,15 @@ export default function OrderSidebar({ orderId }: Props) {
       supabase.removeChannel(commentChannel);
       supabase.removeChannel(messageChannel);
     };
-  }, [orderId, open, activeTab]);
+  }, [orderId, open, activeTab, user?.id]);
 
-  // Clear unread when switching tabs or opening
   useEffect(() => {
     if (open && activeTab === 'internal') setUnreadComments(0);
-    if (open && activeTab === 'chat') setUnreadMessages(0);
   }, [open, activeTab]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [comments, messages, activeTab, open]);
+  }, [comments, messages, activeTab, open, selectedSupplierId]);
 
   const loadComments = async () => {
     const { data } = await supabase
@@ -107,6 +115,9 @@ export default function OrderSidebar({ orderId }: Props) {
       setComments(data.map(c => ({
         ...c,
         sender_name: nameMap[c.user_id] || 'Admin',
+        supplier_id: null,
+        source: 'app' as MessageSource,
+        is_broadcast: false,
       })));
     }
   };
@@ -114,7 +125,7 @@ export default function OrderSidebar({ orderId }: Props) {
   const loadMessages = async () => {
     const { data } = await supabase
       .from('order_messages')
-      .select('id, content, sender_name, created_at, user_id')
+      .select('id, content, sender_name, created_at, user_id, supplier_id, source, is_broadcast')
       .eq('order_id', orderId)
       .order('created_at', { ascending: true });
 
@@ -136,13 +147,32 @@ export default function OrderSidebar({ orderId }: Props) {
         });
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('order_messages').insert({
-          order_id: orderId,
-          user_id: user.id,
-          sender_name: senderName,
-          content: newText.trim(),
-        });
-        if (error) throw error;
+        const isBroadcast = selectedSupplierId === 'all';
+        const supplierId = isBroadcast ? null : selectedSupplierId;
+
+        // Admin replies go through email
+        if (isAdmin) {
+          const { error: fnError } = await supabase.functions.invoke('send-supplier-email', {
+            body: {
+              order_id: orderId,
+              supplier_id: supplierId,
+              content: newText.trim(),
+              broadcast: isBroadcast,
+            },
+          });
+          if (fnError) throw fnError;
+        } else {
+          const { error } = await supabase.from('order_messages').insert({
+            order_id: orderId,
+            user_id: user.id,
+            sender_name: senderName,
+            content: newText.trim(),
+            supplier_id: supplierId,
+            source: 'app',
+            is_broadcast: isBroadcast,
+          });
+          if (error) throw error;
+        }
       }
       setNewText('');
     } catch (error) {
@@ -160,9 +190,45 @@ export default function OrderSidebar({ orderId }: Props) {
     }
   };
 
-  const currentMessages = activeTab === 'internal' ? comments : messages;
-  const isAdmin = userRole === 'admin';
-  const totalUnread = unreadComments + unreadMessages;
+  // Build supplier threads
+  const supplierThreads: SupplierThread[] = [];
+  const supplierMap: Record<string, SupplierThread> = {};
+
+  messages.forEach(msg => {
+    const sid = msg.supplier_id;
+    if (!sid) return;
+    if (!supplierMap[sid]) {
+      supplierMap[sid] = {
+        supplier_id: sid,
+        supplier_name: msg.sender_name || 'Fournisseur',
+        lastMessageAt: msg.created_at,
+        unread: 0,
+      };
+    }
+    if (new Date(msg.created_at) > new Date(supplierMap[sid].lastMessageAt)) {
+      supplierMap[sid].lastMessageAt = msg.created_at;
+      supplierMap[sid].supplier_name = msg.sender_name || supplierMap[sid].supplier_name;
+    }
+    if (msg.source === 'email' && msg.user_id !== user?.id) {
+      supplierMap[sid].unread += 1;
+    }
+  });
+
+  Object.values(supplierMap).forEach(t => supplierThreads.push(t));
+  supplierThreads.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+
+  const totalUnreadMessages = supplierThreads.reduce((sum, t) => sum + t.unread, 0);
+  const totalUnread = unreadComments + totalUnreadMessages;
+
+  const filteredMessages = activeTab === 'chat'
+    ? selectedSupplierId === 'all'
+      ? messages
+      : messages.filter(m => m.supplier_id === selectedSupplierId || m.is_broadcast)
+    : comments;
+
+  const selectedSupplierName = selectedSupplierId === 'all'
+    ? 'Tous les fournisseurs'
+    : supplierThreads.find(t => t.supplier_id === selectedSupplierId)?.supplier_name || 'Fournisseur';
 
   // Collapsed state — just show a floating button
   if (!open) {
@@ -185,7 +251,7 @@ export default function OrderSidebar({ orderId }: Props) {
   }
 
   return (
-    <div className="w-[360px] shrink-0 border-l bg-background flex flex-col h-full relative">
+    <div className="w-[420px] shrink-0 border-l bg-background flex flex-col h-full relative">
       {/* Collapse arrow */}
       <button
         onClick={() => setOpen(false)}
@@ -223,9 +289,9 @@ export default function OrderSidebar({ orderId }: Props) {
         >
           <MessageSquare className="h-3.5 w-3.5" />
           Supplier Chat
-          {unreadMessages > 0 && activeTab !== 'chat' && (
+          {totalUnreadMessages > 0 && activeTab !== 'chat' && (
             <span className="ml-1 h-4 min-w-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
-              {unreadMessages}
+              {totalUnreadMessages}
             </span>
           )}
         </button>
@@ -235,35 +301,96 @@ export default function OrderSidebar({ orderId }: Props) {
       <div className="px-3 py-2 bg-muted/50 text-xs text-muted-foreground">
         {activeTab === 'internal'
           ? '🔒 Private — only RenoCart employees can see these comments'
-          : '💬 Live chat — visible to all assigned suppliers & DSPs'}
+          : '💬 Live chat — each supplier has their own thread; replies also go by email'}
       </div>
+
+      {/* Supplier selector (chat only) */}
+      {activeTab === 'chat' && isAdmin && (
+        <div className="border-b">
+          <button
+            onClick={() => setShowSupplierList(!showSupplierList)}
+            className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              {selectedSupplierId === 'all' ? (
+                <Users className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="font-medium">{selectedSupplierName}</span>
+            </div>
+            {showSupplierList ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+
+          {showSupplierList && (
+            <div className="max-h-48 overflow-y-auto border-t">
+              <button
+                onClick={() => { setSelectedSupplierId('all'); setShowSupplierList(false); }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/50 ${selectedSupplierId === 'all' ? 'bg-muted' : ''}`}
+              >
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Tous les fournisseurs
+              </button>
+              {supplierThreads.map(thread => (
+                <button
+                  key={thread.supplier_id}
+                  onClick={() => { setSelectedSupplierId(thread.supplier_id); setShowSupplierList(false); }}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 ${selectedSupplierId === thread.supplier_id ? 'bg-muted' : ''}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    <span>{thread.supplier_name}</span>
+                  </div>
+                  {thread.unread > 0 && (
+                    <span className="h-4 min-w-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                      {thread.unread}
+                    </span>
+                  )}
+                </button>
+              ))}
+              {supplierThreads.length === 0 && (
+                <p className="px-3 py-2 text-xs text-muted-foreground">Aucun fournisseur assigné</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {currentMessages.length === 0 ? (
+        {filteredMessages.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             {activeTab === 'internal' ? 'No internal comments yet' : 'No messages yet'}
           </p>
         ) : (
-          currentMessages.map((msg) => {
+          filteredMessages.map((msg) => {
             const isOwn = msg.user_id === user?.id;
+            const isEmail = msg.source === 'email';
             return (
               <div key={msg.id} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
                 <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                  className={`max-w-[90%] rounded-lg px-3 py-2 ${
                     isOwn
                       ? activeTab === 'internal'
                         ? 'bg-rc-navy text-white'
                         : 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
+                      : isEmail
+                        ? 'bg-blue-50 border border-blue-100'
+                        : 'bg-muted'
                   }`}
                 >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    {isEmail && <Mail className="h-3 w-3 text-blue-600" />}
+                    {msg.is_broadcast && <Users className="h-3 w-3" />}
+                    <span className="text-[10px] font-semibold opacity-80">
+                      {msg.sender_name}
+                      {isEmail && ' (email)'}
+                      {msg.is_broadcast && ' — à tous'}
+                    </span>
+                  </div>
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1 px-1">
-                  <span className="text-[10px] font-medium text-muted-foreground">
-                    {msg.sender_name}
-                  </span>
                   <span className="text-[10px] text-muted-foreground/60">
                     {new Date(msg.created_at).toLocaleString('fr-CA', {
                       month: 'short',
@@ -288,7 +415,7 @@ export default function OrderSidebar({ orderId }: Props) {
               value={newText}
               onChange={(e) => setNewText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={activeTab === 'internal' ? 'Add internal note...' : 'Message suppliers...'}
+              placeholder={activeTab === 'internal' ? 'Add internal note...' : `Message ${selectedSupplierId === 'all' ? 'à tous' : selectedSupplierName}...`}
               className="min-h-[60px] max-h-[120px] resize-none text-sm"
               rows={2}
             />
@@ -301,6 +428,13 @@ export default function OrderSidebar({ orderId }: Props) {
               <Send className="h-4 w-4" />
             </Button>
           </div>
+          {activeTab === 'chat' && (
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              {isAdmin
+                ? `Envoyé par email à ${selectedSupplierId === 'all' ? 'tous les fournisseurs' : selectedSupplierName}.`
+                : 'Visible par tous les fournisseurs assignés.'}
+            </p>
+          )}
         </div>
       )}
     </div>
