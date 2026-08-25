@@ -11,6 +11,7 @@ interface AuthContextType {
   userRole: UserRole | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  bypassSignIn: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
