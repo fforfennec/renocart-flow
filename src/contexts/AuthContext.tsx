@@ -81,8 +81,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUserRole(null);
   };
 
+  const bypassSignIn = (role: UserRole) => {
+    const mockId = '00000000-0000-0000-0000-000000000000';
+    setUser({
+      id: mockId,
+      email: `test-${role}@renocart.ca`,
+      aud: 'authenticated',
+      role: 'authenticated',
+    } as User);
+    setProfile({
+      id: '1',
+      user_id: mockId,
+      full_name: role === 'admin' ? 'Admin Test' : 'Fournisseur Test',
+      company_name: role === 'admin' ? 'RenoCart' : 'Fournisseur Test',
+      phone: null,
+      supplier_type: 'delivery',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+    setUserRole(role);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, userRole, loading, signOut }}>
+    <AuthContext.Provider value={{ user, profile, userRole, loading, signOut, bypassSignIn }}>
       {children}
     </AuthContext.Provider>
   );
