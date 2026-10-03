@@ -242,6 +242,7 @@ export type Database = {
           email_message_id: string | null
           id: string
           is_broadcast: boolean
+          kind: string
           order_id: string
           sender_name: string
           source: string
@@ -254,6 +255,7 @@ export type Database = {
           email_message_id?: string | null
           id?: string
           is_broadcast?: boolean
+          kind?: string
           order_id: string
           sender_name: string
           source?: string
@@ -266,6 +268,7 @@ export type Database = {
           email_message_id?: string | null
           id?: string
           is_broadcast?: boolean
+          kind?: string
           order_id?: string
           sender_name?: string
           source?: string
@@ -501,6 +504,50 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_email_threads: {
+        Row: {
+          created_at: string
+          gmail_thread_id: string | null
+          id: string
+          order_id: string
+          rfc_message_id: string | null
+          subject: string | null
+          supplier_email: string | null
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          gmail_thread_id?: string | null
+          id?: string
+          order_id: string
+          rfc_message_id?: string | null
+          subject?: string | null
+          supplier_email?: string | null
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          gmail_thread_id?: string | null
+          id?: string
+          order_id?: string
+          rfc_message_id?: string | null
+          subject?: string | null
+          supplier_email?: string | null
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_email_threads_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
