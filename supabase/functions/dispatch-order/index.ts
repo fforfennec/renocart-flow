@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
       .eq("id", order_id);
 
     // 6. Build URLs (simple pages, no login required)
-    const APP_URL = (Deno.env.get("APP_URL") || "https://renocart-flow.lovable.app").replace(/\/$/, "");
+    const APP_URL = "https://renocart-flow.lovable.app";
     const link = (action: string) => `${APP_URL}/supplier/respond?a=${assignment.id}&action=${action}`;
 
     // 7. Items table
