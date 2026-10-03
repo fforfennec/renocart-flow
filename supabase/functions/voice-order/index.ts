@@ -181,7 +181,14 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return json({ error: "AI not configured" }, 500);
 
-    const form = await req.formData();
+    const ct = req.headers.get("content-type") || "";
+    const form = ct.includes("application/json")
+      ? (() => { const f = new FormData(); return f; })()
+      : await req.formData();
+    if (ct.includes("application/json")) {
+      const b = await req.json();
+      for (const [k, v] of Object.entries(b)) form.append(k, String(v));
+    }
     const mode = String(form.get("mode") || "cart");
     const lang = String(form.get("lang") || "fr");
     const audio = form.get("audio");
