@@ -12,29 +12,49 @@ export function getGoogleMailApiKey(): string {
   return key;
 }
 
+function b64urlUtf8(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function encodeHeader(value: string): string {
+  // RFC 2047 encoding for non-ASCII headers (subject, names)
+  if (/^[\x00-\x7F]*$/.test(value)) return value;
+  const bytes = new TextEncoder().encode(value);
+  let bin = "";
+  bytes.forEach((b) => (bin += String.fromCharCode(b)));
+  return `=?UTF-8?B?${btoa(bin)}?=`;
+}
+
 export function createRawEmail(
   to: string,
   subject: string,
   body: string,
-  options: { html?: boolean; replyTo?: string } = {}
+  options: { html?: boolean; replyTo?: string; inReplyTo?: string; references?: string; cc?: string[] } = {}
 ): string {
   const lines = [
     `To: ${to}`,
-    `Subject: ${subject}`,
+    `Subject: ${encodeHeader(subject)}`,
+    "MIME-Version: 1.0",
   ];
-  if (options.replyTo) {
-    lines.push(`Reply-To: ${options.replyTo}`);
-  }
+  if (options.cc && options.cc.length) lines.push(`Cc: ${options.cc.join(", ")}`);
+  if (options.replyTo) lines.push(`Reply-To: ${options.replyTo}`);
+  if (options.inReplyTo) lines.push(`In-Reply-To: ${options.inReplyTo}`);
+  if (options.references) lines.push(`References: ${options.references}`);
   lines.push(
     `Content-Type: ${options.html ? "text/html" : "text/plain"}; charset="UTF-8"`,
+    "Content-Transfer-Encoding: 8bit",
     "",
     body,
   );
-  const email = lines.join("\r\n");
-  return btoa(email).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return b64urlUtf8(lines.join("\r\n"));
 }
 
-export async function sendGmailMessage(raw: string): Promise<any> {
+export async function sendGmailMessage(raw: string, threadId?: string | null): Promise<any> {
   const res = await fetch(`${GATEWAY_URL}/users/me/messages/send`, {
     method: "POST",
     headers: {
@@ -42,7 +62,7 @@ export async function sendGmailMessage(raw: string): Promise<any> {
       "X-Connection-Api-Key": getGoogleMailApiKey(),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ raw }),
+    body: JSON.stringify(threadId ? { raw, threadId } : { raw }),
   });
 
   if (!res.ok) {
@@ -51,6 +71,27 @@ export async function sendGmailMessage(raw: string): Promise<any> {
   }
 
   return await res.json();
+}
+
+/** Returns the RFC822 Message-ID header of a sent Gmail message. */
+export async function getRfcMessageId(messageId: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${GATEWAY_URL}/users/me/messages/${messageId}?format=metadata&metadataHeaders=Message-ID`,
+      {
+        headers: {
+          "Authorization": `Bearer ${getLovableApiKey()}`,
+          "X-Connection-Api-Key": getGoogleMailApiKey(),
+        },
+      },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const h = (data.payload?.headers || []).find((x: any) => x.name?.toLowerCase() === "message-id");
+    return h?.value || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function listUnreadMessages(maxResults = 50): Promise<any[]> {
@@ -103,20 +144,41 @@ export async function markMessageAsRead(messageId: string): Promise<void> {
   }
 }
 
+function decodeB64Utf8(data: string): string {
+  const bin = atob(data.replace(/-/g, "+").replace(/_/g, "/"));
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+/** Removes quoted previous messages from an email reply. */
+export function stripQuotedReply(text: string): string {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const out: string[] = [];
+  for (const line of lines) {
+    if (/^\s*>/.test(line)) break;
+    if (/^(On|Le) .+(wrote|écrit)\s*:?\s*$/i.test(line.trim())) break;
+    if (/^-{2,}\s*(Original Message|Message d'origine)/i.test(line.trim())) break;
+    if (/^(From|De)\s*:.+/i.test(line.trim()) && out.length > 0) break;
+    out.push(line);
+  }
+  const result = out.join("\n").trim();
+  return result || text.trim();
+}
+
 export function extractTextBody(payload: any): string {
   if (!payload) return "";
   if (payload.body?.data) {
-    return atob(payload.body.data.replace(/-/g, "+").replace(/_/g, "/"));
+    return decodeB64Utf8(payload.body.data);
   }
   if (payload.parts) {
     for (const part of payload.parts) {
       if (part.mimeType === "text/plain" && part.body?.data) {
-        return atob(part.body.data.replace(/-/g, "+").replace(/_/g, "/"));
+        return decodeB64Utf8(part.body.data);
       }
     }
     for (const part of payload.parts) {
       if (part.body?.data) {
-        return atob(part.body.data.replace(/-/g, "+").replace(/_/g, "/"));
+        return decodeB64Utf8(part.body.data);
       }
     }
   }
