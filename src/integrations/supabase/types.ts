@@ -260,6 +260,7 @@ export type Database = {
           is_broadcast: boolean
           kind: string
           order_id: string
+          proposal_id: string | null
           sender_name: string
           source: string
           supplier_id: string | null
@@ -274,6 +275,7 @@ export type Database = {
           is_broadcast?: boolean
           kind?: string
           order_id: string
+          proposal_id?: string | null
           sender_name: string
           source?: string
           supplier_id?: string | null
@@ -288,6 +290,7 @@ export type Database = {
           is_broadcast?: boolean
           kind?: string
           order_id?: string
+          proposal_id?: string | null
           sender_name?: string
           source?: string
           supplier_id?: string | null
@@ -296,6 +299,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "order_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_modification_proposals: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          decided_at: string | null
+          id: string
+          items: Json
+          note: string | null
+          order_id: string
+          proposed_date: string | null
+          proposed_time_window: string | null
+          proposed_truck: string | null
+          split_order_id: string | null
+          status: string
+          supplier_id: string
+          supplier_name: string | null
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          items?: Json
+          note?: string | null
+          order_id: string
+          proposed_date?: string | null
+          proposed_time_window?: string | null
+          proposed_truck?: string | null
+          split_order_id?: string | null
+          status?: string
+          supplier_id: string
+          supplier_name?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          items?: Json
+          note?: string | null
+          order_id?: string
+          proposed_date?: string | null
+          proposed_time_window?: string | null
+          proposed_truck?: string | null
+          split_order_id?: string | null
+          status?: string
+          supplier_id?: string
+          supplier_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_modification_proposals_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
@@ -316,6 +378,7 @@ export type Database = {
           id: string
           internal_notes: string | null
           order_number: string
+          parent_order_id: string | null
           shipping_method: string | null
           status: string
           truck_type: string | null
@@ -333,6 +396,7 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           order_number: string
+          parent_order_id?: string | null
           shipping_method?: string | null
           status?: string
           truck_type?: string | null
@@ -350,12 +414,21 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           order_number?: string
+          parent_order_id?: string | null
           shipping_method?: string | null
           status?: string
           truck_type?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_parent_order_id_fkey"
+            columns: ["parent_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
