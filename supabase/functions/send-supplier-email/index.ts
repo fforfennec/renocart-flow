@@ -22,43 +22,25 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify caller is admin
-    const authHeader = req.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "");
-    if (!token) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Identify caller. TEST MODE: login is bypassed in the app, so unauthenticated
+    // callers are allowed and messages are sent as "RenoCart".
+    let callerId = "00000000-0000-0000-0000-000000000000";
+    let adminSenderName = "RenoCart";
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+    if (token) {
+      const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const { data: { user } } = await authClient.auth.getUser();
+      if (user) {
+        const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        if (isAdmin) {
+          callerId = user.id;
+          const { data: adminProfile } = await supabase.from("profiles").select("full_name, company_name").eq("user_id", user.id).maybeSingle();
+          adminSenderName = adminProfile?.full_name || adminProfile?.company_name || "RenoCart";
+        }
+      }
     }
-
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user }, error: userError } = await authClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    if (!isAdmin) {
-      return new Response(
-        JSON.stringify({ error: "Admin access required" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Load admin profile for sender name
-    const { data: adminProfile } = await supabase
-      .from("profiles")
-      .select("full_name, company_name")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    const adminSenderName = adminProfile?.company_name || adminProfile?.full_name || "RenoCart";
 
     // Load order
     const { data: order, error: orderError } = await supabase
@@ -127,15 +109,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    const subject = `Commande ${order.order_number} — ${broadcast ? "Message" : "Réponse"}`;
-
     for (const recipient of recipients) {
       const personalizedBody = broadcast
         ? `Bonjour ${recipient.name},\n\n${content}\n\n— RenoCart`
-        : content;
+        : `${content}\n\n— ${adminSenderName}, RenoCart`;
+
+      // Reply inside the original email thread when we have one
+      const { data: thread } = await supabase
+        .from("supplier_email_threads")
+        .select("gmail_thread_id, rfc_message_id, subject")
+        .eq("order_id", order_id)
+        .eq("supplier_id", recipient.supplier_id)
+        .maybeSingle();
+      const baseSubject = thread?.subject || `Commande ${order.order_number}`;
+      const subject = baseSubject.startsWith("Re:") ? baseSubject : `Re: ${baseSubject}`;
 
       try {
-        await sendGmailMessage(createRawEmail(recipient.email, subject, personalizedBody));
+        await sendGmailMessage(
+          createRawEmail(recipient.email, subject, personalizedBody, {
+            inReplyTo: thread?.rfc_message_id || undefined,
+            references: thread?.rfc_message_id || undefined,
+          }),
+          thread?.gmail_thread_id || null,
+        );
       } catch (err) {
         console.error(`Failed to send email to ${recipient.email}:`, err);
         continue;
@@ -144,7 +140,7 @@ Deno.serve(async (req) => {
       // Insert message record
       await supabase.from("order_messages").insert({
         order_id,
-        user_id: user.id,
+        user_id: callerId,
         sender_name: adminSenderName,
         content,
         supplier_id: recipient.supplier_id,

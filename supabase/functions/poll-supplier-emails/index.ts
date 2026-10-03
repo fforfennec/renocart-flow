@@ -5,6 +5,7 @@ import {
   getGmailMessage,
   listUnreadMessages,
   markMessageAsRead,
+  stripQuotedReply,
 } from "../_shared/gmail.ts";
 
 Deno.serve(async (req) => {
@@ -37,19 +38,28 @@ Deno.serve(async (req) => {
         const from = fromHeader?.value || "";
         const fromEmail = from.match(/<([^>]+)>/)?.[1] || from;
 
-        const orderNumber = extractOrderNumber(subject);
-        if (!orderNumber) {
-          skipped.push(messageId);
-          await markMessageAsRead(messageId);
-          continue;
-        }
+        // 1) Match by Gmail thread (reply to our original email)
+        const { data: thread } = messageData.threadId
+          ? await supabase
+              .from("supplier_email_threads")
+              .select("order_id, supplier_id")
+              .eq("gmail_thread_id", messageData.threadId)
+              .limit(1)
+              .maybeSingle()
+          : { data: null };
 
-        // Find order by order_number
-        const { data: order } = await supabase
-          .from("orders")
-          .select("id, order_number")
-          .eq("order_number", orderNumber)
-          .maybeSingle();
+        let order: { id: string; order_number: string } | null = null;
+        if (thread) {
+          const { data } = await supabase.from("orders").select("id, order_number").eq("id", thread.order_id).maybeSingle();
+          order = data;
+        } else {
+          // 2) Fallback: order number in subject
+          const orderNumber = extractOrderNumber(subject);
+          if (orderNumber) {
+            const { data } = await supabase.from("orders").select("id, order_number").eq("order_number", orderNumber).maybeSingle();
+            order = data;
+          }
+        }
 
         if (!order) {
           skipped.push(messageId);
@@ -62,7 +72,7 @@ Deno.serve(async (req) => {
         const supplierUser = existingUsers?.users?.find(u =>
           u.email?.toLowerCase() === fromEmail.toLowerCase()
         );
-        const supplierId = supplierUser?.id || null;
+        const supplierId = thread?.supplier_id || supplierUser?.id || null;
 
         // Find supplier name
         let senderName = fromEmail;
@@ -85,7 +95,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (!existing) {
-          const bodyText = extractTextBody(messageData.payload);
+          const bodyText = stripQuotedReply(extractTextBody(messageData.payload));
 
           await supabase.from("order_messages").insert({
             order_id: order.id,

@@ -1,411 +1,170 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { CheckCircle, XCircle, Loader2, Package, MapPin, Calendar, Clock, Truck, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CheckCircle2, XCircle, PencilLine, Loader2, MapPin, Calendar, Clock, Truck } from 'lucide-react';
 
-type OrderData = {
-  id: string;
-  order_number: string;
-  client_address: string;
-  delivery_date: string;
-  delivery_time_window: string;
-  truck_type: string | null;
-  internal_notes: string | null;
+type Action = 'accept' | 'decline' | 'modify';
+type Info = {
+  order: { order_number: string; client_address: string; delivery_date: string | null; delivery_time_window: string | null; truck_type: string | null };
+  supplier_name: string;
+  status: string;
 };
 
-type OrderItem = {
-  id: string;
-  name: string;
-  quantity: number;
-  sku: string | null;
-  image_url: string | null;
-  client_note: string | null;
+const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/supplier-respond`;
+const HEADERS = { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json' };
+
+const COPY: Record<Action, { title: string; button: string; icon: typeof CheckCircle2; tone: string; done: string }> = {
+  accept: { title: 'Accepter la commande', button: 'Confirmer l\'acceptation', icon: CheckCircle2, tone: 'bg-success text-success-foreground hover:bg-success/90', done: 'Merci ! La commande est acceptée. RenoCart a été avisé.' },
+  decline: { title: 'Refuser la commande', button: 'Confirmer le refus', icon: XCircle, tone: 'bg-destructive text-destructive-foreground hover:bg-destructive/90', done: 'C\'est noté. RenoCart a été avisé de votre refus.' },
+  modify: { title: 'Proposer une modification', button: 'Envoyer ma proposition', icon: PencilLine, tone: 'bg-warning text-warning-foreground hover:bg-warning/90', done: 'Merci ! Votre proposition a été envoyée à RenoCart.' },
 };
 
 export default function SupplierRespond() {
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
-  const autoConfirm = searchParams.get('action') === 'confirm';
-
+  const [params] = useSearchParams();
+  const assignmentId = params.get('a');
+  const initial = (params.get('action') as Action) || 'accept';
+  const [action, setAction] = useState<Action>(['accept', 'decline', 'modify'].includes(initial) ? initial : 'accept');
+  const [info, setInfo] = useState<Info | null>(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [order, setOrder] = useState<OrderData | null>(null);
-  const [items, setItems] = useState<OrderItem[]>([]);
-  const [responseId, setResponseId] = useState<string | null>(null);
-
-  // Response state
-  const [canDeliverDate, setCanDeliverDate] = useState(true);
-  const [canDeliverTime, setCanDeliverTime] = useState(true);
-  const [canDeliverTruck, setCanDeliverTruck] = useState(true);
-  const [alternativeDate, setAlternativeDate] = useState('');
-  const [alternativeTime, setAlternativeTime] = useState('');
-  const [alternativeTruck, setAlternativeTruck] = useState('');
-  const [generalNote, setGeneralNote] = useState('');
-  const [itemDecisions, setItemDecisions] = useState<Record<string, { canFulfill: boolean; note: string }>>({});
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [note, setNote] = useState('');
+  const [altDate, setAltDate] = useState('');
+  const [altTime, setAltTime] = useState('');
+  const [altTruck, setAltTruck] = useState('');
 
   useEffect(() => {
-    if (!token) {
-      setError('Lien invalide — aucun jeton trouvé.');
-      setLoading(false);
-      return;
-    }
-    loadOrder();
-  }, [token]);
+    if (!assignmentId) { setError('Lien invalide.'); setLoading(false); return; }
+    fetch(`${FN_URL}?a=${assignmentId}`, { headers: HEADERS })
+      .then(async r => {
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error === 'expired' ? 'Cette commande n\'est plus disponible (elle a peut-être été réassignée).' : 'Lien invalide.');
+        setInfo(d);
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [assignmentId]);
 
-  useEffect(() => {
-    if (autoConfirm && order && !submitted) {
-      handleConfirmAll();
-    }
-  }, [autoConfirm, order]);
-
-  const loadOrder = async () => {
-    try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/supplier-respond?token=${token}`);
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (data.already_responded) {
-          setSubmitted(true);
-          setLoading(false);
-          return;
-        }
-        throw new Error(data.error || 'Erreur de chargement');
-      }
-
-      setOrder(data.order);
-      setItems(data.items);
-      setResponseId(data.response_id);
-
-      // Init item decisions
-      const decisions: Record<string, { canFulfill: boolean; note: string }> = {};
-      data.items.forEach((item: OrderItem) => {
-        decisions[item.id] = { canFulfill: true, note: '' };
-      });
-      setItemDecisions(decisions);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConfirmAll = async () => {
+  const submit = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/supplier-respond`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: 'confirm_all' }),
+      const r = await fetch(FN_URL, {
+        method: 'POST', headers: HEADERS,
+        body: JSON.stringify({ assignment_id: assignmentId, action, note: note || null, alternative_date: altDate || null, alternative_time: altTime || null, alternative_truck: altTruck || null }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setSubmitted(true);
-      toast.success('Commande confirmée !');
-    } catch (err: any) {
-      toast.error(err.message);
+      const d = await r.json();
+      if (r.status === 409) throw new Error('Vous avez déjà répondu à cette commande.');
+      if (!r.ok) throw new Error(typeof d.error === 'string' ? d.error : 'Erreur, veuillez réessayer.');
+      setDone(true);
+    } catch (e: any) {
+      setError(e.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleSubmitModify = async () => {
-    setSubmitting(true);
-    try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/supplier-respond`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token,
-          action: 'modify',
-          can_deliver_date: canDeliverDate,
-          can_deliver_time: canDeliverTime,
-          can_deliver_truck: canDeliverTruck,
-          alternative_date: alternativeDate || null,
-          alternative_time: alternativeTime || null,
-          alternative_truck: alternativeTruck || null,
-          supplier_general_note: generalNote || null,
-          item_responses: Object.entries(itemDecisions).map(([itemId, d]) => ({
-            item_id: itemId,
-            can_fulfill: d.canFulfill,
-            supplier_note: d.note || null,
-          })),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setSubmitted(true);
-      toast.success('Réponse envoyée !');
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
-    );
-  }
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center">
-          <CardContent className="pt-8 pb-8">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Merci pour votre réponse !</h2>
-            <p className="text-gray-500">L'équipe RenoCart a été notifiée. Vous pouvez fermer cette page.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center">
-          <CardContent className="pt-8 pb-8">
-            <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Lien expiré ou invalide</h2>
-            <p className="text-gray-500">{error}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!order) return null;
-
-  const YesNoButton = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
-    <div className="flex gap-2">
-      <Button
-        type="button"
-        size="sm"
-        variant={value ? 'default' : 'outline'}
-        className={value ? 'bg-green-600 hover:bg-green-700' : ''}
-        onClick={() => onChange(true)}
-      >
-        Oui
-      </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant={!value ? 'destructive' : 'outline'}
-        onClick={() => onChange(false)}
-      >
-        Non
-      </Button>
-    </div>
-  );
+  const already = info && ['confirmed', 'declined', 'expired'].includes(info.status);
+  const c = COPY[action];
+  const Icon = c.icon;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">RenoCart</h1>
-          <p className="text-gray-500 mt-1">Répondre à la commande</p>
+    <div className="min-h-screen bg-rc-beige flex items-start justify-center p-4 pt-10">
+      <div className="w-full max-w-lg space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-rc-gold rounded flex items-center justify-center font-bold text-rc-navy">R</div>
+          <span className="text-xl font-bold text-rc-navy">RenoCart</span>
         </div>
-
-        {/* Order summary */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Commande {order.order_number}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 mt-0.5 text-gray-400" />
-              <span>{order.client_address}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <span>{new Date(order.delivery_date).toLocaleDateString('fr-CA')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-400" />
-              <span>{order.delivery_time_window}</span>
-            </div>
-            {order.truck_type && (
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-gray-400" />
-                <span>{order.truck_type}</span>
+          <CardContent className="p-6 space-y-5">
+            {loading ? (
+              <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            ) : error && !info ? (
+              <p className="text-center py-8 text-muted-foreground">{error}</p>
+            ) : done ? (
+              <div className="text-center py-8 space-y-3">
+                <Icon className="h-12 w-12 mx-auto text-success" />
+                <p className="font-semibold">{c.done}</p>
+                <p className="text-sm text-muted-foreground">Vous pouvez fermer cette page.</p>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Quick confirm */}
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="py-6 text-center">
-            <p className="font-medium text-green-800 mb-3">Tout est correct ?</p>
-            <Button
-              size="lg"
-              className="bg-green-600 hover:bg-green-700 text-white px-8"
-              onClick={handleConfirmAll}
-              disabled={submitting}
-            >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-              ✅ Je confirme tout
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Delivery details */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Détails de livraison</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Date */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">Date</p>
-                <p className="text-xs text-gray-500">{new Date(order.delivery_date).toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-              </div>
-              <YesNoButton value={canDeliverDate} onChange={setCanDeliverDate} />
-            </div>
-            {!canDeliverDate && (
-              <Input
-                type="date"
-                placeholder="Date alternative"
-                value={alternativeDate}
-                onChange={(e) => setAlternativeDate(e.target.value)}
-              />
-            )}
-
-            {/* Time */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">Heure</p>
-                <p className="text-xs text-gray-500">{order.delivery_time_window}</p>
-              </div>
-              <YesNoButton value={canDeliverTime} onChange={setCanDeliverTime} />
-            </div>
-            {!canDeliverTime && (
-              <Input
-                placeholder="Plage horaire alternative"
-                value={alternativeTime}
-                onChange={(e) => setAlternativeTime(e.target.value)}
-              />
-            )}
-
-            {/* Truck */}
-            {order.truck_type && (
+            ) : info && (
               <>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">Camion</p>
-                    <p className="text-xs text-gray-500">{order.truck_type}</p>
-                  </div>
-                  <YesNoButton value={canDeliverTruck} onChange={setCanDeliverTruck} />
+                <div>
+                  <p className="text-sm text-muted-foreground">Bonjour {info.supplier_name},</p>
+                  <h1 className="text-2xl font-bold">Commande {info.order.order_number}</h1>
                 </div>
-                {!canDeliverTruck && (
-                  <Input
-                    placeholder="Type de camion alternatif"
-                    value={alternativeTruck}
-                    onChange={(e) => setAlternativeTruck(e.target.value)}
-                  />
+                <div className="grid gap-2 text-sm bg-muted/50 rounded-lg p-4">
+                  <span className="flex gap-2"><MapPin className="h-4 w-4 text-muted-foreground" />{info.order.client_address}</span>
+                  <span className="flex gap-2"><Calendar className="h-4 w-4 text-muted-foreground" />{info.order.delivery_date || 'À confirmer'}</span>
+                  <span className="flex gap-2"><Clock className="h-4 w-4 text-muted-foreground" />{info.order.delivery_time_window || 'À confirmer'}</span>
+                  <span className="flex gap-2"><Truck className="h-4 w-4 text-muted-foreground" />{info.order.truck_type || 'À confirmer'}</span>
+                </div>
+
+                {already ? (
+                  <p className="text-center text-muted-foreground py-4">Vous avez déjà répondu à cette commande. Merci !</p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(Object.keys(COPY) as Action[]).map(a => {
+                        const I = COPY[a].icon;
+                        return (
+                          <Button key={a} variant={a === action ? 'default' : 'outline'} className="h-auto py-3 flex-col gap-1 text-xs whitespace-normal" onClick={() => setAction(a)}>
+                            <I className="h-5 w-5" />{COPY[a].title}
+                          </Button>
+                        );
+                      })}
+                    </div>
+
+                    {action === 'modify' && (
+                      <div className="grid gap-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><Label>Autre date</Label><Input type="date" value={altDate} onChange={e => setAltDate(e.target.value)} /></div>
+                          <div>
+                            <Label>Autre plage horaire</Label>
+                            <Select value={altTime} onValueChange={setAltTime}>
+                              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="AM">AM (avant midi)</SelectItem>
+                                <SelectItem value="PM">PM (après-midi)</SelectItem>
+                                <SelectItem value="Early">Tôt (avant 10h)</SelectItem>
+                                <SelectItem value="Day">Journée</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Autre camion</Label>
+                          <Select value={altTruck} onValueChange={setAltTruck}>
+                            <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                            <SelectContent>
+                              {['Boom', 'Boom 90ft', 'Van/Cube', 'Hiab', 'Other'].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <Label>{action === 'modify' ? 'Votre proposition' : 'Message (optionnel)'}</Label>
+                      <Textarea rows={3} value={note} onChange={e => setNote(e.target.value)} placeholder={action === 'decline' ? 'Raison du refus…' : action === 'modify' ? 'Ex. : article X en rupture, je peux livrer jeudi…' : ''} />
+                    </div>
+
+                    {error && <p className="text-sm text-destructive">{error}</p>}
+                    <Button className={`w-full ${c.tone}`} size="lg" disabled={submitting || (action === 'modify' && !note && !altDate && !altTime && !altTruck)} onClick={submit}>
+                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+                      {c.button}
+                    </Button>
+                  </>
                 )}
               </>
             )}
           </CardContent>
         </Card>
-
-        {/* Items */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Matériaux ({items.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {items.map((item) => {
-                const decision = itemDecisions[item.id] || { canFulfill: true, note: '' };
-                return (
-                  <div key={item.id} className="border rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {item.image_url ? (
-                          <img src={item.image_url} alt={item.name} className="w-10 h-10 object-cover rounded" />
-                        ) : (
-                          <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
-                            <Package className="h-4 w-4 text-gray-400" />
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-medium text-sm">{item.name}</p>
-                          <p className="text-xs text-gray-500">Qté: {item.quantity}</p>
-                        </div>
-                      </div>
-                      <YesNoButton
-                        value={decision.canFulfill}
-                        onChange={(v) => setItemDecisions(prev => ({
-                          ...prev,
-                          [item.id]: { ...prev[item.id], canFulfill: v },
-                        }))}
-                      />
-                    </div>
-                    {item.client_note && (
-                      <p className="text-xs bg-yellow-50 border border-yellow-200 rounded px-2 py-1 text-yellow-800">
-                        <strong>Note client:</strong> {item.client_note}
-                      </p>
-                    )}
-                    {!decision.canFulfill && (
-                      <Textarea
-                        placeholder="Note (optionnel) — ex: disponible mardi prochain"
-                        value={decision.note}
-                        onChange={(e) => setItemDecisions(prev => ({
-                          ...prev,
-                          [item.id]: { ...prev[item.id], note: e.target.value },
-                        }))}
-                        className="text-sm"
-                        rows={2}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* General note */}
-        <Card>
-          <CardContent className="pt-6">
-            <Textarea
-              placeholder="Note générale (optionnel)"
-              value={generalNote}
-              onChange={(e) => setGeneralNote(e.target.value)}
-              rows={3}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Submit */}
-        <Button
-          className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-          size="lg"
-          onClick={handleSubmitModify}
-          disabled={submitting}
-        >
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Envoyer ma réponse
-        </Button>
       </div>
     </div>
   );
