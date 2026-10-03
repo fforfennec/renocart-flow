@@ -130,6 +130,15 @@ Deno.serve(async (req) => {
     const contactPhone =
       addr?.phone || shopifyOrder.customer?.phone || null;
 
+    // Delivery details chosen on the public voice-order page arrive as cart attributes
+    const attrs: Record<string, string> = {};
+    for (const a of shopifyOrder.note_attributes || []) {
+      if (a?.name) attrs[String(a.name)] = String(a.value ?? "");
+    }
+    const attrDate = /^\d{4}-\d{2}-\d{2}$/.test(attrs["delivery_date"] || "") ? attrs["delivery_date"] : null;
+    const attrWindow = ["AM", "PM", "Early", "Day"].includes(attrs["delivery_time_window"]) ? attrs["delivery_time_window"] : null;
+    const attrTruck = ["Boom", "Boom 90ft", "Van/Cube", "Hiab", "Other"].includes(attrs["truck_type"]) ? attrs["truck_type"] : null;
+
     // Insert order
     const shippingMethod = shopifyOrder.shipping_lines?.[0]?.title || null;
     const { data: newOrder, error: orderErr } = await supabase
@@ -139,11 +148,11 @@ Deno.serve(async (req) => {
         client_name: contactName,
         client_address: buildAddress(addr),
         client_phone: contactPhone,
-        delivery_date: null,
-        delivery_time_window: null,
+        delivery_date: attrDate,
+        delivery_time_window: attrWindow,
         status: "pending",
         internal_notes: shopifyOrder.note || null,
-        truck_type: null,
+        truck_type: attrTruck,
         shipping_method: shippingMethod,
       })
       .select("id")

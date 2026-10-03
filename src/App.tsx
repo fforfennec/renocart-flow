@@ -11,6 +11,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import SupplierDashboard from "./pages/supplier/Dashboard";
 import SupplierRespond from "./pages/supplier/SupplierRespond";
 import NotFound from "./pages/NotFound";
+import Commander from "./pages/Commander";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/commander" element={<Commander />} />
             
             {/* Admin Routes */}
             <Route path="/admin/*" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
