@@ -14,13 +14,13 @@ type Att = { name: string; path: string; mime: string; size: number };
 function AttachmentItem({ a }: { a: Att }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
-    supabase.storage.from('order-attachments').createSignedUrl(a.path, 3600).then(({ data }) => setUrl(data?.signedUrl ?? null));
+    supabase.storage.from('order-attachments').createSignedUrl(a.path, 3600, a.mime.startsWith('image/') ? undefined : { download: a.name }).then(({ data }) => setUrl(data?.signedUrl ?? null));
   }, [a.path]);
   if (a.mime.startsWith('image/') && url) return (
     <a href={url} target="_blank" rel="noreferrer" className="block mt-2"><img src={url} alt={a.name} className="rounded-lg max-h-56 max-w-full object-cover border" /></a>
   );
   return (
-    <a href={url ?? undefined} target="_blank" rel="noreferrer" download={a.name} className="flex items-center gap-2 mt-2 rounded-lg border bg-muted/50 px-3 py-2 text-xs hover:bg-muted">
+    <a href={url ?? undefined} download={a.name} className="flex items-center gap-2 mt-2 rounded-lg border bg-muted/50 px-3 py-2 text-xs hover:bg-muted">
       <Paperclip className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{a.name}</span><span className="text-muted-foreground shrink-0">{Math.max(1, Math.round(a.size / 1024))} Ko</span>
     </a>
   );
