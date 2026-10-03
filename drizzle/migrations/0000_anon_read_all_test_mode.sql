@@ -1,0 +1,12 @@
+CREATE POLICY "Anon can read orders (test mode)" ON public.orders FOR SELECT TO anon USING (true);
+CREATE POLICY "Anon can read order items (test mode)" ON public.order_items FOR SELECT TO anon USING (true);
+CREATE POLICY "Anon can read order events (test mode)" ON public.order_events FOR SELECT TO anon USING (true);
+CREATE POLICY "Anon can read order messages (test mode)" ON public.order_messages FOR SELECT TO anon USING (true);
+CREATE POLICY "Anon can read order comments (test mode)" ON public.order_comments FOR SELECT TO anon USING (true);
+CREATE POLICY "Anon can read assignments (test mode)" ON public.supplier_assignments FOR SELECT TO anon USING (true);
+CREATE POLICY "Anon can read responses (test mode)" ON public.supplier_responses FOR SELECT TO anon USING (true);
+CREATE POLICY "Anon can read item responses (test mode)" ON public.item_responses FOR SELECT TO anon USING (true);
+CREATE POLICY "Anon can read notifications (test mode)" ON public.notifications FOR SELECT TO anon USING (true);
+CREATE POLICY "Anon can read profiles (test mode)" ON public.profiles FOR SELECT TO anon USING (true);
+CREATE POLICY "Anon can read settings (test mode)" ON public.app_settings FOR SELECT TO anon USING (true);
+CREATE POLICY "Anon can read user roles (test mode)" ON public.user_roles FOR SELECT TO anon USING (true);
