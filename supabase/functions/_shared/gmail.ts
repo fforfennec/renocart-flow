@@ -189,3 +189,25 @@ export function extractOrderNumber(subject: string): string | null {
   const match = subject.match(/RC\d+/i);
   return match ? match[0].toUpperCase() : null;
 }
+
+export interface GmailAttachmentRef { filename: string; mimeType: string; attachmentId: string; size: number }
+
+/** Recursively collects file attachments (including inline images with a filename). */
+export function listAttachments(payload: any, out: GmailAttachmentRef[] = []): GmailAttachmentRef[] {
+  if (!payload) return out;
+  if (payload.filename && payload.body?.attachmentId) {
+    out.push({ filename: payload.filename, mimeType: payload.mimeType || "application/octet-stream", attachmentId: payload.body.attachmentId, size: payload.body.size || 0 });
+  }
+  for (const p of payload.parts || []) listAttachments(p, out);
+  return out;
+}
+
+export async function getAttachmentBytes(messageId: string, attachmentId: string): Promise<Uint8Array> {
+  const res = await fetch(`${GATEWAY_URL}/users/me/messages/${messageId}/attachments/${attachmentId}`, {
+    headers: { "Authorization": `Bearer ${getLovableApiKey()}`, "X-Connection-Api-Key": getGoogleMailApiKey() },
+  });
+  if (!res.ok) throw new Error(`Gmail attachment failed [${res.status}]: ${await res.text()}`);
+  const data = await res.json();
+  const bin = atob(String(data.data).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
