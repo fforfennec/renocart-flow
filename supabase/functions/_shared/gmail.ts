@@ -95,7 +95,7 @@ export async function getRfcMessageId(messageId: string): Promise<string | null>
 }
 
 export async function listUnreadMessages(maxResults = 50): Promise<any[]> {
-  const res = await fetch(`${GATEWAY_URL}/users/me/messages?q=is:unread&maxResults=${maxResults}`, {
+  const res = await fetch(`${GATEWAY_URL}/users/me/messages?q=${encodeURIComponent("is:unread in:inbox newer_than:7d subject:Commande")}&maxResults=${maxResults}`, {
     headers: {
       "Authorization": `Bearer ${getLovableApiKey()}`,
       "X-Connection-Api-Key": getGoogleMailApiKey(),

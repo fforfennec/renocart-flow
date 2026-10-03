@@ -11,9 +11,16 @@ import {
 Deno.serve(async (req) => {
   // This function is intended to be called by pg_cron or admin invocation.
   // Reject direct anonymous calls.
-  const authHeader = req.headers.get("Authorization");
+  const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const cronToken = req.headers.get("x-cron-token");
+  const bearer = req.headers.get("Authorization")?.replace("Bearer ", "");
   const cronSecret = Deno.env.get("CRON_SECRET");
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  let authorized = !!(cronSecret && bearer === cronSecret);
+  if (!authorized && cronToken) {
+    const { data } = await supabaseAdmin.from("internal_cron_tokens").select("token").eq("name", "poll_supplier_emails").maybeSingle();
+    authorized = !!data && data.token === cronToken;
+  }
+  if (!authorized) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
@@ -48,12 +55,24 @@ Deno.serve(async (req) => {
               .maybeSingle()
           : { data: null };
 
+        // Only accept replies to our own threads, or emails from a known supplier.
+        const { data: existingUsersEarly } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+        const knownSupplier = existingUsersEarly?.users?.find(u => u.email?.toLowerCase() === fromEmail.toLowerCase());
+        let isSupplier = false;
+        if (knownSupplier) {
+          const { data: role } = await supabase.from("user_roles").select("role").eq("user_id", knownSupplier.id).eq("role", "supplier").maybeSingle();
+          isSupplier = !!role;
+        }
+        if (!thread && !isSupplier) {
+          skipped.push(messageId);
+          continue; // leave untouched — not a supplier reply
+        }
+
         let order: { id: string; order_number: string } | null = null;
         if (thread) {
           const { data } = await supabase.from("orders").select("id, order_number").eq("id", thread.order_id).maybeSingle();
           order = data;
         } else {
-          // 2) Fallback: order number in subject
           const orderNumber = extractOrderNumber(subject);
           if (orderNumber) {
             const { data } = await supabase.from("orders").select("id, order_number").eq("order_number", orderNumber).maybeSingle();
@@ -63,7 +82,6 @@ Deno.serve(async (req) => {
 
         if (!order) {
           skipped.push(messageId);
-          await markMessageAsRead(messageId);
           continue;
         }
 
