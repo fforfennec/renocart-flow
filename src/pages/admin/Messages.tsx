@@ -80,11 +80,21 @@ export default function Messages() {
     const [{ data: ords }, { data: profs }, { data: sups }] = await Promise.all([
       orderIds.length ? supabase.from('orders').select('id, order_number, client_name, status, delivery_date').in('id', orderIds) : Promise.resolve({ data: [] as OrderLite[] }),
       supplierIds.length ? supabase.from('profiles').select('user_id, full_name, company_name').in('user_id', supplierIds) : Promise.resolve({ data: [] as any[] }),
-      supabase.from('suppliers').select('name, logo_url'),
+      supabase.from('suppliers').select('id, name, logo_url'),
     ]);
+    // Resolve the real supplier company from the email address used in the thread
+    const [{ data: threads }, { data: contacts }] = await Promise.all([
+      supplierIds.length ? supabase.from('supplier_email_threads').select('supplier_id, supplier_email').in('supplier_id', supplierIds) : Promise.resolve({ data: [] as any[] }),
+      supabase.from('supplier_contacts').select('email, supplier_id'),
+    ]);
+    const supNameById: Record<string, string> = {};
+    (sups || []).forEach((s: any) => { supNameById[s.id] = s.name; });
+    const supByEmail: Record<string, string> = {};
+    (contacts || []).forEach((c: any) => { if (c.email) supByEmail[c.email.toLowerCase()] = supNameById[c.supplier_id]; });
     setOrders(Object.fromEntries((ords || []).map(o => [o.id, o])));
     const names: Record<string, string> = {};
     (profs || []).forEach((p: any) => { names[p.user_id] = p.company_name || p.full_name; });
+    (threads || []).forEach((t: any) => { const n = t.supplier_email && supByEmail[t.supplier_email.toLowerCase()]; if (n) names[t.supplier_id] = n; });
     setSupplierNames(names);
     const logoByName: Record<string, string> = {};
     (sups || []).forEach((s: any) => { if (s.logo_url) logoByName[s.name.toLowerCase()] = s.logo_url; });
