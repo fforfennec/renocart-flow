@@ -108,7 +108,8 @@ Deno.serve(async (req) => {
     const { data: existing } = await supabase
       .from("orders")
       .select("id")
-      .eq("order_number", orderNumber)
+      .in("order_number", [orderNumber, `${orderNumber}-A`])
+      .limit(1)
       .maybeSingle();
 
     if (existing) {

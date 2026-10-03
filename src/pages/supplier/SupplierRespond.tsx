@@ -6,11 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, XCircle, PencilLine, Loader2, MapPin, Calendar, Clock, Truck } from 'lucide-react';
+import { CheckCircle2, XCircle, PencilLine, Loader2, MapPin, Calendar, Clock, Truck, Minus, Plus, Trash2, Undo2 } from 'lucide-react';
 
 type Action = 'accept' | 'decline' | 'modify';
 type Info = {
   order: { order_number: string; client_address: string; delivery_date: string | null; delivery_time_window: string | null; truck_type: string | null };
+  items: { id: string; name: string; sku: string | null; quantity: number }[];
   supplier_name: string;
   status: string;
 };
@@ -38,6 +39,10 @@ export default function SupplierRespond() {
   const [altDate, setAltDate] = useState('');
   const [altTime, setAltTime] = useState('');
   const [altTruck, setAltTruck] = useState('');
+  const [qty, setQty] = useState<Record<string, number>>({});
+  const qOf = (id: string, orig: number) => qty[id] ?? orig;
+  const setQ = (id: string, v: number, orig: number) => setQty(q => ({ ...q, [id]: Math.max(0, Math.min(orig, v)) }));
+  const itemsChanged = !!info?.items?.some(i => qOf(i.id, i.quantity) < i.quantity);
 
   useEffect(() => {
     if (!assignmentId) { setError('Lien invalide.'); setLoading(false); return; }
@@ -56,7 +61,7 @@ export default function SupplierRespond() {
     try {
       const r = await fetch(FN_URL, {
         method: 'POST', headers: HEADERS,
-        body: JSON.stringify({ assignment_id: assignmentId, action, note: note || null, alternative_date: altDate || null, alternative_time: altTime || null, alternative_truck: altTruck || null }),
+        body: JSON.stringify({ assignment_id: assignmentId, action, note: note || null, alternative_date: altDate || null, alternative_time: altTime || null, alternative_truck: altTruck || null, items: action === 'modify' ? (info?.items || []).map(i => ({ item_id: i.id, quantity: qOf(i.id, i.quantity) })) : null }),
       });
       const d = await r.json();
       if (r.status === 409) throw new Error('Vous avez déjà répondu à cette commande.');
@@ -69,7 +74,7 @@ export default function SupplierRespond() {
     }
   };
 
-  const already = info && ['confirmed', 'declined', 'expired'].includes(info.status);
+  const already = info && ['confirmed', 'declined', 'expired', 'needs_modification'].includes(info.status);
   const c = COPY[action];
   const Icon = c.icon;
 
@@ -122,6 +127,33 @@ export default function SupplierRespond() {
 
                     {action === 'modify' && (
                       <div className="grid gap-3">
+                        <div>
+                          <Label>Articles — retirez ou réduisez ce que vous ne pouvez pas fournir</Label>
+                          <div className="mt-2 divide-y border rounded-lg">
+                            {(info.items || []).map(i => {
+                              const q = qOf(i.id, i.quantity);
+                              const removed = q === 0;
+                              return (
+                                <div key={i.id} className="flex items-center gap-2 p-3">
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-sm font-medium ${removed ? 'line-through text-muted-foreground' : ''}`}>{i.name}</p>
+                                    <p className="text-xs text-muted-foreground">{i.sku ? `SKU ${i.sku} · ` : ''}Demandé : {i.quantity}</p>
+                                  </div>
+                                  {removed ? (
+                                    <Button size="sm" variant="ghost" onClick={() => setQ(i.id, i.quantity, i.quantity)}><Undo2 className="h-4 w-4" />Remettre</Button>
+                                  ) : (
+                                    <>
+                                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQ(i.id, q - 1, i.quantity)}><Minus className="h-3 w-3" /></Button>
+                                      <Input type="number" min={0} max={i.quantity} value={q} onChange={e => setQ(i.id, parseInt(e.target.value || '0', 10), i.quantity)} className="w-16 h-8 text-center" />
+                                      <Button size="icon" variant="outline" className="h-8 w-8" disabled={q >= i.quantity} onClick={() => setQ(i.id, q + 1, i.quantity)}><Plus className="h-3 w-3" /></Button>
+                                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setQ(i.id, 0, i.quantity)}><Trash2 className="h-4 w-4" /></Button>
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div><Label>Autre date</Label><Input type="date" value={altDate} onChange={e => setAltDate(e.target.value)} /></div>
                           <div>
@@ -155,7 +187,7 @@ export default function SupplierRespond() {
                     </div>
 
                     {error && <p className="text-sm text-destructive">{error}</p>}
-                    <Button className={`w-full ${c.tone}`} size="lg" disabled={submitting || (action === 'modify' && !note && !altDate && !altTime && !altTruck)} onClick={submit}>
+                    <Button className={`w-full ${c.tone}`} size="lg" disabled={submitting || (action === 'modify' && !note && !altDate && !altTime && !altTruck && !itemsChanged)} onClick={submit}>
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
                       {c.button}
                     </Button>

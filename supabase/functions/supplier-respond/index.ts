@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
+import { dispatchToNextSupplier } from "../_shared/escalate.ts";
 
 const json = (data: object, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -12,6 +13,7 @@ const PostSchema = z.object({
   alternative_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
   alternative_time: z.string().max(50).optional().nullable(),
   alternative_truck: z.string().max(50).optional().nullable(),
+  items: z.array(z.object({ item_id: z.string().uuid(), quantity: z.number().int().min(0) })).max(500).optional().nullable(),
 });
 
 Deno.serve(async (req) => {
@@ -26,12 +28,13 @@ Deno.serve(async (req) => {
       .eq("id", assignmentId)
       .maybeSingle();
     if (!assignment) return null;
-    const [{ data: order }, { data: profile }, { data: response }] = await Promise.all([
+    const [{ data: order }, { data: profile }, { data: response }, { data: items }] = await Promise.all([
       supabase.from("orders").select("id, order_number, client_address, delivery_date, delivery_time_window, truck_type, status").eq("id", assignment.order_id).single(),
       supabase.from("profiles").select("full_name, company_name").eq("user_id", assignment.supplier_id).maybeSingle(),
       supabase.from("supplier_responses").select("id, status").eq("assignment_id", assignmentId).maybeSingle(),
+      supabase.from("order_items").select("id, name, sku, quantity, image_url").eq("order_id", assignment.order_id).order("sort_order"),
     ]);
-    return { assignment, order, response, supplierName: profile?.company_name || profile?.full_name || "Fournisseur" };
+    return { assignment, order, response, items: items || [], supplierName: profile?.company_name || profile?.full_name || "Fournisseur" };
   };
 
   try {
@@ -40,20 +43,20 @@ Deno.serve(async (req) => {
       if (!id || !z.string().uuid().safeParse(id).success) return json({ error: "Lien invalide" }, 400);
       const ctx = await loadContext(id);
       if (!ctx) return json({ error: "expired" }, 404);
-      return json({ order: ctx.order, supplier_name: ctx.supplierName, status: ctx.response?.status || "pending" });
+      return json({ order: ctx.order, items: ctx.items, supplier_name: ctx.supplierName, status: ctx.response?.status || "pending" });
     }
 
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
     const parsed = PostSchema.safeParse(await req.json());
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
-    const { assignment_id, action, note, alternative_date, alternative_time, alternative_truck } = parsed.data;
+    const { assignment_id, action, note, alternative_date, alternative_time, alternative_truck, items: itemChanges } = parsed.data;
 
     const ctx = await loadContext(assignment_id);
     if (!ctx || !ctx.order) return json({ error: "expired" }, 404);
-    const { assignment, order, response, supplierName } = ctx;
+    const { assignment, order, response, supplierName, items: orderItems } = ctx;
 
-    if (response && ["confirmed", "declined", "expired"].includes(response.status)) {
+    if (response && ["confirmed", "declined", "expired", "needs_modification"].includes(response.status)) {
       return json({ error: "already", status: response.status }, 409);
     }
 
@@ -62,6 +65,8 @@ Deno.serve(async (req) => {
     let kind = "";
     let notifTitle = "";
     let orderStatus: string | null = null;
+    let proposalRow: any = null;
+    let proposalId: string | null = null;
 
     if (action === "accept") {
       kind = "action_accept";
@@ -82,6 +87,21 @@ Deno.serve(async (req) => {
     } else {
       kind = "action_modify";
       const parts: string[] = [];
+      const qtyById: Record<string, number> = Object.fromEntries((itemChanges || []).map((c) => [c.item_id, c.quantity]));
+      const proposalItems = orderItems.map((it: any) => {
+        const q = qtyById[it.id];
+        const proposed = q === undefined ? it.quantity : Math.min(q, it.quantity);
+        return { item_id: it.id, name: it.name, sku: it.sku, original_qty: it.quantity, proposed_qty: proposed };
+      });
+      for (const it of proposalItems) {
+        if (it.proposed_qty === 0) parts.push(`• Retiré : ${it.name} (${it.original_qty})`);
+        else if (it.proposed_qty < it.original_qty) parts.push(`• ${it.name} : ${it.original_qty} → ${it.proposed_qty}`);
+      }
+      proposalRow = {
+        order_id: order.id, assignment_id, supplier_id: assignment.supplier_id, supplier_name: supplierName,
+        items: proposalItems, proposed_date: alternative_date || null, proposed_time_window: alternative_time || null,
+        proposed_truck: alternative_truck || null, note: note || null,
+      };
       if (alternative_date) parts.push(`• Date proposée : ${alternative_date}`);
       if (alternative_time) parts.push(`• Plage horaire proposée : ${alternative_time}`);
       if (alternative_truck) parts.push(`• Camion proposé : ${alternative_truck}`);
@@ -102,6 +122,12 @@ Deno.serve(async (req) => {
       }).eq("assignment_id", assignment_id);
     }
 
+    if (proposalRow) {
+      const { data: prop, error: propErr } = await supabase.from("order_modification_proposals").insert(proposalRow).select("id").single();
+      if (propErr) throw propErr;
+      proposalId = prop.id;
+    }
+
     // Post into the conversation
     await supabase.from("order_messages").insert({
       order_id: order.id,
@@ -112,6 +138,7 @@ Deno.serve(async (req) => {
       source: "action",
       kind,
       is_broadcast: false,
+      proposal_id: proposalId,
     });
 
     if (orderStatus) {
@@ -124,46 +151,11 @@ Deno.serve(async (req) => {
 
     // Decline → move on to the next supplier in the priority list
     if (action === "decline") {
-      const { data: settings } = await supabase.from("app_settings").select("value").eq("key", "automations_paused").maybeSingle();
-      const { data: o } = await supabase.from("orders").select("automation_paused").eq("id", order.id).single();
-      const paused = settings?.value === "true" || o?.automation_paused;
-
-      const { data: next } = await supabase
-        .from("supplier_priority")
-        .select("*")
-        .eq("is_active", true)
-        .gt("priority_order", assignment.priority_rank || 1)
-        .order("priority_order")
-        .limit(1)
-        .maybeSingle();
-
-      if (next && !paused) {
-        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/dispatch-order`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            order_id: order.id,
-            supplier_email: next.email,
-            supplier_name: next.name,
-            priority_rank: next.priority_order,
-            assignment_type: assignment.assignment_type,
-            skip_cancel_supplier_ids: [assignment.supplier_id],
-          }),
-        });
-        await supabase.from("notifications").insert({
-          type: "escalation", title: `Commande envoyée au suivant — ${order.order_number}`,
-          message: `${supplierName} a refusé. Commande envoyée à ${next.name}.`, order_id: order.id, is_read: false,
-        });
-      } else {
-        await supabase.from("orders").update({ status: "pending", updated_at: now }).eq("id", order.id);
-        await supabase.from("notifications").insert({
-          type: "escalation_final", title: `⚠️ Action requise — ${order.order_number}`,
-          message: paused
-            ? `${supplierName} a refusé. L'automatisation est en pause : assigne un fournisseur manuellement.`
-            : `${supplierName} a refusé et aucun autre fournisseur n'est disponible. Assigne un fournisseur manuellement.`,
-          order_id: order.id, is_read: false,
-        });
-      }
+      await dispatchToNextSupplier(supabase, {
+        orderId: order.id, orderNumber: order.order_number, fromRank: assignment.priority_rank || 1,
+        assignmentType: assignment.assignment_type, skipSupplierIds: [assignment.supplier_id],
+        reason: `${supplierName} a refusé.`,
+      });
     }
 
     return json({ success: true });
