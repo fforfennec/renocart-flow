@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot } from 'lucide-react';
+import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/NavLink';
@@ -11,6 +11,7 @@ import AdminOrderDetail from './OrderDetail';
 import AdminSuppliers from './Suppliers';
 import SupplierDetail from './SupplierDetail';
 import Automations from './Automations';
+import Messages from './Messages';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
@@ -33,6 +34,14 @@ const AdminDashboard = () => {
           >
             <LayoutDashboard size={20} />
             <span>Overview</span>
+          </NavLink>
+          <NavLink 
+            to="/admin/messages"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
+            <MessageCircle size={20} />
+            <span>Messages</span>
           </NavLink>
           <NavLink 
             to="/admin/historique"
@@ -101,6 +110,7 @@ const AdminDashboard = () => {
         <Routes>
           <Route path="/" element={<AdminOverview />} />
           <Route path="/orders/:orderId" element={<AdminOrderDetail />} />
+          <Route path="/messages" element={<Messages />} />
           <Route path="/historique" element={<AdminHistorique />} />
           <Route path="/suppliers" element={<AdminSuppliers />} />
           <Route path="/suppliers/:supplierId" element={<SupplierDetail />} />
