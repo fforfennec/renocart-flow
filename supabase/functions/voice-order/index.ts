@@ -182,10 +182,10 @@ Deno.serve(async (req) => {
     if (!apiKey) return json({ error: "AI not configured" }, 500);
 
     const ct = req.headers.get("content-type") || "";
-    const form = ct.includes("application/json")
+    const form = !ct.includes("multipart")
       ? (() => { const f = new FormData(); return f; })()
       : await req.formData();
-    if (ct.includes("application/json")) {
+    if (!ct.includes("multipart")) {
       const b = await req.json();
       for (const [k, v] of Object.entries(b)) form.append(k, String(v));
     }
