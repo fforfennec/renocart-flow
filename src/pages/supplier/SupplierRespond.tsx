@@ -174,7 +174,7 @@ export default function SupplierRespond() {
                           <Select value={altTruck} onValueChange={setAltTruck}>
                             <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                             <SelectContent>
-                              {['Boom', 'Boom 90ft', 'Van/Cube', 'Hiab', 'Other'].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                              {['Boom', 'Boom 90ft', 'Van/Cube', 'Hiab', 'Other', 'Aucun camion disponible'].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>

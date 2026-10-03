@@ -521,6 +521,7 @@ export default function OrderDetail() {
                   <SelectItem value="Van/Cube">Van/Cube</SelectItem>
                   <SelectItem value="Hiab">Hiab</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
+                  <SelectItem value="Aucun camion disponible">Aucun camion disponible</SelectItem>
                 </SelectContent>
               </Select>
             </div>
