@@ -1,3 +1,4 @@
+import ProposalCard from '@/components/admin/ProposalCard';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +23,7 @@ interface Message {
   supplier_id: string | null;
   source: MessageSource;
   is_broadcast: boolean;
+  proposal_id?: string | null;
 }
 
 interface SupplierThread {
@@ -125,7 +127,7 @@ export default function OrderSidebar({ orderId }: Props) {
   const loadMessages = async () => {
     const { data } = await supabase
       .from('order_messages')
-      .select('id, content, sender_name, created_at, user_id, supplier_id, source, is_broadcast')
+      .select('id, content, sender_name, created_at, user_id, supplier_id, source, is_broadcast, proposal_id')
       .eq('order_id', orderId)
       .order('created_at', { ascending: true });
 
@@ -390,7 +392,7 @@ export default function OrderSidebar({ orderId }: Props) {
                       {msg.is_broadcast && ' — à tous'}
                     </span>
                   </div>
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {msg.proposal_id ? <ProposalCard proposalId={msg.proposal_id} /> : <p className="text-sm whitespace-pre-wrap">{msg.content}</p>}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1 px-1">
                   <span className="text-[10px] text-muted-foreground/60">

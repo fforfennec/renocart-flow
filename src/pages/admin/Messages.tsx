@@ -1,3 +1,4 @@
+import ProposalCard from '@/components/admin/ProposalCard';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,7 +29,7 @@ function AttachmentItem({ a }: { a: Att }) {
 
 type Msg = {
   id: string; order_id: string; supplier_id: string | null; sender_name: string; content: string;
-  created_at: string; source: string; kind: string; user_id: string; attachments?: Att[] | null;
+  created_at: string; source: string; kind: string; user_id: string; proposal_id?: string | null; attachments?: Att[] | null;
 };
 type OrderLite = { id: string; order_number: string; client_name: string; status: string; delivery_date: string | null };
 type Conversation = { key: string; orderId: string; supplierId: string; messages: Msg[]; last: Msg };
@@ -69,7 +70,7 @@ export default function Messages() {
   const load = async () => {
     const { data: msgs } = await supabase
       .from('order_messages')
-      .select('id, order_id, supplier_id, sender_name, content, created_at, source, kind, user_id, attachments')
+      .select('id, order_id, supplier_id, sender_name, content, created_at, source, kind, user_id, attachments, proposal_id')
       .not('supplier_id', 'is', null)
       .order('created_at', { ascending: true });
     const list = (msgs || []) as unknown as Msg[];
@@ -260,6 +261,9 @@ export default function Messages() {
 
                 if (m.kind === 'dispatch') return (
                   <div key={m.id}>{time}<div className="flex justify-center"><div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded-full px-3 py-1.5 max-w-md"><Mail className="h-3.5 w-3.5 shrink-0" />{m.content.replace(/^📧\s*/, '')}</div></div></div>
+                );
+                if (m.proposal_id) return (
+                  <div key={m.id}>{time}<div className="flex justify-start"><ProposalCard proposalId={m.proposal_id} /></div></div>
                 );
                 if (m.kind.startsWith('action_')) {
                   const cfg = m.kind === 'action_accept' ? { I: CheckCircle2, c: 'border-success/40 bg-success/10 text-success' }
