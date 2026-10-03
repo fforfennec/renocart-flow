@@ -7,11 +7,28 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Search, Send, Loader2, Mail, ExternalLink, MessagesSquare, CheckCircle2, XCircle, PencilLine } from 'lucide-react';
+import { Search, Send, Loader2, Mail, ExternalLink, MessagesSquare, CheckCircle2, XCircle, PencilLine, Paperclip } from 'lucide-react';
+
+type Att = { name: string; path: string; mime: string; size: number };
+
+function AttachmentItem({ a }: { a: Att }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.storage.from('order-attachments').createSignedUrl(a.path, 3600).then(({ data }) => setUrl(data?.signedUrl ?? null));
+  }, [a.path]);
+  if (a.mime.startsWith('image/') && url) return (
+    <a href={url} target="_blank" rel="noreferrer" className="block mt-2"><img src={url} alt={a.name} className="rounded-lg max-h-56 max-w-full object-cover border" /></a>
+  );
+  return (
+    <a href={url ?? undefined} target="_blank" rel="noreferrer" download={a.name} className="flex items-center gap-2 mt-2 rounded-lg border bg-muted/50 px-3 py-2 text-xs hover:bg-muted">
+      <Paperclip className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{a.name}</span><span className="text-muted-foreground shrink-0">{Math.max(1, Math.round(a.size / 1024))} Ko</span>
+    </a>
+  );
+}
 
 type Msg = {
   id: string; order_id: string; supplier_id: string | null; sender_name: string; content: string;
-  created_at: string; source: string; kind: string; user_id: string;
+  created_at: string; source: string; kind: string; user_id: string; attachments?: Att[] | null;
 };
 type OrderLite = { id: string; order_number: string; client_name: string; status: string; delivery_date: string | null };
 type Conversation = { key: string; orderId: string; supplierId: string; messages: Msg[]; last: Msg };
@@ -52,10 +69,10 @@ export default function Messages() {
   const load = async () => {
     const { data: msgs } = await supabase
       .from('order_messages')
-      .select('id, order_id, supplier_id, sender_name, content, created_at, source, kind, user_id')
+      .select('id, order_id, supplier_id, sender_name, content, created_at, source, kind, user_id, attachments')
       .not('supplier_id', 'is', null)
       .order('created_at', { ascending: true });
-    const list = (msgs || []) as Msg[];
+    const list = (msgs || []) as unknown as Msg[];
     setMessages(list);
 
     const orderIds = [...new Set(list.map(m => m.order_id))];
@@ -251,6 +268,7 @@ export default function Messages() {
                     <div className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
                       <div className={cn('rounded-2xl px-4 py-2 max-w-md text-sm whitespace-pre-wrap break-words', mine ? 'bg-secondary text-secondary-foreground rounded-br-md' : 'bg-card border rounded-bl-md')}>
                         {m.content}
+                        {(m.attachments || []).map((a) => <AttachmentItem key={a.path} a={a} />)}
                         {m.source === 'email' && <span className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1"><Mail className="h-3 w-3" />par courriel</span>}
                       </div>
                     </div>

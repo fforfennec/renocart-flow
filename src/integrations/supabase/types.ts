@@ -252,6 +252,7 @@ export type Database = {
       }
       order_messages: {
         Row: {
+          attachments: Json
           content: string
           created_at: string
           email_message_id: string | null
@@ -265,6 +266,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachments?: Json
           content: string
           created_at?: string
           email_message_id?: string | null
@@ -278,6 +280,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachments?: Json
           content?: string
           created_at?: string
           email_message_id?: string | null

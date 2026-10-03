@@ -2,6 +2,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   extractOrderNumber,
   extractTextBody,
+  getAttachmentBytes,
+  listAttachments,
   getGmailMessage,
   listUnreadMessages,
   markMessageAsRead,
@@ -115,11 +117,27 @@ Deno.serve(async (req) => {
         if (!existing) {
           const bodyText = stripQuotedReply(extractTextBody(messageData.payload));
 
+          const attachments: { name: string; path: string; mime: string; size: number }[] = [];
+          for (const a of listAttachments(messageData.payload)) {
+            if (a.size > 25 * 1024 * 1024) continue;
+            try {
+              const bytes = await getAttachmentBytes(messageId, a.attachmentId);
+              const safe = a.filename.replace(/[^\w.\-]+/g, "_");
+              const path = `${order.id}/${messageId}/${safe}`;
+              const { error: upErr } = await supabase.storage.from("order-attachments").upload(path, bytes, { contentType: a.mimeType, upsert: true });
+              if (upErr) throw upErr;
+              attachments.push({ name: a.filename, path, mime: a.mimeType, size: bytes.length });
+            } catch (e) {
+              console.error(`Attachment ${a.filename} failed:`, e);
+            }
+          }
+
           await supabase.from("order_messages").insert({
+            attachments,
             order_id: order.id,
             user_id: supplierId || "00000000-0000-0000-0000-000000000000",
             sender_name: senderName,
-            content: bodyText,
+            content: bodyText || (attachments.length ? "📎 Fichier(s) joint(s)" : ""),
             supplier_id: supplierId,
             source: "email",
             email_message_id: messageId,
