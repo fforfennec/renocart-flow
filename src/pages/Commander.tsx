@@ -674,7 +674,7 @@ export default function Commander() {
                     <button aria-label="Supprimer" onClick={() => setQty(i.variantId, 0)} className="h-11 w-11 -mr-2 flex items-center justify-center text-muted-foreground hover:text-destructive"><Trash2 className="h-5 w-5" /></button>
                   </div>
                   <div className="mt-2 pl-[76px] flex items-center justify-between gap-2">
-                    <button onClick={() => { setCartOpen(false); openMic(); }} className="flex items-center gap-1.5 text-sm font-semibold text-secondary min-h-11">
+                    <button onClick={() => { setCartOpen(false); openMic(); }} className="flex items-center gap-1.5 text-left text-sm font-semibold text-secondary min-h-11">
                       <ArrowLeftRight className="h-4 w-4 text-primary" />{t.changeFormat}
                     </button>
                     <div className="flex items-center rounded-2xl border">
