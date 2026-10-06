@@ -90,8 +90,10 @@ async function callVoice(fd: FormData) {
   return data;
 }
 
-function MicButton({ onAudio, busy, big, t }: { onAudio: (b: Blob) => void; busy: boolean; big?: boolean; t: typeof T.fr }) {
-  const { recording, start, stop } = useVoiceRecorder();
+function MicButton({ onAudio, busy, big, t, recording, start, stop }: {
+  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; t: typeof T.fr;
+  recording: boolean; start: () => Promise<void>; stop: () => Promise<Blob>;
+}) {
   const click = async () => {
     if (busy) return;
     if (recording) onAudio(await stop());
@@ -153,6 +155,9 @@ export default function Commander() {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const { recording: micOn, start: micStart, stop: micStop } = useVoiceRecorder();
+  const micHandler = (b: Blob) => send({ audio: b });
+  const openMic = () => { if (!busy && !micOn) micStart().catch(() => toast.error("Micro non autorisé / Microphone blocked")); };
 
   useEffect(() => { document.title = lang === "fr" ? "RenoCart — Dis-nous ce dont tu as besoin" : "RenoCart — Tell us what you need"; }, [lang]);
   useEffect(() => {
@@ -309,7 +314,7 @@ export default function Commander() {
             <p className="mb-3">{t.qMore}</p>
             <div className="flex flex-wrap gap-2">
               <Pill onClick={finishList}>{t.done}</Pill>
-              <Pill onClick={() => toast(t.addMoreHint)}>{t.addMore}</Pill>
+              <Pill onClick={openMic}>{t.addMore}</Pill>
             </div>
           </BotBubble>
         );
@@ -457,7 +462,7 @@ export default function Commander() {
               <div className="h-full flex flex-col items-center justify-center text-center py-6">
                 <h1 className="text-4xl md:text-5xl font-black tracking-tight">{t.title}</h1>
                 <p className="mt-4 max-w-xl opacity-90">{t.sub}</p>
-                <div className="my-10"><MicButton big busy={busy} onAudio={(b) => send({ audio: b })} t={t} /></div>
+                <div className="my-10"><MicButton big busy={busy} onAudio={micHandler} t={t} recording={micOn} start={micStart} stop={micStop} /></div>
                 <p className="text-sm opacity-75 italic max-w-lg">{t.example}</p>
               </div>
             ) : (
@@ -472,7 +477,7 @@ export default function Commander() {
 
           <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
             onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
-            {started && <MicButton busy={busy} onAudio={(b) => send({ audio: b })} t={t} />}
+            {started && <MicButton busy={busy} onAudio={micHandler} t={t} recording={micOn} start={micStart} stop={micStop} />}
             <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
               className="flex-1 min-w-0 h-12 rounded-full bg-card text-card-foreground px-4 text-base outline-none focus:ring-2 focus:ring-primary" />
             <Button type="submit" size="icon" className="h-12 w-12 rounded-full shrink-0" disabled={busy || !typed.trim()}><Send className="h-4 w-4" /></Button>
