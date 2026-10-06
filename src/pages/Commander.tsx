@@ -18,13 +18,14 @@ type Missing = { name: string; quantity: number };
 type Field = "date" | "window" | "truck" | "note";
 type Question = "list" | "more" | Field | "summary";
 type Details = { delivery_date: string | null; time_window: string | null; truck_type: string | null; note: string | null };
-type Change = { q: number; title: string };
+type Change = { q: number; title: string; from?: number };
 type Msg =
   | { id: string; from: "user"; text: string }
+  | { id: string; from: "user"; voice: number; transcript?: string }
   | { id: string; from: "user"; answer: Field; value: string | null }
   | { id: string; from: "user"; done: true }
   | { id: string; from: "bot"; added: Change[]; removed: Change[]; missing: Missing[] }
-  | { id: string; from: "bot"; nothing: true };
+  | { id: string; from: "bot"; nothing: true; dismissed?: boolean };
 
 const T = {
   fr: {
@@ -37,7 +38,8 @@ const T = {
     missing: "Pas disponible chez nous", missingSub: "On n'a pas trouvé ces articles dans notre catalogue.",
     priceNote: "Les prix et les taxes s'affichent au paiement.",
     products: (n: number) => `${n} produit${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unité${n > 1 ? "s" : ""}`,
-    added: "J'ai ajouté", removed: "J'ai enlevé", and: "et", notFound: "Je n'ai pas trouvé", nothing: "Je n'ai pas bien compris. Tu peux le redire autrement ?",
+    added: "J'ai ajouté", removed: "J'ai enlevé", and: "et", notFound: "Je n'ai pas trouvé", nothing: "Je n'ai pas compris un des articles. Tu peux le répéter ?", repeat: "Répéter", ignore: "Ignorer", voice: "Message vocal",
+    confirmRestart: "Effacer ton panier et la conversation ?", yesRestart: "Oui, recommencer", cancel: "Annuler",
     qList: "Qu'est-ce qu'il te faut ?", qMore: "Autre chose à ajouter ?", done: "C'est tout", addMore: "Ajouter autre chose", addMoreHint: "Vas-y, dis-moi ce que tu veux ajouter.",
     qDate: "Pour quand ?", tomorrow: "Demain", after: "Après-demain", pick: "Choisir une date",
     qWindow: "À quel moment de la journée ?", qTruck: "Quel camion ?",
@@ -57,7 +59,8 @@ const T = {
     missing: "Not available from us", missingSub: "We couldn't find these items in our catalogue.",
     priceNote: "Prices and taxes are shown at checkout.",
     products: (n: number) => `${n} product${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unit${n > 1 ? "s" : ""}`,
-    added: "I added", removed: "I removed", and: "and", notFound: "I couldn't find", nothing: "I didn't quite get that. Can you say it another way?",
+    added: "I added", removed: "I removed", and: "and", notFound: "I couldn't find", nothing: "I didn't understand one of the items. Can you repeat it?", repeat: "Repeat", ignore: "Ignore", voice: "Voice message",
+    confirmRestart: "Clear your cart and the conversation?", yesRestart: "Yes, start over", cancel: "Cancel",
     qList: "What do you need?", qMore: "Anything else to add?", done: "That's all", addMore: "Add something else", addMoreHint: "Go ahead, tell me what to add.",
     qDate: "When?", tomorrow: "Tomorrow", after: "Day after tomorrow", pick: "Pick a date",
     qWindow: "What time of day?", qTruck: "Which truck?",
@@ -72,6 +75,16 @@ const T = {
 const STORE = "renocart-commander-v2";
 const uid = () => Math.random().toString(36).slice(2, 10);
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+// Display-only short name: drop brand prefix / codes, keep type + format.
+const shortName = (title: string) => {
+  let s = title.replace(/\s*[-–—|].*$/, "").replace(/\b1\/2\b/g, "½").replace(/\b1\/4\b/g, "¼").replace(/\b3\/4\b/g, "¾").replace(/\b5\/8\b/g, "⅝");
+  s = s.replace(/\b(CGC|Sheetrock|USG|Certainteed|CertainTeed|Georgia[- ]Pacific|Lafarge|Owens Corning|ROXUL|Rockwool|Dap|DAP)\b/gi, "").replace(/\(.*?\)/g, "");
+  s = s.replace(/\s+/g, " ").trim();
+  const w = s.split(" "); if (w.length > 6) s = w.slice(0, 6).join(" ");
+  s = s.replace(/[.,;:!?]+$/, "");
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : title;
+};
+const fmtDur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 const addDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return ymd(d); };
 
 type Saved = { items: Item[]; missing: Missing[]; msgs: Msg[]; d: Details; listDone: boolean; answered: Field[]; lang: Lang };
@@ -160,8 +173,11 @@ export default function Commander() {
   const [checkingOut, setCheckingOut] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const { recording: micOn, start: micStart, stop: micStop } = useVoiceRecorder();
-  const micHandler = (b: Blob) => send({ audio: b });
-  const openMic = () => { if (!busy && !micOn) micStart().catch(() => toast.error("Micro non autorisé / Microphone blocked")); };
+  const recStart = useRef(0);
+  const [confirmRestart, setConfirmRestart] = useState(false);
+  const startRec = () => { recStart.current = Date.now(); return micStart(); };
+  const micHandler = (b: Blob) => send({ audio: b, dur: Math.max(1, Math.round((Date.now() - recStart.current) / 1000)) });
+  const openMic = () => { if (!busy && !micOn) startRec().catch(() => toast.error("Micro non autorisé / Microphone blocked")); };
 
   useEffect(() => { document.title = lang === "fr" ? "RenoCart — Dis-nous ce dont tu as besoin" : "RenoCart — Tell us what you need"; }, [lang]);
   useEffect(() => {
@@ -187,7 +203,7 @@ export default function Commander() {
 
   const finishList = () => { push({ id: uid(), from: "user", done: true }); setListDone(true); setEditing(null); };
 
-  const send = async (payload: { audio?: Blob; text?: string }) => {
+  const send = async (payload: { audio?: Blob; text?: string; dur?: number }) => {
     setBusy(true);
     try {
       const fd = new FormData();
@@ -197,7 +213,10 @@ export default function Commander() {
       if (payload.text) fd.append("text", payload.text);
       const r = await callVoice(fd);
       setTyped("");
-      const out: Msg[] = [{ id: uid(), from: "user", text: r.transcript }];
+      if (payload.audio) console.info("[commander] transcript:", r.transcript);
+      const out: Msg[] = [payload.audio
+        ? { id: uid(), from: "user", voice: payload.dur ?? 1, transcript: r.transcript }
+        : { id: uid(), from: "user", text: payload.text ?? r.transcript }];
 
       // cart ops
       const next = items.map((i) => ({ ...i }));
@@ -206,13 +225,13 @@ export default function Commander() {
         const it = items[op.index]; if (!it) continue;
         const cur = next.find((x) => x.variantId === it.variantId)!;
         const q = op.quantity > 0 ? Math.min(op.quantity, cur.quantity) : cur.quantity;
-        cur.quantity -= q; removed.push({ q, title: it.productTitle });
+        const before = cur.quantity; cur.quantity -= q; removed.push({ q, title: it.productTitle, from: before });
       }
       const added: Change[] = [];
       for (const it of (r.add ?? []) as Item[]) {
         const ex = next.find((x) => x.variantId === it.variantId);
-        if (ex) ex.quantity += it.quantity; else next.push({ ...it });
-        added.push({ q: it.quantity, title: it.productTitle });
+        if (ex) { const before = ex.quantity; ex.quantity += it.quantity; added.push({ q: ex.quantity, title: it.productTitle, from: before }); }
+        else { next.push({ ...it }); added.push({ q: it.quantity, title: it.productTitle }); }
       }
       setItems(next.filter((x) => x.quantity > 0));
       const miss: Missing[] = r.unavailable ?? [];
@@ -278,14 +297,20 @@ export default function Commander() {
   };
 
   const restart = () => {
+    setConfirmRestart(false);
     setItems([]); setMissing([]); setMsgs([]); setListDone(false); setAnswered([]); setEditing(null);
     setD({ delivery_date: null, time_window: null, truck_type: null, note: null });
   };
 
-  const joinChanges = (c: Change[]) => c.map((x) => `${x.q} × ${x.title}`).join(", ");
+  const joinList = (a: string[]) => a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} ${t.and} ${a[a.length - 1]}`;
+  const clean = (s: string) => s.replace(/[.,;:!?\s]+$/, "");
+  const delta = (x: Change) => `${shortName(x.title)} : ${x.from} → ${x.q}`;
 
   const renderMsg = (m: Msg) => {
     if (m.from === "user") {
+      if ("voice" in m) return (
+        <UserBubble key={m.id}><span className="flex items-center gap-2"><Mic className="h-4 w-4" />{t.voice} · {fmtDur(m.voice)}</span></UserBubble>
+      );
       if ("text" in m) return <UserBubble key={m.id}>{m.text}</UserBubble>;
       const q = "done" in m ? t.qMore : { date: t.qDate, window: t.qWindow, truck: t.qTruck, note: t.qNote }[m.answer];
       return (
@@ -296,14 +321,32 @@ export default function Commander() {
         </div>
       );
     }
-    if ("nothing" in m) return <BotBubble key={m.id}>{t.nothing}</BotBubble>;
+    if ("nothing" in m) {
+      const last = msgs[msgs.length - 1]?.id === m.id;
+      return (
+        <BotBubble key={m.id}>
+          <p>{t.nothing}</p>
+          {last && !m.dismissed && !busy && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Pill onClick={openMic}>{t.repeat}</Pill>
+              <Pill onClick={() => setMsgs((p) => p.map((x) => (x.id === m.id ? { ...x, dismissed: true } as Msg : x)))}>{t.ignore}</Pill>
+            </div>
+          )}
+        </BotBubble>
+      );
+    }
+    const newAdds = m.added.filter((x) => x.from == null), qtyChanges = [...m.added, ...m.removed].filter((x) => x.from != null && x.q !== 0);
+    const fullRemoved = m.removed.filter((x) => x.from != null && x.from - x.q <= 0);
+    const partRemoved = m.removed.filter((x) => x.from != null && x.from - x.q > 0);
     return (
       <BotBubble key={m.id}>
-        {m.added.length > 0 && <p>{t.added} {joinChanges(m.added)}.</p>}
-        {m.removed.length > 0 && <p>{t.removed} {joinChanges(m.removed)}.</p>}
+        {newAdds.length > 0 && <p>{t.added} {joinList(newAdds.map((x) => `${x.q} ${shortName(x.title)}`))}.</p>}
+        {m.added.filter((x) => x.from != null).map((x, i) => <p key={"a" + i}>{delta(x)}.</p>)}
+        {partRemoved.map((x, i) => <p key={"p" + i}>{shortName(x.title)} : {x.from} → {(x.from ?? 0) - x.q}.</p>)}
+        {fullRemoved.length > 0 && <p>{t.removed} {joinList(fullRemoved.map((x) => shortName(x.title)))}.</p>}
         {m.missing.length > 0 && (
           <p className="mt-1 flex gap-2 text-sm opacity-90"><PackageX className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
-            {t.notFound} : {m.missing.map((x) => `${x.quantity} × ${x.name}`).join(", ")}.</p>
+            <span>{t.notFound} {joinList(m.missing.map((x) => `${x.quantity} ${clean(x.name)}`))}.</span></p>
         )}
       </BotBubble>
     );
@@ -439,7 +482,7 @@ export default function Commander() {
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="text-2xl font-black tracking-tight text-secondary">RENO<span className="text-primary">CART</span></div>
           <div className="flex items-center gap-2 text-sm font-semibold">
-            {started && <button onClick={restart} className="text-xs text-muted-foreground hover:underline mr-2">{t.restart}</button>}
+            {started && <button onClick={() => setConfirmRestart(true)} className="text-xs text-muted-foreground hover:underline mr-2">{t.restart}</button>}
             {(["fr", "en"] as Lang[]).map((l) => (
               <button key={l} onClick={() => setLang(l)}
                 className={cn("px-2 py-1 rounded", lang === l ? "bg-secondary text-secondary-foreground" : "text-muted-foreground")}>{l.toUpperCase()}</button>
@@ -466,14 +509,19 @@ export default function Commander() {
               <div className="h-full flex flex-col items-center justify-center text-center py-6">
                 <h1 className="text-4xl md:text-5xl font-black tracking-tight">{t.title}</h1>
                 <p className="mt-4 max-w-xl opacity-90">{t.sub}</p>
-                <div className="my-10"><MicButton big busy={busy} onAudio={micHandler} t={t} recording={micOn} start={micStart} stop={micStop} /></div>
+                <div className="my-10"><MicButton big busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} /></div>
                 <p className="text-sm opacity-75 italic max-w-lg">{t.example}</p>
               </div>
             ) : (
               <div className="space-y-3 max-w-2xl mx-auto">
                 <h1 className="text-xl font-black tracking-tight text-center mb-4 opacity-90">{t.title}</h1>
                 {msgs.map(renderMsg)}
-                {busy ? <BotBubble><span className="tracking-widest motion-safe:animate-pulse">…</span></BotBubble> : prompt()}
+                {confirmRestart ? (
+                  <BotBubble>
+                    <p className="mb-3">{t.confirmRestart}</p>
+                    <div className="flex flex-wrap gap-2"><Pill onClick={restart}>{t.yesRestart}</Pill><Pill onClick={() => setConfirmRestart(false)}>{t.cancel}</Pill></div>
+                  </BotBubble>
+                ) : busy ? <BotBubble><span className="tracking-widest motion-safe:animate-pulse">…</span></BotBubble> : prompt()}
                 <div ref={endRef} />
               </div>
             )}
@@ -481,7 +529,7 @@ export default function Commander() {
 
           <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
             onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
-            {started && <MicButton busy={busy} onAudio={micHandler} t={t} recording={micOn} start={micStart} stop={micStop} />}
+            {started && <MicButton busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />}
             <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
               className="flex-1 min-w-0 h-12 rounded-full bg-card text-card-foreground px-4 text-base outline-none focus:ring-2 focus:ring-primary" />
             <Button type="submit" size="icon" className="h-12 w-12 rounded-full shrink-0" disabled={busy || !typed.trim()}><Send className="h-4 w-4" /></Button>
