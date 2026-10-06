@@ -43,6 +43,13 @@
       "when": 1791061069324,
       "tag": "0005_order_modification_proposals",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791325716380,
+      "tag": "0006_commander_suggestion_rules",
+      "breakpoints": true
     }
   ]
 }

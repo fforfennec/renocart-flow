@@ -12,6 +12,7 @@ import AdminSuppliers from './Suppliers';
 import SupplierDetail from './SupplierDetail';
 import Automations from './Automations';
 import Messages from './Messages';
+import SuggestionRules from './SuggestionRules';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
@@ -75,6 +76,9 @@ const AdminDashboard = () => {
             <Bot size={20} />
             <span>Automations</span>
           </NavLink>
+          <NavLink to="/admin/suggestions" className="flex items-center gap-3 px-3 py-2 rounded-md text-secondary-foreground/70 hover:bg-secondary-foreground/5" activeClassName="bg-secondary-foreground/10 text-secondary-foreground">
+            <Package size={20} /><span>Règles de suggestions</span>
+          </NavLink>
           <NavLink 
             to="/admin/faq"
             className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
@@ -116,6 +120,7 @@ const AdminDashboard = () => {
           <Route path="/suppliers/:supplierId" element={<SupplierDetail />} />
           <Route path="/stats" element={<AdminStats />} />
           <Route path="/automations" element={<Automations />} />
+          <Route path="/suggestions" element={<SuggestionRules />} />
           <Route path="/faq" element={<AdminFAQ />} />
         </Routes>
       </main>

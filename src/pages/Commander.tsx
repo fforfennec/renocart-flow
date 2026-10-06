@@ -4,6 +4,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { CommanderMobileScroll } from "@/components/CommanderMobileScroll";
 import { CommanderVariantSelector } from "@/components/CommanderVariantSelector";
+import { CommanderSuggestions, CommanderSuggestionReminder } from "@/components/CommanderSuggestions";
+import { evaluateSuggestions, newSuggestionState, suggestionsRequest, type Suggestion, type SuggestionState } from "@/lib/commanderSuggestions";
 import type { CatalogVariant, VariantProduct } from "@/lib/shopifyVariants";
 import { fr as frLocale, enCA } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +31,8 @@ type Msg =
   | { id: string; from: "user"; voice: number; transcript?: string }
   | { id: string; from: "user"; answer: Field; value: string | null }
   | { id: string; from: "user"; done: true }
+  | { id: string; from: "bot"; suggestionAdded: { title: string; quantity: number }[] }
+  | { id: string; from: "bot"; suggestionAdjustment: { variantId: string; title: string; before: number; after: number; reason: string }[]; undone?: boolean }
   | { id: string; from: "bot"; formatChange: { title: string; before: string; after: string } }
   | { id: string; from: "bot"; added: Change[]; removed: Change[]; missing: Missing[] }
   | { id: string; from: "bot"; nothing: true; dismissed?: boolean };
@@ -93,7 +97,7 @@ const shortName = (title: string) => {
 const fmtDur = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 const addDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return ymd(d); };
 
-type Saved = { items: Item[]; missing: Missing[]; msgs: Msg[]; d: Details; listDone: boolean; answered: Field[]; lang: Lang };
+type Saved = { items: Item[]; missing: Missing[]; msgs: Msg[]; d: Details; listDone: boolean; answered: Field[]; lang: Lang; suggestions?: SuggestionState };
 function load(): Saved | null {
   if (typeof window === "undefined") return null;
   try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch { return null; }
@@ -184,6 +188,9 @@ export default function Commander() {
   const isMobile = useIsMobile();
   const [bump, setBump] = useState(0);
   const [removedProduct, setRemovedProduct] = useState<{ item: Item; index: number; key: string } | null>(null);
+  const [suggestions, setSuggestions] = useState<SuggestionState>(() => saved?.suggestions ?? newSuggestionState());
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const suggestionGeneration = useRef(0);
   useEffect(() => {
     if (!removedProduct) return;
     const timer = window.setTimeout(() => setRemovedProduct(null), 5000);
@@ -198,14 +205,81 @@ export default function Commander() {
 
   useEffect(() => { document.title = lang === "fr" ? "RenoCart — Dis-nous ce dont tu as besoin" : "RenoCart — Tell us what you need"; }, [lang]);
   useEffect(() => {
-    localStorage.setItem(STORE, JSON.stringify({ items, missing, msgs, d, listDone, answered, lang }));
-  }, [items, missing, msgs, d, listDone, answered, lang]);
+    localStorage.setItem(STORE, JSON.stringify({ items, missing, msgs, d, listDone, answered, lang, suggestions }));
+  }, [items, missing, msgs, d, listDone, answered, lang, suggestions]);
+
+  // Independent Shopify rules: never changes transcription, extraction or matching.
+  useEffect(() => {
+    if (!listDone || suggestions.status === "pending") return;
+    const currentSig = items.map((i) => `${i.variantId}:${i.quantity}`).join("|");
+    if (suggestions.status !== "idle" && (suggestions.lastSig === currentSig || suggestions.status === "none")) return;
+    let cancelled = false;
+    const generation = suggestionGeneration.current;
+    const run = async () => {
+      setSuggestionsLoading(true);
+      try {
+        const matches = await evaluateSuggestions(items, suggestions.accepted.map((s) => s.variantId));
+        if (cancelled || generation !== suggestionGeneration.current) return;
+        if (suggestions.status === "idle") {
+          const offered = matches.slice(0, 5);
+          if (offered.length) await suggestionsRequest({ action: "offer", sessionId: suggestions.sessionId, ruleIds: offered.flatMap((s) => s.ruleIds) });
+          if (cancelled || generation !== suggestionGeneration.current) return;
+          setSuggestions((s) => ({ ...s, status: offered.length ? "pending" : "none", suggestions: offered, lastSig: currentSig }));
+        } else {
+          const adjustments: { variantId: string; title: string; before: number; after: number; reason: string }[] = [];
+          const accepted = suggestions.accepted.map((s) => {
+            const fresh = matches.find((m) => m.variantId === s.variantId);
+            const item = items.find((i) => i.variantId === s.variantId);
+            if (!fresh || !item || fresh.quantity === s.quantity) return s;
+            const after = Math.max(1, item.quantity + fresh.quantity - s.quantity);
+            adjustments.push({ variantId: s.variantId, title: shortName(s.productTitle), before: item.quantity, after, reason: fresh.reason });
+            return { ...fresh };
+          });
+          const nextItems = items.map((i) => { const change = adjustments.find((a) => a.variantId === i.variantId); return change ? { ...i, quantity: change.after } : i; });
+          if (adjustments.length) {
+            setItems(nextItems);
+            setMsgs((m) => [...m, { id: uid(), from: "bot", suggestionAdjustment: adjustments }]);
+          }
+          setSuggestions((s) => ({ ...s, accepted, suggestions: s.status === "declined" ? matches.filter((m) => !items.some((i) => i.variantId === m.variantId)).slice(0, 5) : s.suggestions,
+            lastSig: nextItems.map((i) => `${i.variantId}:${i.quantity}`).join("|") }));
+        }
+      } catch (e) {
+        if (!cancelled && generation === suggestionGeneration.current) {
+          toast.error((e as Error).message);
+          setSuggestions((s) => ({ ...s, status: s.status === "idle" ? "none" : s.status, lastSig: currentSig }));
+        }
+      } finally { if (!cancelled && generation === suggestionGeneration.current) setSuggestionsLoading(false); }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [items, listDone, suggestions]);
+
+  const addSuggestions = async (selected: Suggestion[]) => {
+    try {
+      // Revalidate the live catalog and hard ban immediately before adding.
+      const live = await evaluateSuggestions(items, selected.map((s) => s.variantId));
+      const approved = selected.filter((s) => live.some((v) => v.variantId === s.variantId));
+      if (approved.length !== selected.length) { toast.error(lang === "fr" ? "Une suggestion n’est plus disponible." : "A suggestion is no longer available."); return; }
+      await suggestionsRequest({ action: "offer", sessionId: suggestions.sessionId, ruleIds: approved.flatMap((s) => s.ruleIds) });
+      await suggestionsRequest({ action: "accept", sessionId: suggestions.sessionId, ruleIds: approved.flatMap((s) => s.ruleIds) });
+      const next = items.map((item) => ({ ...item }));
+      for (const s of approved) {
+        const existing = next.find((i) => i.variantId === s.variantId);
+        if (existing) existing.quantity += s.quantity; else next.push({ ...s });
+      }
+      setItems(next);
+      setMsgs((m) => [...m, { id: uid(), from: "bot", suggestionAdded: approved.map((s) => ({ title: shortName(s.productTitle), quantity: s.quantity })) }]);
+      const tracked = approved.map((s) => ({ ...s, quantity: live.find((v) => v.variantId === s.variantId)?.quantity ?? s.quantity }));
+      setSuggestions((s) => ({ ...s, status: s.status === "declined" ? "declined" : "accepted", accepted: [...s.accepted, ...tracked], suggestions: s.suggestions.filter((v) => !approved.some((a) => a.variantId === v.variantId)), lastSig: next.map((i) => `${i.variantId}:${i.quantity}`).join("|") }));
+    } catch (e) { toast.error((e as Error).message); }
+  };
+  const suggestionReminder = suggestions.status === "declined" && !suggestions.hidden && <CommanderSuggestionReminder suggestions={suggestions.suggestions.filter((s) => !items.some((i) => i.variantId === s.variantId))} lang={lang} shortName={shortName} onAdd={addSuggestions} onHide={() => setSuggestions((s) => ({ ...s, hidden: true }))} />;
 
   const started = msgs.length > 0;
   const question: Question = editing ?? (!started ? "list" : !listDone ? "more"
     : (["date", "window", "truck", "note"] as Field[]).find((f) => !answered.includes(f)) ?? "summary");
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs.length, question, busy, showCal, confirmRestart, isMobile]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs.length, question, busy, showCal, confirmRestart, isMobile, suggestions.status, suggestionsLoading]);
 
   const push = (...m: Msg[]) => setMsgs((p) => [...p, ...m]);
 
@@ -331,7 +405,7 @@ export default function Commander() {
       quantity: item.quantity, onDecrease: () => decreaseProduct(item), onIncrease: () => setQty(item.variantId, item.quantity + 1) }}
     onConfirm={(product, variant, previous) => changeVariant(item.variantId, product, variant, previous)} />;
 
-  const mobileSummary = isMobile && question === "summary" && !confirmRestart && !busy;
+  const mobileSummary = isMobile && question === "summary" && !confirmRestart && !busy && !suggestionsLoading && suggestions.status !== "pending";
   const units = items.reduce((s, i) => s + i.quantity, 0);
   const cartLabel = `${t.products(items.length)} · ${t.units(units)}`;
 
@@ -357,6 +431,8 @@ export default function Commander() {
   };
 
   const restart = () => {
+    suggestionGeneration.current += 1;
+    setSuggestions(newSuggestionState()); setSuggestionsLoading(false);
     setConfirmRestart(false);
     setRemovedProduct(null);
     setItems([]); setMissing([]); setMsgs([]); setListDone(false); setAnswered([]); setEditing(null);
@@ -382,6 +458,15 @@ export default function Commander() {
         </div>
       );
     }
+    if ("suggestionAdded" in m) return <BotBubble key={m.id}>{lang === "fr" ? "C’est ajouté : " : "Added: "}{m.suggestionAdded.map((s) => `+${s.quantity} ${s.title}`).join(", ")}.</BotBubble>;
+    if ("suggestionAdjustment" in m) return <BotBubble key={m.id}>
+      {m.suggestionAdjustment.map((a) => <p key={a.variantId}>{a.title} : {a.before} → {a.after} · {a.reason}.</p>)}
+      {!m.undone && <Button variant="ghost" className="min-h-11 text-primary" onClick={() => {
+        const restored = items.map((i) => { const a = m.suggestionAdjustment.find((v) => v.variantId === i.variantId); return a ? { ...i, quantity: Math.max(1, i.quantity + a.before - a.after) } : i; });
+        setItems(restored); setSuggestions((s) => ({ ...s, lastSig: restored.map((i) => `${i.variantId}:${i.quantity}`).join("|") }));
+        setMsgs((prev) => prev.map((v) => v.id === m.id ? { ...m, undone: true } : v));
+      }}>{t.cancel}</Button>}
+    </BotBubble>;
     if ("formatChange" in m) return <BotBubble key={m.id}>{m.formatChange.title} : {m.formatChange.before} → {m.formatChange.after}.</BotBubble>;
     if ("nothing" in m) {
       const last = msgs[msgs.length - 1]?.id === m.id;
@@ -437,6 +522,9 @@ export default function Commander() {
 
   const prompt = () => {
     if (!started) return null;
+    if (listDone && (suggestionsLoading || suggestions.status === "idle")) return <BotBubble><Loader2 className="h-5 w-5 animate-spin" aria-label={t.working} /></BotBubble>;
+    if (listDone && suggestions.status === "pending") return <CommanderSuggestions key={suggestions.sessionId} suggestions={suggestions.suggestions} lang={lang} shortName={shortName} onAdd={addSuggestions}
+      onDecline={() => setSuggestions((s) => ({ ...s, status: "declined" }))} />;
     switch (question) {
       case "list": case "more":
         return (
@@ -547,6 +635,7 @@ export default function Commander() {
           {variantSelector(i)}
           </div>
         ))}
+        {suggestionReminder}
         {missing.length > 0 && (
           <div className="mt-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/5 p-3">
             <p className="text-sm font-semibold flex items-center gap-2 text-destructive"><PackageX className="h-4 w-4" />{t.missing}</p>
@@ -696,6 +785,7 @@ export default function Commander() {
                   {variantSelector(i)}
                 </div>
               ))}
+              {suggestionReminder}
               {missing.length > 0 && (
                 <div className="my-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/5 p-3">
                   <p className="text-sm font-semibold flex items-center gap-2 text-destructive"><PackageX className="h-4 w-4" />{t.missing}</p>
