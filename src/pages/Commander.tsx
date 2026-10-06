@@ -278,8 +278,14 @@ export default function Commander() {
   const renderMsg = (m: Msg) => {
     if (m.from === "user") {
       if ("text" in m) return <UserBubble key={m.id}>{m.text}</UserBubble>;
-      if ("done" in m) return <UserBubble key={m.id}>{t.done}</UserBubble>;
-      return <UserBubble key={m.id} onClick={() => setEditing(m.answer)}>{fmt(m.answer, m.value)}</UserBubble>;
+      const q = "done" in m ? t.qMore : { date: t.qDate, window: t.qWindow, truck: t.qTruck, note: t.qNote }[m.answer];
+      return (
+        <div key={m.id} className="space-y-3">
+          <BotBubble>{q}</BotBubble>
+          {"done" in m ? <UserBubble>{t.done}</UserBubble>
+            : <UserBubble onClick={() => setEditing(m.answer)}>{fmt(m.answer, m.value)}</UserBubble>}
+        </div>
+      );
     }
     if ("nothing" in m) return <BotBubble key={m.id}>{t.nothing}</BotBubble>;
     return (
