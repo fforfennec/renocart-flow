@@ -80,22 +80,38 @@ async function readSSE(res: Response, onEvent: (ev: any) => void) {
 }
 
 async function transcribe(file: File, apiKey: string): Promise<string> {
-  const form = new FormData();
-  form.append("model", STT_MODEL);
-  form.append("file", new File([file], "voice.webm", { type: file.type.startsWith("audio/") ? file.type : "audio/webm" }));
-  form.append("response_format", "json");
-  form.append("stream", "true");
-  const res = await fetch(`${GATEWAY}/v1/audio/transcriptions`, {
-    method: "POST", headers: { Authorization: `Bearer ${apiKey}` }, body: form,
-  });
-  if (!res.ok) throw new GatewayError(res.status, await safeMsg(res));
-  let text = "";
-  let final: string | null = null;
-  await readSSE(res, (ev) => {
-    if (ev.type === "transcript.text.delta") text += ev.delta ?? "";
-    if (ev.type === "transcript.text.done") final = ev.text ?? text;
-  });
-  return (final ?? text).trim();
+  // Strip codec params (e.g. "audio/webm;codecs=opus") — some providers reject them.
+  const base = (file.type || "").split(";")[0];
+  const type = base.startsWith("audio/") ? base : "audio/webm";
+  const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : type.includes("wav") ? "wav" : "webm";
+  const bytes = await file.arrayBuffer();
+  const call = async (stream: boolean) => {
+    const form = new FormData();
+    form.append("model", STT_MODEL);
+    form.append("file", new File([bytes], `voice.${ext}`, { type }));
+    form.append("response_format", "json");
+    if (stream) form.append("stream", "true");
+    const res = await fetch(`${GATEWAY}/v1/audio/transcriptions`, {
+      method: "POST", headers: { Authorization: `Bearer ${apiKey}` }, body: form,
+    });
+    if (!res.ok) throw new GatewayError(res.status, await safeMsg(res));
+    if (!stream) {
+      const j = await res.json().catch(() => ({}));
+      return String(j?.text ?? "").trim();
+    }
+    let text = "";
+    let final: string | null = null;
+    await readSSE(res, (ev) => {
+      const t = String(ev.type ?? "");
+      if (t.endsWith(".delta")) text += ev.delta ?? "";
+      if (t.endsWith(".done") && typeof ev.text === "string") final = ev.text;
+    });
+    return (final ?? text).trim();
+  };
+  let out = await call(true);
+  if (!out) out = await call(false); // fallback if the stream produced nothing
+  console.log("transcribe", { type, size: bytes.byteLength, chars: out.length });
+  return out;
 }
 
 async function safeMsg(res: Response) {
