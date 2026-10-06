@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ChevronRight, ShoppingCart, Pencil, RotateCcw, X, Info, ArrowLeftRight } from "lucide-react";
+import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ChevronRight, ShoppingCart, Pencil, RotateCcw, X, Info } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { CommanderMobileScroll } from "@/components/CommanderMobileScroll";
+import { CommanderVariantSelector } from "@/components/CommanderVariantSelector";
+import type { CatalogVariant, VariantProduct } from "@/lib/shopifyVariants";
 import { fr as frLocale, enCA } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
@@ -27,6 +29,7 @@ type Msg =
   | { id: string; from: "user"; voice: number; transcript?: string }
   | { id: string; from: "user"; answer: Field; value: string | null }
   | { id: string; from: "user"; done: true }
+  | { id: string; from: "bot"; formatChange: { title: string; before: string; after: string } }
   | { id: string; from: "bot"; added: Change[]; removed: Change[]; missing: Missing[] }
   | { id: string; from: "bot"; nothing: true; dismissed?: boolean };
 
@@ -280,6 +283,28 @@ export default function Commander() {
   const setQty = (id: string, q: number) =>
     setItems((p) => (q <= 0 ? p.filter((x) => x.variantId !== id) : p.map((x) => (x.variantId === id ? { ...x, quantity: q } : x))));
 
+  const changeVariant = (id: string, product: VariantProduct, variant: CatalogVariant, previous: CatalogVariant) => {
+    if (!items.some((i) => i.variantId === id)) return;
+    setItems((current) => {
+      const source = current.find((i) => i.variantId === id);
+      if (!source) return current;
+      const replacement = { ...source, variantId: variant.id, productTitle: product.title, variantTitle: variant.title,
+        image: variant.image?.url ?? product.featuredImage?.url ?? source.image,
+        price: variant.price.amount, currency: variant.price.currencyCode, available: variant.availableForSale };
+      const existing = current.find((i) => i.variantId === variant.id);
+      if (existing) return current.filter((i) => i.variantId !== id).map((i) => i.variantId === variant.id
+        ? { ...replacement, quantity: existing.quantity + source.quantity } : i);
+      return current.map((i) => i.variantId === id ? replacement : i);
+    });
+    const changed = previous.selectedOptions.filter((o) => variant.selectedOptions.some((v) => v.name === o.name && v.value !== o.value));
+    const before = changed.map((o) => o.value).join(" / ") || previous.title;
+    const after = changed.map((o) => variant.selectedOptions.find((v) => v.name === o.name)?.value).filter(Boolean).join(" / ") || variant.title;
+    push({ id: uid(), from: "bot", formatChange: { title: shortName(product.title), before, after } });
+  };
+
+  const variantSelector = (item: Item) => <CommanderVariantSelector variantId={item.variantId} lang={lang} disabled={busy || checkingOut}
+    onConfirm={(product, variant, previous) => changeVariant(item.variantId, product, variant, previous)} />;
+
   const mobileSummary = isMobile && question === "summary" && !confirmRestart && !busy;
   const units = items.reduce((s, i) => s + i.quantity, 0);
   const cartLabel = `${t.products(items.length)} · ${t.units(units)}`;
@@ -330,6 +355,7 @@ export default function Commander() {
         </div>
       );
     }
+    if ("formatChange" in m) return <BotBubble key={m.id}>{m.formatChange.title} : {m.formatChange.before} → {m.formatChange.after}.</BotBubble>;
     if ("nothing" in m) {
       const last = msgs[msgs.length - 1]?.id === m.id;
       return (
@@ -490,7 +516,8 @@ export default function Commander() {
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
         {items.map((i) => (
-          <div key={i.variantId} className="flex gap-3 items-center">
+          <div key={i.variantId}>
+          <div className="flex gap-3 items-center">
             <div className="h-14 w-14 rounded-md bg-muted overflow-hidden shrink-0">
               {i.image && <img src={i.image} alt={i.productTitle} className="h-full w-full object-cover" />}
             </div>
@@ -504,6 +531,8 @@ export default function Commander() {
               </div>
             </div>
             <button aria-label="Supprimer" onClick={() => setQty(i.variantId, 0)} className="h-11 w-11 flex items-center justify-center text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+          </div>
+          {variantSelector(i)}
           </div>
         ))}
         {missing.length > 0 && (
@@ -662,15 +691,13 @@ export default function Commander() {
                     <button aria-label="Supprimer" onClick={() => setQty(i.variantId, 0)} className="h-11 w-11 -mr-2 flex items-center justify-center text-muted-foreground hover:text-destructive"><Trash2 className="h-5 w-5" /></button>
                   </div>
                   <div className="mt-2 pl-[76px] flex items-center justify-between gap-2">
-                    <button onClick={() => { setCartOpen(false); openMic(); }} className="flex items-center gap-1.5 text-left text-sm font-semibold text-secondary min-h-11">
-                      <ArrowLeftRight className="h-4 w-4 text-primary" />{t.changeFormat}
-                    </button>
-                    <div className="flex items-center rounded-2xl border">
+                    <div className="flex items-center rounded-2xl border ml-auto">
                       <button aria-label="−" onClick={() => setQty(i.variantId, i.quantity - 1)} className="h-11 w-11 flex items-center justify-center"><Minus className="h-4 w-4" /></button>
                       <span className="w-10 text-center font-bold">{i.quantity}</span>
                       <button aria-label="+" onClick={() => setQty(i.variantId, i.quantity + 1)} className="h-11 w-11 flex items-center justify-center"><Plus className="h-4 w-4" /></button>
                     </div>
                   </div>
+                  {variantSelector(i)}
                 </div>
               ))}
               {missing.length > 0 && (

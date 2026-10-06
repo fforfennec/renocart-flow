@@ -1,6 +1,5 @@
-# Commander mobile corrections
-- [x] Keep the cart bar visible at every stage and open its bottom panel.
-- [x] Remove materials from the mobile summary; keep delivery, truck and notes editable.
-- [x] Add transient overlay scroll indicators to the mobile conversation and cart.
-- [x] Replace the mobile header menu with a visible reset icon and inline confirmation.
-- [x] Verify mobile interactions and unchanged desktop presentation.
+# Commander Shopify variants
+- [x] Load existing Shopify options and all variants independently of voice processing.
+- [x] Add inline selector to desktop and mobile carts with availability, confirm and cancel.
+- [x] Preserve quantity, update image/details and add a brief conversation confirmation.
+- [x] Verify on desktop and mobile; list changed files.
