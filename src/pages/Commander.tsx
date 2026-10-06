@@ -96,7 +96,11 @@ function MicButton({ onAudio, busy, big, t, recording, start, stop }: {
 }) {
   const click = async () => {
     if (busy) return;
-    if (recording) onAudio(await stop());
+    if (recording) {
+      const b = await stop();
+      if (b.size < 2000) { toast.error(t.tap); return; }
+      onAudio(b);
+    }
     else start().catch(() => toast.error("Micro non autorisé / Microphone blocked"));
   };
   const label = busy ? t.working : recording ? t.listening : t.tap;

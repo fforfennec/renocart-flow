@@ -18,7 +18,7 @@ export function useVoiceRecorder() {
       const type = (rec.mimeType || "audio/webm").replace(/^video\//, "audio/");
       resolver.current?.(new Blob(chunks.current, { type }));
     };
-    rec.start();
+    rec.start(250); // emit chunks regularly so short clips aren't empty
     recRef.current = rec;
     setRecording(true);
   }, []);
