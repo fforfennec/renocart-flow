@@ -493,8 +493,8 @@ export default function Commander() {
 
       <main className="flex-1 min-h-0 w-full max-w-6xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[1fr_380px] gap-6">
         <section className="gradient-navy text-secondary-foreground lg:rounded-2xl flex flex-col min-h-0">
-          {/* mobile cart bar */}
-          {started && (
+          {/* tablet cart bar (desktop layout, unchanged) */}
+          {started && !isMobile && (
             <div className="lg:hidden shrink-0 bg-card text-card-foreground border-b">
               <button onClick={() => setCartOpen((o) => !o)} className="w-full min-h-11 px-4 py-2 flex items-center justify-between text-sm font-semibold">
                 <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />{t.cart} · {cartLabel}</span>
@@ -504,7 +504,7 @@ export default function Commander() {
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 py-6">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
             {!started ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-6">
                 <h1 className="text-4xl md:text-5xl font-black tracking-tight">{t.title}</h1>
@@ -514,7 +514,7 @@ export default function Commander() {
               </div>
             ) : (
               <div className="space-y-3 max-w-2xl mx-auto">
-                <h1 className="text-xl font-black tracking-tight text-center mb-4 opacity-90">{t.title}</h1>
+                <h1 className="hidden md:block text-xl font-black tracking-tight text-center mb-4 opacity-90">{t.title}</h1>
                 {msgs.map(renderMsg)}
                 {confirmRestart ? (
                   <BotBubble>
@@ -527,18 +527,54 @@ export default function Commander() {
             )}
           </div>
 
-          <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
-            onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
-            <button type="button" aria-label={t.restart} title={t.restart} onClick={() => setConfirmRestart(true)}
-              className="h-12 w-12 shrink-0 rounded-full border border-secondary-foreground/30 flex items-center justify-center text-secondary-foreground hover:bg-secondary-foreground/10 disabled:opacity-50"
-              disabled={busy}>
-              <RotateCcw className="h-5 w-5" />
-            </button>
-            {started && <MicButton busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />}
-            <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
-              className="flex-1 min-w-0 h-12 rounded-full bg-card text-card-foreground px-4 text-base outline-none focus:ring-2 focus:ring-primary" />
-            <Button type="submit" size="icon" className="h-12 w-12 rounded-full shrink-0" disabled={busy || !typed.trim()}><Send className="h-4 w-4" /></Button>
-          </form>
+          {isMobile ? (
+            mobileSummary ? (
+              <div className="shrink-0 border-t border-secondary-foreground/15 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={checkout} disabled={checkingOut || !items.length}>
+                  {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.checkout}
+                </Button>
+                <p className="mt-2 text-center text-xs opacity-70">{t.totalNote}</p>
+              </div>
+            ) : (
+              <div className="shrink-0 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-2">
+                {started && (
+                  <button key={bump} onClick={() => setCartOpen(true)}
+                    className={cn("w-full rounded-2xl bg-card text-card-foreground px-4 h-14 flex items-center gap-3 text-left shadow-soft", bump > 0 && "animate-cart-bump")}>
+                    <span className="relative shrink-0">
+                      <ShoppingCart className="h-6 w-6" />
+                      {items.length > 0 && <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center">{items.length}</span>}
+                    </span>
+                    <span className="flex-1 min-w-0 truncate"><b>{t.cart}</b> <span className="text-muted-foreground text-sm">{cartLabel}</span></span>
+                    <ChevronUp className="h-5 w-5 shrink-0" />
+                  </button>
+                )}
+                <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
+                  <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
+                    className="flex-1 min-w-0 h-14 rounded-full bg-card text-card-foreground px-5 text-base outline-none focus:ring-2 focus:ring-primary" />
+                  {typed.trim() ? (
+                    <Button type="submit" size="icon" aria-label="Envoyer" className="h-14 w-14 rounded-full shrink-0" disabled={busy}>
+                      {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                    </Button>
+                  ) : (
+                    <MicButton mobile busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />
+                  )}
+                </form>
+              </div>
+            )
+          ) : (
+            <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
+              onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
+              <button type="button" aria-label={t.restart} title={t.restart} onClick={() => setConfirmRestart(true)}
+                className="h-12 w-12 shrink-0 rounded-full border border-secondary-foreground/30 flex items-center justify-center text-secondary-foreground hover:bg-secondary-foreground/10 disabled:opacity-50"
+                disabled={busy}>
+                <RotateCcw className="h-5 w-5" />
+              </button>
+              {started && <MicButton busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />}
+              <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
+                className="flex-1 min-w-0 h-12 rounded-full bg-card text-card-foreground px-4 text-base outline-none focus:ring-2 focus:ring-primary" />
+              <Button type="submit" size="icon" className="h-12 w-12 rounded-full shrink-0" disabled={busy || !typed.trim()}><Send className="h-4 w-4" /></Button>
+            </form>
+          )}
         </section>
 
         <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0">
@@ -549,6 +585,64 @@ export default function Commander() {
           {cartBody}
         </aside>
       </main>
+
+      {isMobile && (
+        <Drawer open={cartOpen} onOpenChange={setCartOpen}>
+          <DrawerContent className="h-[75dvh] flex flex-col">
+            <div className="px-5 pt-2 pb-3 border-b flex items-start justify-between">
+              <div>
+                <DrawerTitle className="text-2xl font-black">{t.cart}</DrawerTitle>
+                <p className="text-sm text-muted-foreground">{cartLabel}</p>
+              </div>
+              <button onClick={() => setCartOpen(false)} aria-label={t.close} className="h-11 w-11 rounded-full bg-muted flex items-center justify-center"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-5">
+              {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
+              {items.map((i) => (
+                <div key={i.variantId} className="py-4 border-b">
+                  <div className="flex gap-3">
+                    <div className="h-16 w-16 rounded-xl bg-muted overflow-hidden shrink-0">
+                      {i.image && <img src={i.image} alt={i.productTitle} className="h-full w-full object-cover" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold leading-tight">{shortName(i.productTitle)}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-1">{i.variantTitle !== "Default Title" ? i.variantTitle : i.productTitle}</p>
+                    </div>
+                    <button aria-label="Supprimer" onClick={() => setQty(i.variantId, 0)} className="h-11 w-11 -mr-2 flex items-center justify-center text-muted-foreground hover:text-destructive"><Trash2 className="h-5 w-5" /></button>
+                  </div>
+                  <div className="mt-2 pl-[76px] flex items-center justify-between gap-2">
+                    <button onClick={() => { setCartOpen(false); openMic(); }} className="flex items-center gap-1.5 text-sm font-semibold text-secondary min-h-11">
+                      <ArrowLeftRight className="h-4 w-4 text-primary" />{t.changeFormat}
+                    </button>
+                    <div className="flex items-center rounded-2xl border">
+                      <button aria-label="−" onClick={() => setQty(i.variantId, i.quantity - 1)} className="h-11 w-11 flex items-center justify-center"><Minus className="h-4 w-4" /></button>
+                      <span className="w-10 text-center font-bold">{i.quantity}</span>
+                      <button aria-label="+" onClick={() => setQty(i.variantId, i.quantity + 1)} className="h-11 w-11 flex items-center justify-center"><Plus className="h-4 w-4" /></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {missing.length > 0 && (
+                <div className="my-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/5 p-3">
+                  <p className="text-sm font-semibold flex items-center gap-2 text-destructive"><PackageX className="h-4 w-4" />{t.missing}</p>
+                  <ul className="space-y-1 mt-1">
+                    {missing.map((m, idx) => (
+                      <li key={idx} className="text-sm flex justify-between items-center gap-2">
+                        <span>{m.quantity} × {m.name}</span>
+                        <button onClick={() => setMissing((p) => p.filter((_, j) => j !== idx))} className="text-muted-foreground hover:text-destructive p-2"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="border-t px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
+              <p className="text-sm text-muted-foreground flex items-center gap-2"><Info className="h-4 w-4" />{t.priceNote}</p>
+              <Button size="lg" variant="secondary" className="w-full h-14 rounded-2xl text-base font-bold" onClick={() => setCartOpen(false)}>{t.backChat}</Button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   );
 }
