@@ -1,5 +1,4 @@
-# Commander Shopify variants
-- [x] Load existing Shopify options and all variants independently of voice processing.
-- [x] Add inline selector to desktop and mobile carts with availability, confirm and cancel.
-- [x] Preserve quantity, update image/details and add a brief conversation confirmation.
-- [x] Verify on desktop and mobile; list changed files.
+# Commander compact cart
+- [ ] Share a compact 48px-image row across desktop and mobile, with name/detail opening formats.
+- [ ] Replace minus with removal at quantity one and offer undo for five seconds.
+- [ ] Verify compact layout, variants and undo on both screens; leave voice untouched.
