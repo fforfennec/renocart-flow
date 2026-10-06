@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Truck, CalendarDays, Clock, ArrowRight, ArrowLeft, Send, ExternalLink } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ShoppingCart, Pencil } from "lucide-react";
+import { fr as frLocale, enCA } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { createCheckout } from "@/lib/shopifyStorefront";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,16 @@ type Item = {
   price: string; currency: string; available: boolean; quantity: number;
 };
 type Missing = { name: string; quantity: number };
+type Field = "date" | "window" | "truck" | "note";
+type Question = "list" | "more" | Field | "summary";
 type Details = { delivery_date: string | null; time_window: string | null; truck_type: string | null; note: string | null };
+type Change = { q: number; title: string };
+type Msg =
+  | { id: string; from: "user"; text: string }
+  | { id: string; from: "user"; answer: Field; value: string | null }
+  | { id: string; from: "user"; done: true }
+  | { id: string; from: "bot"; added: Change[]; removed: Change[]; missing: Missing[] }
+  | { id: string; from: "bot"; nothing: true };
 
 const T = {
   fr: {
@@ -23,40 +32,53 @@ const T = {
     title: "Dis-nous ce dont tu as besoin",
     sub: "Appuie sur le micro et nomme tes matériaux et les quantités. On monte ton panier pour toi.",
     example: "Ex. : « 20 feuilles de gypse 1/2 pouce, 10 deux par quatre de 8 pieds et 3 chaudières de composé »",
-    tap: "Appuie pour parler", stop: "Appuie pour terminer", working: "On prépare ton panier…",
-    type: "Ou écris ta liste ici", add: "Ajouter",
-    cart: "Ton panier", empty: "Ton panier est vide. Parle ou écris ta liste pour commencer.",
+    tap: "Appuie pour parler", listening: "Je t'écoute… touche pour arrêter", working: "Je regarde ça…",
+    type: "Écris ici…", cart: "Ton panier", empty: "Ton panier est vide. Parle ou écris ta liste pour commencer.",
     missing: "Pas disponible chez nous", missingSub: "On n'a pas trouvé ces articles dans notre catalogue.",
-    total: "Sous-total", next: "Continuer vers la livraison",
-    heard: "On a compris :",
-    dQ: "Quand veux-tu être livré ?", tQ: "À quel moment de la journée ?", kQ: "Quel type de camion est nécessaire ?", nQ: "Autre chose à savoir ?",
-    sayIt: "Ou dis-le", back: "Retour", cont: "Continuer", skip: "Passer",
+    priceNote: "Les prix et les taxes s'affichent au paiement.",
+    products: (n: number) => `${n} produit${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unité${n > 1 ? "s" : ""}`,
+    added: "J'ai ajouté", removed: "J'ai enlevé", and: "et", notFound: "Je n'ai pas trouvé", nothing: "Je n'ai pas bien compris. Tu peux le redire autrement ?",
+    qList: "Qu'est-ce qu'il te faut ?", qMore: "Autre chose à ajouter ?", done: "C'est tout", addMore: "Ajouter autre chose", addMoreHint: "Vas-y, dis-moi ce que tu veux ajouter.",
+    qDate: "Pour quand ?", tomorrow: "Demain", after: "Après-demain", pick: "Choisir une date",
+    qWindow: "À quel moment de la journée ?", qTruck: "Quel camion ?",
+    qNote: "Autre chose à savoir pour la livraison ? (étage, ruelle…)", noNote: "Non, c'est tout",
     windows: { Early: "Tôt (avant 10 h)", AM: "Avant-midi", PM: "Après-midi", Day: "N'importe quand" },
     trucks: { Boom: "Camion girafe (Boom)", "Boom 90ft": "Girafe 90 pi", "Van/Cube": "Camion cube", Hiab: "Grue (Hiab)", unknown: "Je ne sais pas" },
-    notePh: "Ex. : livrer au 2e étage, entrée par la ruelle…",
-    summary: "Récapitulatif", checkout: "Passer au paiement", items: "articles",
-    noDate: "Choisis une date", missingNote: "Articles non disponibles demandés",
+    summary: "Voici ta commande", materials: "Matériaux", date: "Date", when: "Moment", truck: "Camion", notes: "Notes", none: "Aucune",
+    edit: "Modifier", checkout: "Passer au paiement", missingNote: "Articles non disponibles demandés", restart: "Recommencer",
   },
   en: {
     bar: "Construction materials delivered across Greater Montréal",
     title: "Tell us what you need",
     sub: "Tap the mic and list your materials and quantities. We'll build your cart for you.",
     example: "E.g. “20 sheets of 1/2 inch drywall, ten 2x4 8 feet and 3 buckets of joint compound”",
-    tap: "Tap to speak", stop: "Tap to finish", working: "Building your cart…",
-    type: "Or type your list here", add: "Add",
-    cart: "Your cart", empty: "Your cart is empty. Speak or type your list to start.",
+    tap: "Tap to speak", listening: "Listening… tap to stop", working: "Looking into it…",
+    type: "Type here…", cart: "Your cart", empty: "Your cart is empty. Speak or type your list to start.",
     missing: "Not available from us", missingSub: "We couldn't find these items in our catalogue.",
-    total: "Subtotal", next: "Continue to delivery",
-    heard: "We heard:",
-    dQ: "When do you want your delivery?", tQ: "What time of day?", kQ: "What kind of truck is needed?", nQ: "Anything else we should know?",
-    sayIt: "Or say it", back: "Back", cont: "Continue", skip: "Skip",
+    priceNote: "Prices and taxes are shown at checkout.",
+    products: (n: number) => `${n} product${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unit${n > 1 ? "s" : ""}`,
+    added: "I added", removed: "I removed", and: "and", notFound: "I couldn't find", nothing: "I didn't quite get that. Can you say it another way?",
+    qList: "What do you need?", qMore: "Anything else to add?", done: "That's all", addMore: "Add something else", addMoreHint: "Go ahead, tell me what to add.",
+    qDate: "When?", tomorrow: "Tomorrow", after: "Day after tomorrow", pick: "Pick a date",
+    qWindow: "What time of day?", qTruck: "Which truck?",
+    qNote: "Anything else to know for delivery? (floor, alley…)", noNote: "No, that's all",
     windows: { Early: "Early (before 10am)", AM: "Morning", PM: "Afternoon", Day: "Anytime" },
     trucks: { Boom: "Boom truck", "Boom 90ft": "Boom 90 ft", "Van/Cube": "Cube van", Hiab: "Crane (Hiab)", unknown: "I don't know" },
-    notePh: "E.g. deliver to the 2nd floor, back-alley entrance…",
-    summary: "Summary", checkout: "Go to checkout", items: "items",
-    noDate: "Pick a date", missingNote: "Unavailable items requested",
+    summary: "Here's your order", materials: "Materials", date: "Date", when: "Time", truck: "Truck", notes: "Notes", none: "None",
+    edit: "Edit", checkout: "Go to checkout", missingNote: "Unavailable items requested", restart: "Start over",
   },
 };
+
+const STORE = "renocart-commander-v2";
+const uid = () => Math.random().toString(36).slice(2, 10);
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const addDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return ymd(d); };
+
+type Saved = { items: Item[]; missing: Missing[]; msgs: Msg[]; d: Details; listDone: boolean; answered: Field[]; lang: Lang };
+function load(): Saved | null {
+  if (typeof window === "undefined") return null;
+  try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch { return null; }
+}
 
 async function callVoice(fd: FormData) {
   const { data, error } = await supabase.functions.invoke("voice-order", { body: fd });
@@ -68,112 +90,153 @@ async function callVoice(fd: FormData) {
   return data;
 }
 
-function MicButton({ onAudio, busy, label, stopLabel, size = "lg" }: {
-  onAudio: (b: Blob) => void; busy: boolean; label: string; stopLabel: string; size?: "lg" | "sm";
-}) {
+function MicButton({ onAudio, busy, big, t }: { onAudio: (b: Blob) => void; busy: boolean; big?: boolean; t: typeof T.fr }) {
   const { recording, start, stop } = useVoiceRecorder();
   const click = async () => {
     if (busy) return;
     if (recording) onAudio(await stop());
     else start().catch(() => toast.error("Micro non autorisé / Microphone blocked"));
   };
-  const big = size === "lg";
+  const label = busy ? t.working : recording ? t.listening : t.tap;
   return (
-    <div className="flex flex-col items-center gap-3">
-      <button
-        onClick={click}
-        disabled={busy}
-        aria-label={recording ? stopLabel : label}
-        className={cn(
-          "relative rounded-full flex items-center justify-center transition-all shadow-gold",
-          big ? "h-28 w-28" : "h-14 w-14",
-          recording ? "bg-destructive text-destructive-foreground scale-105" : "bg-primary text-primary-foreground hover:scale-105",
-          busy && "opacity-70",
-        )}
-      >
-        {recording && <span className="absolute inset-0 rounded-full bg-destructive/40 animate-ping" />}
-        {busy ? <Loader2 className={cn("animate-spin", big ? "h-10 w-10" : "h-6 w-6")} />
-          : recording ? <Square className={big ? "h-10 w-10" : "h-5 w-5"} />
-          : <Mic className={big ? "h-12 w-12" : "h-6 w-6"} />}
+    <div className={cn("flex items-center gap-3", big && "flex-col")}>
+      <button onClick={click} disabled={busy} aria-label={label}
+        className={cn("relative shrink-0 rounded-full flex items-center justify-center transition-all shadow-gold",
+          big ? "h-28 w-28" : "h-12 w-12",
+          recording ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground hover:scale-105",
+          busy && "opacity-70")}>
+        {recording && <span className="absolute inset-0 rounded-full bg-destructive/40 motion-safe:animate-ping" />}
+        {busy ? <Loader2 className={cn("animate-spin", big ? "h-10 w-10" : "h-5 w-5")} />
+          : recording ? <Square className={big ? "h-10 w-10" : "h-5 w-5"} /> : <Mic className={big ? "h-12 w-12" : "h-5 w-5"} />}
       </button>
-      {big && <span className="text-sm font-medium">{busy ? "" : recording ? stopLabel : label}</span>}
+      {(big || recording) && <span className={cn("font-medium", big ? "text-sm" : "text-xs")}>{label}</span>}
     </div>
   );
 }
 
-function Choice({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "rounded-lg border-2 px-4 py-3 text-left font-medium transition-colors",
-        active ? "border-primary bg-primary/15" : "border-border bg-card hover:border-primary/60",
-      )}
-    >{children}</button>
-  );
-}
+const Pill = ({ onClick, children, active }: { onClick: () => void; children: React.ReactNode; active?: boolean }) => (
+  <button onClick={onClick}
+    className={cn("min-h-11 rounded-full border-2 px-4 py-2 text-sm font-semibold transition-colors",
+      active ? "border-primary bg-primary text-primary-foreground" : "border-secondary-foreground/70 hover:bg-primary hover:border-primary hover:text-primary-foreground active:bg-primary")}>
+    {children}
+  </button>
+);
+
+const BotBubble = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex justify-start motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 duration-300">
+    <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-secondary-foreground/10 px-4 py-3 text-secondary-foreground">{children}</div>
+  </div>
+);
+const UserBubble = ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+  <div className="flex justify-end motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 duration-300">
+    <button disabled={!onClick} onClick={onClick}
+      className={cn("max-w-[85%] text-left rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-primary-foreground font-medium", onClick && "hover:opacity-90")}>
+      {children}
+    </button>
+  </div>
+);
 
 export default function Commander() {
-  const [lang, setLang] = useState<Lang>("fr");
+  const saved = useMemo(load, []);
+  const [lang, setLang] = useState<Lang>(saved?.lang ?? "fr");
   const t = T[lang];
-  const [items, setItems] = useState<Item[]>([]);
-  const [missing, setMissing] = useState<Missing[]>([]);
+  const [items, setItems] = useState<Item[]>(saved?.items ?? []);
+  const [missing, setMissing] = useState<Missing[]>(saved?.missing ?? []);
+  const [msgs, setMsgs] = useState<Msg[]>(saved?.msgs ?? []);
+  const [d, setD] = useState<Details>(saved?.d ?? { delivery_date: null, time_window: null, truck_type: null, note: null });
+  const [listDone, setListDone] = useState(saved?.listDone ?? false);
+  const [answered, setAnswered] = useState<Field[]>(saved?.answered ?? []);
+  const [editing, setEditing] = useState<Question | null>(null);
+  const [showCal, setShowCal] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [heard, setHeard] = useState("");
   const [typed, setTyped] = useState("");
-  const [step, setStep] = useState(0); // 0 list, 1 date, 2 window, 3 truck, 4 note, 5 summary
-  const [d, setD] = useState<Details>({ delivery_date: null, time_window: null, truck_type: null, note: null });
+  const [cartOpen, setCartOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { document.title = lang === "fr" ? "RenoCart — Dis-nous ce dont tu as besoin" : "RenoCart — Tell us what you need"; }, [lang]);
+  useEffect(() => {
+    localStorage.setItem(STORE, JSON.stringify({ items, missing, msgs, d, listDone, answered, lang }));
+  }, [items, missing, msgs, d, listDone, answered, lang]);
 
-  const mergeCart = (newItems: Item[], newMissing: Missing[]) => {
-    setItems((prev) => {
-      const next = [...prev];
-      for (const it of newItems) {
-        const ex = next.find((x) => x.variantId === it.variantId);
-        if (ex) ex.quantity += it.quantity; else next.push({ ...it });
-      }
-      return next;
-    });
-    setMissing((prev) => [...prev, ...newMissing]);
+  const started = msgs.length > 0;
+  const question: Question = editing ?? (!started ? "list" : !listDone ? "more"
+    : (["date", "window", "truck", "note"] as Field[]).find((f) => !answered.includes(f)) ?? "summary");
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs.length, question, busy, showCal]);
+
+  const push = (...m: Msg[]) => setMsgs((p) => [...p, ...m]);
+
+  const answer = (f: Field, value: string | null) => {
+    const key = { date: "delivery_date", window: "time_window", truck: "truck_type", note: "note" }[f] as keyof Details;
+    setD((p) => ({ ...p, [key]: value }));
+    setAnswered((p) => (p.includes(f) ? p : [...p, f]));
+    push({ id: uid(), from: "user", answer: f, value });
+    setShowCal(false);
+    setEditing(null);
   };
 
-  const sendCart = async (payload: { audio?: Blob; text?: string }) => {
+  const finishList = () => { push({ id: uid(), from: "user", done: true }); setListDone(true); setEditing(null); };
+
+  const send = async (payload: { audio?: Blob; text?: string }) => {
     setBusy(true);
     try {
       const fd = new FormData();
-      fd.append("mode", "cart"); fd.append("lang", lang);
+      fd.append("mode", "turn"); fd.append("lang", lang); fd.append("question", question);
+      fd.append("cart", JSON.stringify(items.map((i) => ({ title: `${i.productTitle}${i.variantTitle !== "Default Title" ? ` — ${i.variantTitle}` : ""}`, quantity: i.quantity }))));
       if (payload.audio) fd.append("audio", payload.audio, "voice.webm");
       if (payload.text) fd.append("text", payload.text);
       const r = await callVoice(fd);
-      setHeard(r.transcript);
-      mergeCart(r.items || [], r.unavailable || []);
       setTyped("");
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setBusy(false); }
-  };
+      const out: Msg[] = [{ id: uid(), from: "user", text: r.transcript }];
 
-  const sendDetails = async (audio: Blob) => {
-    setBusy(true);
-    try {
-      const fd = new FormData();
-      fd.append("mode", "details"); fd.append("lang", lang); fd.append("audio", audio, "voice.webm");
-      const r = await callVoice(fd);
-      setHeard(r.transcript);
-      const x: Details = r.details;
-      setD((p) => ({
-        delivery_date: x.delivery_date ?? p.delivery_date,
-        time_window: x.time_window ?? p.time_window,
-        truck_type: x.truck_type ?? p.truck_type,
-        note: x.note ? [p.note, x.note].filter(Boolean).join(" — ") : p.note,
-      }));
-      // jump to the first unanswered question
-      const merged = { ...d, ...Object.fromEntries(Object.entries(x).filter(([, v]) => v)) };
-      if (!merged.delivery_date) setStep(1);
-      else if (!merged.time_window) setStep(2);
-      else if (!merged.truck_type) setStep(3);
-      else setStep(Math.max(step, 4));
+      // cart ops
+      const next = items.map((i) => ({ ...i }));
+      const removed: Change[] = [];
+      for (const op of r.remove ?? []) {
+        const it = items[op.index]; if (!it) continue;
+        const cur = next.find((x) => x.variantId === it.variantId)!;
+        const q = op.quantity > 0 ? Math.min(op.quantity, cur.quantity) : cur.quantity;
+        cur.quantity -= q; removed.push({ q, title: it.productTitle });
+      }
+      const added: Change[] = [];
+      for (const it of (r.add ?? []) as Item[]) {
+        const ex = next.find((x) => x.variantId === it.variantId);
+        if (ex) ex.quantity += it.quantity; else next.push({ ...it });
+        added.push({ q: it.quantity, title: it.productTitle });
+      }
+      setItems(next.filter((x) => x.quantity > 0));
+      const miss: Missing[] = r.unavailable ?? [];
+      if (miss.length) setMissing((p) => [...p, ...miss]);
+
+      // details
+      const x: Details = r.details ?? {};
+      const got: [Field, string | null][] = [];
+      if (x.delivery_date) got.push(["date", x.delivery_date]);
+      if (x.time_window) got.push(["window", x.time_window]);
+      if (x.truck_type) got.push(["truck", x.truck_type]);
+      if (x.note) got.push(["note", x.note]);
+      if (question === "note" && r.done && !x.note) got.push(["note", null]);
+
+      const changed = added.length || removed.length || miss.length;
+      if (changed) out.push({ id: uid(), from: "bot", added, removed, missing: miss });
+      else if (!got.length && !r.done) out.push({ id: uid(), from: "bot", nothing: true });
+      setMsgs((p) => [...p, ...out]);
+
+      if (got.length) {
+        setD((p) => {
+          const n = { ...p };
+          for (const [f, v] of got) n[{ date: "delivery_date", window: "time_window", truck: "truck_type", note: "note" }[f] as keyof Details] = v;
+          return n;
+        });
+        setAnswered((p) => Array.from(new Set([...p, ...got.map(([f]) => f)])));
+        if (!listDone && started) setListDone(true);
+        setEditing(null);
+      } else if (r.done && (question === "more" || question === "list") && (next.some((i) => i.quantity > 0))) {
+        setListDone(true); setEditing(null);
+      } else if (editing && editing !== "more" && changed) {
+        /* keep asking same question */
+      }
     } catch (e) { toast.error((e as Error).message); }
     finally { setBusy(false); }
   };
@@ -181,9 +244,15 @@ export default function Commander() {
   const setQty = (id: string, q: number) =>
     setItems((p) => (q <= 0 ? p.filter((x) => x.variantId !== id) : p.map((x) => (x.variantId === id ? { ...x, quantity: q } : x))));
 
-  const subtotal = items.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
-  const count = items.reduce((s, i) => s + i.quantity, 0);
-  const today = new Date().toISOString().slice(0, 10);
+  const units = items.reduce((s, i) => s + i.quantity, 0);
+  const cartLabel = `${t.products(items.length)} · ${t.units(units)}`;
+
+  const fmtDate = (s: string | null) => s ? new Date(`${s}T12:00:00`).toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", { weekday: "long", day: "numeric", month: "long" }) : "—";
+  const fmt = (f: Field, v: string | null) =>
+    f === "date" ? fmtDate(v)
+      : f === "window" ? (v ? t.windows[v as keyof typeof t.windows] ?? v : "—")
+      : f === "truck" ? (v ? t.trucks[v as keyof typeof t.trucks] ?? v : "—")
+      : v || t.noNote;
 
   const checkout = async () => {
     setCheckingOut(true);
@@ -195,150 +264,221 @@ export default function Commander() {
       ].filter(Boolean) as { key: string; value: string }[];
       const noteParts = [d.note, missing.length ? `${t.missingNote}: ${missing.map((m) => `${m.quantity} × ${m.name}`).join(", ")}` : ""].filter(Boolean);
       const url = await createCheckout(items.map((i) => ({ merchandiseId: i.variantId, quantity: i.quantity })), attributes, noteParts.join("\n"));
-      window.open(url, "_blank");
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setCheckingOut(false); }
+      window.location.href = url;
+    } catch (e) { toast.error((e as Error).message); setCheckingOut(false); }
   };
 
-  const windowLabel = d.time_window ? t.windows[d.time_window as keyof typeof t.windows] : "—";
-  const truckLabel = d.truck_type ? t.trucks[d.truck_type as keyof typeof t.trucks] ?? d.truck_type : "—";
+  const restart = () => {
+    setItems([]); setMissing([]); setMsgs([]); setListDone(false); setAnswered([]); setEditing(null);
+    setD({ delivery_date: null, time_window: null, truck_type: null, note: null });
+  };
+
+  const joinChanges = (c: Change[]) => c.map((x) => `${x.q} × ${x.title}`).join(", ");
+
+  const renderMsg = (m: Msg) => {
+    if (m.from === "user") {
+      if ("text" in m) return <UserBubble key={m.id}>{m.text}</UserBubble>;
+      if ("done" in m) return <UserBubble key={m.id}>{t.done}</UserBubble>;
+      return <UserBubble key={m.id} onClick={() => setEditing(m.answer)}>{fmt(m.answer, m.value)}</UserBubble>;
+    }
+    if ("nothing" in m) return <BotBubble key={m.id}>{t.nothing}</BotBubble>;
+    return (
+      <BotBubble key={m.id}>
+        {m.added.length > 0 && <p>{t.added} {joinChanges(m.added)}.</p>}
+        {m.removed.length > 0 && <p>{t.removed} {joinChanges(m.removed)}.</p>}
+        {m.missing.length > 0 && (
+          <p className="mt-1 flex gap-2 text-sm opacity-90"><PackageX className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+            {t.notFound} : {m.missing.map((x) => `${x.quantity} × ${x.name}`).join(", ")}.</p>
+        )}
+      </BotBubble>
+    );
+  };
+
+  const prompt = () => {
+    if (!started) return null;
+    switch (question) {
+      case "list": case "more":
+        return (
+          <BotBubble>
+            <p className="mb-3">{t.qMore}</p>
+            <div className="flex flex-wrap gap-2">
+              <Pill onClick={finishList}>{t.done}</Pill>
+              <Pill onClick={() => toast(t.addMoreHint)}>{t.addMore}</Pill>
+            </div>
+          </BotBubble>
+        );
+      case "date": {
+        const tom = addDays(1), aft = addDays(2);
+        return (
+          <BotBubble>
+            <p className="mb-3">{t.qDate}</p>
+            <div className="flex flex-wrap gap-2">
+              <Pill onClick={() => answer("date", tom)}>{t.tomorrow}</Pill>
+              <Pill onClick={() => answer("date", aft)}>{t.after}</Pill>
+              <Pill active={showCal} onClick={() => setShowCal((s) => !s)}>{t.pick}</Pill>
+            </div>
+            {showCal && (
+              <div className="mt-3 rounded-xl bg-card text-card-foreground w-fit">
+                <Calendar mode="single" locale={lang === "fr" ? frLocale : enCA}
+                  selected={d.delivery_date ? new Date(`${d.delivery_date}T12:00:00`) : undefined}
+                  disabled={{ before: new Date(Date.now() + 864e5) }}
+                  onSelect={(day) => day && answer("date", ymd(day))} />
+              </div>
+            )}
+          </BotBubble>
+        );
+      }
+      case "window":
+        return (
+          <BotBubble>
+            <p className="mb-3">{t.qWindow}</p>
+            <div className="flex flex-wrap gap-2">{Object.entries(t.windows).map(([k, v]) => <Pill key={k} onClick={() => answer("window", k)}>{v}</Pill>)}</div>
+          </BotBubble>
+        );
+      case "truck":
+        return (
+          <BotBubble>
+            <p className="mb-3">{t.qTruck}</p>
+            <div className="flex flex-wrap gap-2">{Object.entries(t.trucks).map(([k, v]) => <Pill key={k} onClick={() => answer("truck", k)}>{v}</Pill>)}</div>
+          </BotBubble>
+        );
+      case "note":
+        return (
+          <BotBubble>
+            <p className="mb-3">{t.qNote}</p>
+            <Pill onClick={() => answer("note", null)}>{t.noNote}</Pill>
+          </BotBubble>
+        );
+      case "summary": {
+        const Row = ({ label, value, f }: { label: string; value: React.ReactNode; f: Question }) => (
+          <div className="flex items-start gap-3 py-2.5 border-b last:border-0">
+            <dt className="w-24 shrink-0 text-sm text-muted-foreground">{label}</dt>
+            <dd className="flex-1 text-sm font-semibold">{value}</dd>
+            <button onClick={() => { setEditing(f); if (f === "more") setListDone(false); }}
+              className="min-h-11 -my-2 px-2 text-xs font-semibold text-secondary hover:underline flex items-center gap-1"><Pencil className="h-3 w-3" />{t.edit}</button>
+          </div>
+        );
+        return (
+          <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 duration-300 rounded-2xl bg-card text-card-foreground p-5 shadow-soft">
+            <h3 className="text-lg font-black mb-2">{t.summary}</h3>
+            <dl>
+              <Row f="more" label={t.materials} value={<ul className="space-y-0.5 font-medium">{items.map((i) => <li key={i.variantId}>{i.quantity} × {i.productTitle}</li>)}</ul>} />
+              <Row f="date" label={t.date} value={fmt("date", d.delivery_date)} />
+              <Row f="window" label={t.when} value={fmt("window", d.time_window)} />
+              <Row f="truck" label={t.truck} value={fmt("truck", d.truck_type)} />
+              <Row f="note" label={t.notes} value={d.note || t.none} />
+            </dl>
+            <Button size="lg" className="w-full mt-4 h-14 text-base font-bold" onClick={checkout} disabled={checkingOut || !items.length}>
+              {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.checkout}
+            </Button>
+          </div>
+        );
+      }
+    }
+  };
+
+  const cartBody = (
+    <>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
+        {items.map((i) => (
+          <div key={i.variantId} className="flex gap-3 items-center">
+            <div className="h-14 w-14 rounded-md bg-muted overflow-hidden shrink-0">
+              {i.image && <img src={i.image} alt={i.productTitle} className="h-full w-full object-cover" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium leading-tight line-clamp-2">{i.productTitle}</p>
+              {i.variantTitle !== "Default Title" && <p className="text-xs text-muted-foreground">{i.variantTitle}</p>}
+              <div className="flex items-center gap-1 mt-1">
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setQty(i.variantId, i.quantity - 1)}><Minus className="h-3 w-3" /></Button>
+                <span className="w-8 text-center text-sm font-semibold">{i.quantity}</span>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setQty(i.variantId, i.quantity + 1)}><Plus className="h-3 w-3" /></Button>
+              </div>
+            </div>
+            <button aria-label="Supprimer" onClick={() => setQty(i.variantId, 0)} className="h-11 w-11 flex items-center justify-center text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+          </div>
+        ))}
+        {missing.length > 0 && (
+          <div className="mt-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/5 p-3">
+            <p className="text-sm font-semibold flex items-center gap-2 text-destructive"><PackageX className="h-4 w-4" />{t.missing}</p>
+            <p className="text-xs text-muted-foreground mb-2">{t.missingSub}</p>
+            <ul className="space-y-1">
+              {missing.map((m, idx) => (
+                <li key={idx} className="text-sm flex justify-between items-center gap-2">
+                  <span>{m.quantity} × {m.name}</span>
+                  <button onClick={() => setMissing((p) => p.filter((_, j) => j !== idx))} className="text-muted-foreground hover:text-destructive p-2"><Trash2 className="h-3.5 w-3.5" /></button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      <p className="px-5 py-3 border-t text-xs text-muted-foreground">{t.priceNote}</p>
+    </>
+  );
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="bg-secondary text-secondary-foreground text-xs text-center py-2 px-4">{t.bar}</div>
-      <header className="bg-card border-b">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="text-2xl font-black tracking-tight text-secondary">
-            RENO<span className="text-primary">CART</span>
-          </div>
-          <div className="flex items-center gap-1 text-sm font-semibold">
+    <div className="h-[100dvh] flex flex-col bg-background text-foreground">
+      <div className="hidden sm:block bg-secondary text-secondary-foreground text-xs text-center py-2 px-4">{t.bar}</div>
+      <header className="bg-card border-b shrink-0">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="text-2xl font-black tracking-tight text-secondary">RENO<span className="text-primary">CART</span></div>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            {started && <button onClick={restart} className="text-xs text-muted-foreground hover:underline mr-2">{t.restart}</button>}
             {(["fr", "en"] as Lang[]).map((l) => (
               <button key={l} onClick={() => setLang(l)}
-                className={cn("px-2 py-1 rounded", lang === l ? "bg-secondary text-secondary-foreground" : "text-muted-foreground")}>
-                {l.toUpperCase()}
-              </button>
+                className={cn("px-2 py-1 rounded", lang === l ? "bg-secondary text-secondary-foreground" : "text-muted-foreground")}>{l.toUpperCase()}</button>
             ))}
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8 grid lg:grid-cols-[1fr_380px] gap-8">
-        <section className="gradient-navy text-secondary-foreground rounded-2xl p-8 md:p-12 flex flex-col items-center text-center min-h-[460px] justify-center">
-          {step === 0 && (
-            <>
-              <h1 className="text-4xl md:text-5xl font-black tracking-tight">{t.title}</h1>
-              <p className="mt-4 max-w-xl opacity-90">{t.sub}</p>
-              <div className="my-10">
-                <MicButton busy={busy} onAudio={(b) => sendCart({ audio: b })} label={busy ? t.working : t.tap} stopLabel={t.stop} />
-                {busy && <p className="mt-3 text-sm">{t.working}</p>}
-              </div>
-              <p className="text-sm opacity-75 italic max-w-lg">{t.example}</p>
-              <form className="mt-6 flex w-full max-w-lg gap-2" onSubmit={(e) => { e.preventDefault(); if (typed.trim()) sendCart({ text: typed }); }}>
-                <Input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} className="bg-card text-card-foreground" disabled={busy} />
-                <Button type="submit" disabled={busy || !typed.trim()}><Send className="h-4 w-4" /></Button>
-              </form>
-            </>
-          )}
-
-          {step >= 1 && step <= 4 && (
-            <div className="w-full max-w-lg text-left">
-              <div className="flex gap-1 mb-6">{[1, 2, 3, 4].map((s) => <div key={s} className={cn("h-1.5 flex-1 rounded", s <= step ? "bg-primary" : "bg-secondary-foreground/20")} />)}</div>
-              <h2 className="text-3xl font-black mb-6 flex items-center gap-3">
-                {step === 1 && <><CalendarDays className="text-primary" />{t.dQ}</>}
-                {step === 2 && <><Clock className="text-primary" />{t.tQ}</>}
-                {step === 3 && <><Truck className="text-primary" />{t.kQ}</>}
-                {step === 4 && t.nQ}
-              </h2>
-              <div className="text-card-foreground">
-                {step === 1 && <Input type="date" min={today} value={d.delivery_date ?? ""} onChange={(e) => setD({ ...d, delivery_date: e.target.value || null })} className="bg-card h-14 text-lg" />}
-                {step === 2 && <div className="grid grid-cols-2 gap-3">{Object.entries(t.windows).map(([k, v]) => <Choice key={k} active={d.time_window === k} onClick={() => { setD({ ...d, time_window: k }); setStep(3); }}>{v}</Choice>)}</div>}
-                {step === 3 && <div className="grid grid-cols-2 gap-3">{Object.entries(t.trucks).map(([k, v]) => <Choice key={k} active={d.truck_type === k} onClick={() => { setD({ ...d, truck_type: k }); setStep(4); }}>{v}</Choice>)}</div>}
-                {step === 4 && <Textarea rows={4} value={d.note ?? ""} onChange={(e) => setD({ ...d, note: e.target.value || null })} placeholder={t.notePh} className="bg-card" />}
-              </div>
-              <div className="mt-6 flex items-center gap-4">
-                <MicButton size="sm" busy={busy} onAudio={sendDetails} label={t.sayIt} stopLabel={t.stop} />
-                <span className="text-sm opacity-80">{t.sayIt}</span>
-              </div>
-              <div className="mt-8 flex justify-between">
-                <Button variant="ghost" className="text-secondary-foreground" onClick={() => setStep(step - 1)}><ArrowLeft className="h-4 w-4 mr-1" />{t.back}</Button>
-                <Button onClick={() => setStep(step + 1)} disabled={step === 1 && !d.delivery_date}>
-                  {step === 4 && !d.note ? t.skip : t.cont}<ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
+      <main className="flex-1 min-h-0 w-full max-w-6xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[1fr_380px] gap-6">
+        <section className="gradient-navy text-secondary-foreground lg:rounded-2xl flex flex-col min-h-0">
+          {/* mobile cart bar */}
+          {started && (
+            <div className="lg:hidden shrink-0 bg-card text-card-foreground border-b">
+              <button onClick={() => setCartOpen((o) => !o)} className="w-full min-h-11 px-4 py-2 flex items-center justify-between text-sm font-semibold">
+                <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />{t.cart} · {cartLabel}</span>
+                <ChevronUp className={cn("h-4 w-4 transition-transform", !cartOpen && "rotate-180")} />
+              </button>
+              {cartOpen && <div className="max-h-[50dvh] flex flex-col border-t">{cartBody}</div>}
             </div>
           )}
 
-          {step === 5 && (
-            <div className="w-full max-w-lg text-left">
-              <h2 className="text-3xl font-black mb-6">{t.summary}</h2>
-              <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 bg-card text-card-foreground rounded-xl p-5">
-                <dt className="text-muted-foreground">{t.dQ}</dt><dd className="font-semibold">{d.delivery_date ?? "—"}</dd>
-                <dt className="text-muted-foreground">{t.tQ}</dt><dd className="font-semibold">{windowLabel}</dd>
-                <dt className="text-muted-foreground">{t.kQ}</dt><dd className="font-semibold">{truckLabel}</dd>
-                {d.note && <><dt className="text-muted-foreground">Note</dt><dd>{d.note}</dd></>}
-              </dl>
-              <div className="mt-6 flex justify-between">
-                <Button variant="ghost" className="text-secondary-foreground" onClick={() => setStep(1)}><ArrowLeft className="h-4 w-4 mr-1" />{t.back}</Button>
-                <Button size="lg" onClick={checkout} disabled={checkingOut || !items.length}>
-                  {checkingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ExternalLink className="h-4 w-4 mr-2" />{t.checkout}</>}
-                </Button>
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 py-6">
+            {!started ? (
+              <div className="h-full flex flex-col items-center justify-center text-center py-6">
+                <h1 className="text-4xl md:text-5xl font-black tracking-tight">{t.title}</h1>
+                <p className="mt-4 max-w-xl opacity-90">{t.sub}</p>
+                <div className="my-10"><MicButton big busy={busy} onAudio={(b) => send({ audio: b })} t={t} /></div>
+                <p className="text-sm opacity-75 italic max-w-lg">{t.example}</p>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="space-y-3 max-w-2xl mx-auto">
+                <h1 className="text-xl font-black tracking-tight text-center mb-4 opacity-90">{t.title}</h1>
+                {msgs.map(renderMsg)}
+                {busy ? <BotBubble><span className="tracking-widest motion-safe:animate-pulse">…</span></BotBubble> : prompt()}
+                <div ref={endRef} />
+              </div>
+            )}
+          </div>
 
-          {heard && <p className="mt-8 text-xs opacity-70 max-w-lg"><span className="font-semibold">{t.heard}</span> « {heard} »</p>}
+          <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
+            onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
+            {started && <MicButton busy={busy} onAudio={(b) => send({ audio: b })} t={t} />}
+            <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
+              className="flex-1 min-w-0 h-12 rounded-full bg-card text-card-foreground px-4 text-base outline-none focus:ring-2 focus:ring-primary" />
+            <Button type="submit" size="icon" className="h-12 w-12 rounded-full shrink-0" disabled={busy || !typed.trim()}><Send className="h-4 w-4" /></Button>
+          </form>
         </section>
 
-        <aside className="bg-card rounded-2xl border shadow-soft flex flex-col max-h-[calc(100vh-8rem)] lg:sticky lg:top-6">
+        <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0">
           <div className="p-5 border-b flex items-baseline justify-between">
             <h2 className="text-lg font-bold">{t.cart}</h2>
-            <span className="text-sm text-muted-foreground">{count} {t.items}</span>
+            <span className="text-sm text-muted-foreground">{cartLabel}</span>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
-            {items.map((i) => (
-              <div key={i.variantId} className="flex gap-3">
-                <div className="h-14 w-14 rounded-md bg-muted overflow-hidden shrink-0">
-                  {i.image && <img src={i.image} alt={i.productTitle} className="h-full w-full object-cover" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium leading-tight line-clamp-2">{i.productTitle}</p>
-                  {i.variantTitle !== "Default Title" && <p className="text-xs text-muted-foreground">{i.variantTitle}</p>}
-                  <p className="text-sm font-semibold mt-0.5">{parseFloat(i.price).toFixed(2)} $</p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <button onClick={() => setQty(i.variantId, 0)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
-                  <div className="flex items-center gap-1">
-                    <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => setQty(i.variantId, i.quantity - 1)}><Minus className="h-3 w-3" /></Button>
-                    <span className="w-7 text-center text-sm">{i.quantity}</span>
-                    <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => setQty(i.variantId, i.quantity + 1)}><Plus className="h-3 w-3" /></Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {missing.length > 0 && (
-              <div className="mt-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/5 p-3">
-                <p className="text-sm font-semibold flex items-center gap-2 text-destructive"><PackageX className="h-4 w-4" />{t.missing}</p>
-                <p className="text-xs text-muted-foreground mb-2">{t.missingSub}</p>
-                <ul className="space-y-1">
-                  {missing.map((m, idx) => (
-                    <li key={idx} className="text-sm flex justify-between gap-2">
-                      <span>{m.quantity} × {m.name}</span>
-                      <button onClick={() => setMissing((p) => p.filter((_, j) => j !== idx))} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-          <div className="p-5 border-t space-y-3">
-            <div className="flex justify-between font-semibold"><span>{t.total}</span><span>{subtotal.toFixed(2)} $</span></div>
-            {step === 0 && (
-              <Button className="w-full" size="lg" disabled={!items.length || busy} onClick={() => { setHeard(""); setStep(1); }}>
-                {t.next}<ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            )}
-          </div>
+          {cartBody}
         </aside>
       </main>
     </div>
