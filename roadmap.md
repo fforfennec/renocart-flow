@@ -1,4 +1,5 @@
-# Commander compact cart
-- [x] Share a compact 48px-image row across desktop and mobile, with name/detail opening formats.
-- [x] Replace minus with removal at quantity one and offer undo for five seconds.
-- [x] Verify compact layout, variants and undo on both screens; leave voice untouched.
+# Commander suggestions
+- [ ] Add authenticated suggestion rules, Shopify validation and proposal/acceptance statistics.
+- [ ] Show one buttons-only suggestion card after list completion, plus declined cart reminders.
+- [ ] Adjust accepted quantities with undo after materials change; persist conversation choices.
+- [ ] Verify desktop/mobile, screw prohibition and unchanged voice pipeline.
