@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ChevronRight, ShoppingCart, Pencil, RotateCcw, MoreHorizontal, X, Info, ArrowLeftRight } from "lucide-react";
+import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ChevronRight, ShoppingCart, Pencil, RotateCcw, X, Info, ArrowLeftRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { CommanderMobileScroll } from "@/components/CommanderMobileScroll";
 import { fr as frLocale, enCA } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
@@ -196,7 +196,7 @@ export default function Commander() {
   const question: Question = editing ?? (!started ? "list" : !listDone ? "more"
     : (["date", "window", "truck", "note"] as Field[]).find((f) => !answered.includes(f)) ?? "summary");
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs.length, question, busy, showCal]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs.length, question, busy, showCal, confirmRestart]);
 
   const push = (...m: Msg[]) => setMsgs((p) => [...p, ...m]);
 
@@ -452,12 +452,9 @@ export default function Commander() {
           return (
             <div className="motion-safe:animate-in motion-safe:fade-in duration-300 rounded-3xl bg-card text-card-foreground p-5 shadow-soft">
               <h3 className="text-2xl font-black mb-2">{t.summary}</h3>
-              <MRow label={t.materials} f="more">
-                <ul className="space-y-1">{items.map((i) => <li key={i.variantId} className="flex gap-4"><b className="w-8 shrink-0">{i.quantity}</b><span className="min-w-0">{shortName(i.productTitle)}</span></li>)}</ul>
-              </MRow>
               <MRow label={t.delivery} f="date"><p className="font-semibold first-letter:uppercase">{fmt("date", d.delivery_date)} · {fmt("window", d.time_window).toLowerCase()}</p></MRow>
               <MRow label={t.truck} f="truck"><p className="font-semibold">{fmt("truck", d.truck_type)}</p></MRow>
-              <MRow label={t.notes} f="note" action={d.note ? t.edit : t.add}><p className={d.note ? "font-semibold" : "text-muted-foreground"}>{d.note || t.none}</p></MRow>
+              <MRow label={t.notes} f="note"><p className={d.note ? "font-semibold" : "text-muted-foreground"}>{d.note || t.none}</p></MRow>
             </div>
           );
         }
@@ -536,20 +533,13 @@ export default function Commander() {
           <div className="text-2xl font-black tracking-tight text-secondary">RENO<span className="text-primary">CART</span></div>
           <div className="flex items-center gap-2 text-sm font-semibold">
             {started && !isMobile && <button onClick={() => setConfirmRestart(true)} className="text-xs text-muted-foreground hover:underline mr-2">{t.restart}</button>}
+            {isMobile && <Button variant="ghost" size="icon" aria-label={t.restart} title={t.restart} onClick={() => setConfirmRestart(true)} className="h-11 w-11 shrink-0"><RotateCcw className="h-5 w-5" /></Button>}
             <div className={cn("flex", isMobile && "rounded-xl bg-muted p-1")}>
               {(["fr", "en"] as Lang[]).map((l) => (
                 <button key={l} onClick={() => setLang(l)}
                   className={cn("px-2 py-1 rounded", isMobile && "px-3 rounded-lg", lang === l ? "bg-secondary text-secondary-foreground" : "text-muted-foreground")}>{l.toUpperCase()}</button>
               ))}
             </div>
-            {isMobile && (
-              <DropdownMenu>
-                <DropdownMenuTrigger aria-label="Menu" className="h-11 w-11 flex items-center justify-center"><MoreHorizontal className="h-6 w-6" /></DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setConfirmRestart(true)}><RotateCcw className="h-4 w-4 mr-2" />{t.restart}</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
           </div>
         </div>
       </header>
@@ -567,8 +557,8 @@ export default function Commander() {
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
-            {!started ? (
+          <CommanderMobileScroll enabled={isMobile} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
+            {!started && !confirmRestart ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-6">
                 <h1 className="text-4xl md:text-5xl font-black tracking-tight">{t.title}</h1>
                 <p className="mt-4 max-w-xl opacity-90">{t.sub}</p>
@@ -588,29 +578,27 @@ export default function Commander() {
                 <div ref={endRef} />
               </div>
             )}
-          </div>
+          </CommanderMobileScroll>
 
           {isMobile ? (
-            mobileSummary ? (
-              <div className="shrink-0 border-t border-secondary-foreground/15 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="shrink-0 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-2">
+              <Button key={bump} variant="ghost" onClick={() => setCartOpen(true)}
+                className={cn("w-full rounded-2xl bg-card text-card-foreground hover:bg-card px-4 h-14 flex items-center gap-3 text-left shadow-soft", bump > 0 && "animate-cart-bump")}>
+                <span className="relative shrink-0">
+                  <ShoppingCart className="h-6 w-6" />
+                  {items.length > 0 && <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center">{items.length}</span>}
+                </span>
+                <span className="flex-1 min-w-0 truncate"><b>{t.cart}</b> <span className="text-muted-foreground text-sm">{cartLabel}</span></span>
+                <ChevronUp className="h-5 w-5 shrink-0" />
+              </Button>
+              {mobileSummary ? (
+              <div>
                 <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={checkout} disabled={checkingOut || !items.length}>
                   {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.checkout}
                 </Button>
                 <p className="mt-2 text-center text-xs opacity-70">{t.totalNote}</p>
               </div>
             ) : (
-              <div className="shrink-0 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-2">
-                {started && (
-                  <button key={bump} onClick={() => setCartOpen(true)}
-                    className={cn("w-full rounded-2xl bg-card text-card-foreground px-4 h-14 flex items-center gap-3 text-left shadow-soft", bump > 0 && "animate-cart-bump")}>
-                    <span className="relative shrink-0">
-                      <ShoppingCart className="h-6 w-6" />
-                      {items.length > 0 && <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center">{items.length}</span>}
-                    </span>
-                    <span className="flex-1 min-w-0 truncate"><b>{t.cart}</b> <span className="text-muted-foreground text-sm">{cartLabel}</span></span>
-                    <ChevronUp className="h-5 w-5 shrink-0" />
-                  </button>
-                )}
                 <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
                   <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
                     className="flex-1 min-w-0 h-14 rounded-full bg-card text-card-foreground px-5 text-base outline-none focus:ring-2 focus:ring-primary" />
@@ -622,8 +610,8 @@ export default function Commander() {
                     <MicButton mobile busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />
                   )}
                 </form>
-              </div>
-            )
+            )}
+            </div>
           ) : (
             <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
               onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
@@ -659,7 +647,7 @@ export default function Commander() {
               </div>
               <button onClick={() => setCartOpen(false)} aria-label={t.close} className="h-11 w-11 rounded-full bg-muted flex items-center justify-center"><X className="h-5 w-5" /></button>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto px-5">
+            <CommanderMobileScroll enabled className="flex-1 min-h-0 overflow-y-auto px-5">
               {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
               {items.map((i) => (
                 <div key={i.variantId} className="py-4 border-b">
@@ -698,7 +686,7 @@ export default function Commander() {
                   </ul>
                 </div>
               )}
-            </div>
+            </CommanderMobileScroll>
             <div className="border-t px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
               <p className="text-sm text-muted-foreground flex items-center gap-2"><Info className="h-4 w-4" />{t.priceNote}</p>
               <Button size="lg" variant="secondary" className="w-full h-14 rounded-2xl text-base font-bold" onClick={() => setCartOpen(false)}>{t.backChat}</Button>

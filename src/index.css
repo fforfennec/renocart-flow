@@ -155,3 +155,21 @@
 
 @keyframes cart-bump { 0%,100% { transform: translateY(0) } 30% { transform: translateY(-6px) } 60% { transform: translateY(1px) } }
 .animate-cart-bump { animation: cart-bump 0.45s ease-out; }
+
+.commander-mobile-scroll { scrollbar-width: none; }
+.commander-mobile-scroll::-webkit-scrollbar { display: none; }
+.commander-scroll-indicator {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  width: 3px;
+  border-radius: 999px;
+  background: hsl(var(--muted-foreground) / 0.5);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.commander-scroll-indicator.is-scrolling { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .commander-scroll-indicator { transition: none; }
+}
