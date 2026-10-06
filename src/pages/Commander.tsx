@@ -412,7 +412,7 @@ export default function Commander() {
           <div className="flex items-start gap-3 py-2.5 border-b last:border-0">
             <dt className="w-24 shrink-0 text-sm text-muted-foreground">{label}</dt>
             <dd className="flex-1 text-sm font-semibold">{value}</dd>
-            <button onClick={() => { setEditing(f); if (f === "more") setListDone(false); }}
+            <button onClick={() => { setEditing(f); if (f === "more") setListDone(false); openMic(); }}
               className="min-h-11 -my-2 px-2 text-xs font-semibold text-secondary hover:underline flex items-center gap-1"><Pencil className="h-3 w-3" />{t.edit}</button>
           </div>
         );
