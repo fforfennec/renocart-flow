@@ -47,7 +47,7 @@ const T = {
     windows: { Early: "Tôt (avant 10 h)", AM: "Avant-midi", PM: "Après-midi", Day: "N'importe quand" },
     trucks: { Boom: "Camion girafe (Boom)", "Boom 90ft": "Girafe 90 pi", "Van/Cube": "Camion cube", Hiab: "Grue (Hiab)", unknown: "Je ne sais pas" },
     summary: "Voici ta commande", materials: "Matériaux", date: "Date", when: "Moment", truck: "Camion", notes: "Notes", none: "Aucune",
-    edit: "Modifier", checkout: "Passer au paiement", missingNote: "Articles non disponibles demandés", restart: "Recommencer",
+    edit: "Modifier", checkout: "Placer ma commande", missingNote: "Articles non disponibles demandés", restart: "Recommencer",
   },
   en: {
     bar: "Construction materials delivered across Greater Montréal",
@@ -68,7 +68,7 @@ const T = {
     windows: { Early: "Early (before 10am)", AM: "Morning", PM: "Afternoon", Day: "Anytime" },
     trucks: { Boom: "Boom truck", "Boom 90ft": "Boom 90 ft", "Van/Cube": "Cube van", Hiab: "Crane (Hiab)", unknown: "I don't know" },
     summary: "Here's your order", materials: "Materials", date: "Date", when: "Time", truck: "Truck", notes: "Notes", none: "None",
-    edit: "Edit", checkout: "Go to checkout", missingNote: "Unavailable items requested", restart: "Start over",
+    edit: "Edit", checkout: "Place my order", missingNote: "Unavailable items requested", restart: "Start over",
   },
 };
 
