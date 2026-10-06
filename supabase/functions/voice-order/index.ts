@@ -172,6 +172,25 @@ const detailsSchema = {
   },
 };
 
+const turnSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["add", "remove", "unavailable", "delivery_date", "time_window", "truck_type", "note", "done"],
+  properties: {
+    add: cartSchema.properties.items,
+    remove: {
+      type: "array",
+      items: {
+        type: "object", additionalProperties: false, required: ["index", "quantity"],
+        properties: { index: { type: "integer" }, quantity: { type: "integer" } },
+      },
+    },
+    unavailable: cartSchema.properties.unavailable,
+    ...detailsSchema.properties,
+    done: { type: "boolean" },
+  },
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const json = (body: unknown, status = 200) =>
@@ -199,6 +218,47 @@ Deno.serve(async (req) => {
       text = await transcribe(audio, apiKey);
     }
     if (!text) return json({ error: lang === "en" ? "We didn't hear anything. Try again." : "On n'a rien entendu. Réessaie." }, 400);
+
+    if (mode === "turn") {
+      const today = new Date().toISOString().slice(0, 10);
+      const question = String(form.get("question") || "list");
+      let cart: { title: string; quantity: number }[] = [];
+      try { cart = JSON.parse(String(form.get("cart") || "[]")); } catch { /* noop */ }
+      const catalog = await loadCatalog();
+      const lines: { product: Product; variant: Variant }[] = [];
+      for (const p of catalog) for (const v of p.variants) lines.push({ product: p, variant: v });
+      const listing = lines
+        .map((l, i) => `${i}|${l.product.title}${l.variant.title !== "Default Title" ? ` — ${l.variant.title}` : ""}|${l.product.type}`)
+        .join("\n");
+      const cartListing = cart.map((c, i) => `${i}|${c.quantity} × ${c.title}`).join("\n") || "(empty)";
+      const r = await structured(
+        apiKey,
+        `Today is ${today} (America/Toronto). You process one message from a Québec construction-materials customer (French or English) in an ordering chat. ` +
+          `The bot's current question is: "${question}" (list = what materials; more = anything else to add; date; window; truck; note = other delivery info; summary = reviewing order).\n` +
+          `- add: materials the customer wants to ADD, matched to the single best CATALOG line by number (respect dimensions, thickness, pack sizes; default quantity 1). Never invent lines.\n` +
+          `- remove: materials to remove or reduce from the CURRENT CART by cart index; quantity = how many to remove, 0 = remove entirely.\n` +
+          `- unavailable: requested items with no reasonable catalog match (customer wording).\n` +
+          `- delivery_date YYYY-MM-DD (resolve "demain", "mardi prochain"), time_window (AM before noon, PM afternoon, Early before 10am, Day anytime), ` +
+          `truck_type (Boom = camion girafe, Boom 90ft, Van/Cube, Hiab = grue, Other, unknown = doesn't know). null if not mentioned.\n` +
+          `- note: delivery instructions (floor, alley, access…) only if given, else null. If current question is "note" and the customer gives instructions, put them here.\n` +
+          `- done: true if the customer says that's all / nothing more / no (e.g. "c'est tout", "non", "that's it").\n\n` +
+          `CURRENT CART (index|item):\n${cartListing}\n\nCATALOG (ref|title|type):\n${listing}`,
+        text, "turn", turnSchema,
+      );
+      const add = (r.add || []).filter((it: any) => lines[it.ref]).map((it: any) => {
+        const l = lines[it.ref];
+        return {
+          variantId: l.variant.id, productTitle: l.product.title, variantTitle: l.variant.title,
+          image: l.product.image, price: l.variant.price, currency: l.variant.currency,
+          available: l.variant.available, quantity: Math.max(1, it.quantity || 1),
+        };
+      });
+      return json({
+        transcript: text, add, remove: r.remove || [], unavailable: r.unavailable || [],
+        details: { delivery_date: r.delivery_date, time_window: r.time_window, truck_type: r.truck_type, note: r.note },
+        done: !!r.done,
+      });
+    }
 
     if (mode === "details") {
       const today = new Date().toISOString().slice(0, 10);
