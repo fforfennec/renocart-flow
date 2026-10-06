@@ -90,8 +90,10 @@ async function callVoice(fd: FormData) {
   return data;
 }
 
-function MicButton({ onAudio, busy, big, t }: { onAudio: (b: Blob) => void; busy: boolean; big?: boolean; t: typeof T.fr }) {
-  const { recording, start, stop } = useVoiceRecorder();
+function MicButton({ onAudio, busy, big, t, recording, start, stop }: {
+  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; t: typeof T.fr;
+  recording: boolean; start: () => Promise<void>; stop: () => Promise<Blob>;
+}) {
   const click = async () => {
     if (busy) return;
     if (recording) onAudio(await stop());
