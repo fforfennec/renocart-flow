@@ -103,8 +103,8 @@ async function callVoice(fd: FormData) {
   return data;
 }
 
-function MicButton({ onAudio, busy, big, t, recording, start, stop }: {
-  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; t: typeof T.fr;
+function MicButton({ onAudio, busy, big, mobile, t, recording, start, stop }: {
+  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; mobile?: boolean; t: typeof T.fr;
   recording: boolean; start: () => Promise<void>; stop: () => Promise<Blob>;
 }) {
   const click = async () => {
@@ -119,9 +119,9 @@ function MicButton({ onAudio, busy, big, t, recording, start, stop }: {
   const label = busy ? t.working : recording ? t.listening : t.tap;
   return (
     <div className={cn("flex items-center gap-3", big && "flex-col")}>
-      <button onClick={click} disabled={busy} aria-label={label}
+      <button type="button" onClick={click} disabled={busy} aria-label={label}
         className={cn("relative shrink-0 rounded-full flex items-center justify-center transition-all shadow-gold",
-          big ? "h-28 w-28" : "h-12 w-12",
+          big ? "h-28 w-28" : mobile ? "h-14 w-14 ring-4 ring-primary/25" : "h-12 w-12",
           recording ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground hover:scale-105",
           busy && "opacity-70")}>
         {recording && <span className="absolute inset-0 rounded-full bg-destructive/40 motion-safe:animate-ping" />}
@@ -175,6 +175,11 @@ export default function Commander() {
   const { recording: micOn, start: micStart, stop: micStop } = useVoiceRecorder();
   const recStart = useRef(0);
   const [confirmRestart, setConfirmRestart] = useState(false);
+  const isMobile = useIsMobile();
+  const [bump, setBump] = useState(0);
+  const sig = items.map((i) => `${i.variantId}:${i.quantity}`).join("|");
+  const firstSig = useRef(true);
+  useEffect(() => { if (firstSig.current) { firstSig.current = false; return; } setBump((b) => b + 1); }, [sig]);
   const startRec = () => { recStart.current = Date.now(); return micStart(); };
   const micHandler = (b: Blob) => send({ audio: b, dur: Math.max(1, Math.round((Date.now() - recStart.current) / 1000)) });
   const openMic = () => { if (!busy && !micOn) startRec().catch(() => toast.error("Micro non autorisé / Microphone blocked")); };
@@ -338,6 +343,27 @@ export default function Commander() {
     const newAdds = m.added.filter((x) => x.from == null);
     const fullRemoved = m.removed.filter((x) => x.from != null && x.from - x.q <= 0);
     const partRemoved = m.removed.filter((x) => x.from != null && x.from - x.q > 0);
+    if (isMobile && (m.added.length || m.removed.length)) {
+      const rows = [
+        ...m.added.map((x) => ({ s: `+${x.q - (x.from ?? 0)}`, n: shortName(x.title), plus: true })),
+        ...m.removed.map((x) => ({ s: `−${x.q}`, n: shortName(x.title), plus: false })),
+      ];
+      return (
+        <BotBubble key={m.id}>
+          <p>{t.inCart}</p>
+          <div className="mt-2 rounded-xl bg-secondary-foreground/5 px-3 py-2 space-y-1">
+            {rows.map((r, i) => (
+              <div key={i} className="flex gap-3"><b className={cn("w-10 shrink-0", r.plus ? "text-primary" : "opacity-80")}>{r.s}</b><span className="min-w-0">{r.n}</span></div>
+            ))}
+          </div>
+          {m.missing.length > 0 && (
+            <p className="mt-2 flex gap-2 text-sm opacity-90"><PackageX className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+              <span>{t.notFound} {joinList(m.missing.map((x) => `${x.quantity} ${clean(x.name)}`))}.</span></p>
+          )}
+          <button onClick={() => setCartOpen(true)} className="mt-2 min-h-11 flex items-center gap-1 font-semibold text-primary">{t.seeCart}<ChevronRight className="h-4 w-4" /></button>
+        </BotBubble>
+      );
+    }
     return (
       <BotBubble key={m.id}>
         {newAdds.length > 0 && <p>{t.added} {joinList(newAdds.map((x) => `${x.q} ${shortName(x.title)}`))}.</p>}
@@ -408,11 +434,34 @@ export default function Commander() {
           </BotBubble>
         );
       case "summary": {
+        const editF = (f: Question) => { setEditing(f); if (f === "more") setListDone(false); openMic(); };
+        if (isMobile) {
+          const MRow = ({ label, f, children, action }: { label: string; f: Question; children: React.ReactNode; action?: string }) => (
+            <div className="py-3 border-b last:border-0">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</span>
+                <button onClick={() => editF(f)} className="min-h-11 -my-3 flex items-center gap-1.5 font-semibold text-secondary"><Pencil className="h-4 w-4" />{action ?? t.edit}</button>
+              </div>
+              <div className="mt-1">{children}</div>
+            </div>
+          );
+          return (
+            <div className="motion-safe:animate-in motion-safe:fade-in duration-300 rounded-3xl bg-card text-card-foreground p-5 shadow-soft">
+              <h3 className="text-2xl font-black mb-2">{t.summary}</h3>
+              <MRow label={t.materials} f="more">
+                <ul className="space-y-1">{items.map((i) => <li key={i.variantId} className="flex gap-4"><b className="w-8 shrink-0">{i.quantity}</b><span className="min-w-0">{shortName(i.productTitle)}</span></li>)}</ul>
+              </MRow>
+              <MRow label={t.delivery} f="date"><p className="font-semibold first-letter:uppercase">{fmt("date", d.delivery_date)} · {fmt("window", d.time_window).toLowerCase()}</p></MRow>
+              <MRow label={t.truck} f="truck"><p className="font-semibold">{fmt("truck", d.truck_type)}</p></MRow>
+              <MRow label={t.notes} f="note" action={d.note ? t.edit : t.add}><p className={d.note ? "font-semibold" : "text-muted-foreground"}>{d.note || t.none}</p></MRow>
+            </div>
+          );
+        }
         const Row = ({ label, value, f }: { label: string; value: React.ReactNode; f: Question }) => (
           <div className="flex items-start gap-3 py-2.5 border-b last:border-0">
             <dt className="w-24 shrink-0 text-sm text-muted-foreground">{label}</dt>
             <dd className="flex-1 text-sm font-semibold">{value}</dd>
-            <button onClick={() => { setEditing(f); if (f === "more") setListDone(false); openMic(); }}
+            <button onClick={() => editF(f)}
               className="min-h-11 -my-2 px-2 text-xs font-semibold text-secondary hover:underline flex items-center gap-1"><Pencil className="h-3 w-3" />{t.edit}</button>
           </div>
         );
@@ -482,11 +531,21 @@ export default function Commander() {
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="text-2xl font-black tracking-tight text-secondary">RENO<span className="text-primary">CART</span></div>
           <div className="flex items-center gap-2 text-sm font-semibold">
-            {started && <button onClick={() => setConfirmRestart(true)} className="text-xs text-muted-foreground hover:underline mr-2">{t.restart}</button>}
-            {(["fr", "en"] as Lang[]).map((l) => (
-              <button key={l} onClick={() => setLang(l)}
-                className={cn("px-2 py-1 rounded", lang === l ? "bg-secondary text-secondary-foreground" : "text-muted-foreground")}>{l.toUpperCase()}</button>
-            ))}
+            {started && !isMobile && <button onClick={() => setConfirmRestart(true)} className="text-xs text-muted-foreground hover:underline mr-2">{t.restart}</button>}
+            <div className={cn("flex", isMobile && "rounded-xl bg-muted p-1")}>
+              {(["fr", "en"] as Lang[]).map((l) => (
+                <button key={l} onClick={() => setLang(l)}
+                  className={cn("px-2 py-1 rounded", isMobile && "px-3 rounded-lg", lang === l ? "bg-secondary text-secondary-foreground" : "text-muted-foreground")}>{l.toUpperCase()}</button>
+              ))}
+            </div>
+            {isMobile && (
+              <DropdownMenu>
+                <DropdownMenuTrigger aria-label="Menu" className="h-11 w-11 flex items-center justify-center"><MoreHorizontal className="h-6 w-6" /></DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setConfirmRestart(true)}><RotateCcw className="h-4 w-4 mr-2" />{t.restart}</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </header>
