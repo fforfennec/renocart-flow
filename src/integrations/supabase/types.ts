@@ -463,6 +463,80 @@ export type Database = {
         }
         Relationships: []
       }
+      suggestion_offers: {
+        Row: {
+          accepted: boolean
+          created_at: string
+          id: string
+          rule_id: string
+          session_id: string
+        }
+        Insert: {
+          accepted?: boolean
+          created_at?: string
+          id?: string
+          rule_id: string
+          session_id: string
+        }
+        Update: {
+          accepted?: boolean
+          created_at?: string
+          id?: string
+          rule_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suggestion_offers_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "suggestion_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suggestion_rules: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          reason: string
+          recommended: boolean
+          suggested_units: number
+          trigger_kind: string
+          trigger_units: number
+          trigger_value: string
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          reason?: string
+          recommended?: boolean
+          suggested_units?: number
+          trigger_kind: string
+          trigger_units?: number
+          trigger_value: string
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          reason?: string
+          recommended?: boolean
+          suggested_units?: number
+          trigger_kind?: string
+          trigger_units?: number
+          trigger_value?: string
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: []
+      }
       supplier_assignments: {
         Row: {
           assigned_at: string
