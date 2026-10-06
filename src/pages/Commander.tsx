@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ShoppingCart, Pencil, RotateCcw } from "lucide-react";
+import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ChevronRight, ShoppingCart, Pencil, RotateCcw, MoreHorizontal, X, Info, ArrowLeftRight } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { fr as frLocale, enCA } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
@@ -47,7 +50,7 @@ const T = {
     windows: { Early: "Tôt (avant 10 h)", AM: "Avant-midi", PM: "Après-midi", Day: "N'importe quand" },
     trucks: { Boom: "Camion girafe (Boom)", "Boom 90ft": "Girafe 90 pi", "Van/Cube": "Camion cube", Hiab: "Grue (Hiab)", unknown: "Je ne sais pas" },
     summary: "Voici ta commande", materials: "Matériaux", date: "Date", when: "Moment", truck: "Camion", notes: "Notes", none: "Aucune",
-    edit: "Modifier", checkout: "Placer ma commande", missingNote: "Articles non disponibles demandés", restart: "Recommencer",
+    edit: "Modifier", checkout: "Placer ma commande", missingNote: "Articles non disponibles demandés", restart: "Recommencer", inCart: "C'est dans ton panier :", seeCart: "Voir le panier", close: "Fermer", changeFormat: "Changer de format", backChat: "Retour à la conversation", totalNote: "Tu verras le total et les taxes avant de payer.", delivery: "Livraison", add: "Ajouter",
   },
   en: {
     bar: "Construction materials delivered across Greater Montréal",
@@ -68,7 +71,7 @@ const T = {
     windows: { Early: "Early (before 10am)", AM: "Morning", PM: "Afternoon", Day: "Anytime" },
     trucks: { Boom: "Boom truck", "Boom 90ft": "Boom 90 ft", "Van/Cube": "Cube van", Hiab: "Crane (Hiab)", unknown: "I don't know" },
     summary: "Here's your order", materials: "Materials", date: "Date", when: "Time", truck: "Truck", notes: "Notes", none: "None",
-    edit: "Edit", checkout: "Place my order", missingNote: "Unavailable items requested", restart: "Start over",
+    edit: "Edit", checkout: "Place my order", missingNote: "Unavailable items requested", restart: "Start over", inCart: "It's in your cart:", seeCart: "See cart", close: "Close", changeFormat: "Change size", backChat: "Back to the conversation", totalNote: "You'll see the total and taxes before paying.", delivery: "Delivery", add: "Add",
   },
 };
 
@@ -128,7 +131,7 @@ function MicButton({ onAudio, busy, big, mobile, t, recording, start, stop }: {
         {busy ? <Loader2 className={cn("animate-spin", big ? "h-10 w-10" : "h-5 w-5")} />
           : recording ? <Square className={big ? "h-10 w-10" : "h-5 w-5"} /> : <Mic className={big ? "h-12 w-12" : "h-5 w-5"} />}
       </button>
-      {(big || recording) && <span className={cn("font-medium", big ? "text-sm" : "text-xs")}>{label}</span>}
+      {(big || (recording && !mobile)) && <span className={cn("font-medium", big ? "text-sm" : "text-xs")}>{label}</span>}
     </div>
   );
 }
@@ -277,6 +280,7 @@ export default function Commander() {
   const setQty = (id: string, q: number) =>
     setItems((p) => (q <= 0 ? p.filter((x) => x.variantId !== id) : p.map((x) => (x.variantId === id ? { ...x, quantity: q } : x))));
 
+  const mobileSummary = isMobile && question === "summary" && !confirmRestart && !busy;
   const units = items.reduce((s, i) => s + i.quantity, 0);
   const cartLabel = `${t.products(items.length)} · ${t.units(units)}`;
 
