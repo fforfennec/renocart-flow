@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ShoppingCart, Pencil } from "lucide-react";
+import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ShoppingCart, Pencil, RotateCcw } from "lucide-react";
 import { fr as frLocale, enCA } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
@@ -529,6 +529,11 @@ export default function Commander() {
 
           <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
             onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
+            <button type="button" aria-label={t.restart} title={t.restart} onClick={() => setConfirmRestart(true)}
+              className="h-12 w-12 shrink-0 rounded-full border border-secondary-foreground/30 flex items-center justify-center text-secondary-foreground hover:bg-secondary-foreground/10 disabled:opacity-50"
+              disabled={busy}>
+              <RotateCcw className="h-5 w-5" />
+            </button>
             {started && <MicButton busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />}
             <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
               className="flex-1 min-w-0 h-12 rounded-full bg-card text-card-foreground px-4 text-base outline-none focus:ring-2 focus:ring-primary" />
