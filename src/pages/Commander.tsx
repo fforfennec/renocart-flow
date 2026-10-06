@@ -262,14 +262,15 @@ export default function Commander() {
       if (approved.length !== selected.length) { toast.error(lang === "fr" ? "Une suggestion n’est plus disponible." : "A suggestion is no longer available."); return; }
       await suggestionsRequest({ action: "offer", sessionId: suggestions.sessionId, ruleIds: approved.flatMap((s) => s.ruleIds) });
       await suggestionsRequest({ action: "accept", sessionId: suggestions.sessionId, ruleIds: approved.flatMap((s) => s.ruleIds) });
-      const next = [...items];
+      const next = items.map((item) => ({ ...item }));
       for (const s of approved) {
         const existing = next.find((i) => i.variantId === s.variantId);
         if (existing) existing.quantity += s.quantity; else next.push({ ...s });
       }
       setItems(next);
       setMsgs((m) => [...m, { id: uid(), from: "bot", suggestionAdded: approved.map((s) => ({ title: shortName(s.productTitle), quantity: s.quantity })) }]);
-      setSuggestions((s) => ({ ...s, status: s.status === "declined" ? "declined" : "accepted", accepted: [...s.accepted, ...approved], suggestions: s.suggestions.filter((v) => !approved.some((a) => a.variantId === v.variantId)), lastSig: next.map((i) => `${i.variantId}:${i.quantity}`).join("|") }));
+      const tracked = approved.map((s) => ({ ...s, quantity: live.find((v) => v.variantId === s.variantId)?.quantity ?? s.quantity }));
+      setSuggestions((s) => ({ ...s, status: s.status === "declined" ? "declined" : "accepted", accepted: [...s.accepted, ...tracked], suggestions: s.suggestions.filter((v) => !approved.some((a) => a.variantId === v.variantId)), lastSig: next.map((i) => `${i.variantId}:${i.quantity}`).join("|") }));
     } catch (e) { toast.error((e as Error).message); }
   };
   const suggestionReminder = suggestions.status === "declined" && !suggestions.hidden && <CommanderSuggestionReminder suggestions={suggestions.suggestions.filter((s) => !items.some((i) => i.variantId === s.variantId))} lang={lang} shortName={shortName} onAdd={addSuggestions} onHide={() => setSuggestions((s) => ({ ...s, hidden: true }))} />;
