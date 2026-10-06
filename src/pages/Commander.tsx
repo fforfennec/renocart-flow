@@ -335,7 +335,7 @@ export default function Commander() {
         </BotBubble>
       );
     }
-    const newAdds = m.added.filter((x) => x.from == null), qtyChanges = [...m.added, ...m.removed].filter((x) => x.from != null && x.q !== 0);
+    const newAdds = m.added.filter((x) => x.from == null);
     const fullRemoved = m.removed.filter((x) => x.from != null && x.from - x.q <= 0);
     const partRemoved = m.removed.filter((x) => x.from != null && x.from - x.q > 0);
     return (
