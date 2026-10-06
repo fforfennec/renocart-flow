@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ChevronRight, ShoppingCart, Pencil, RotateCcw, X, Info, ArrowLeftRight } from "lucide-react";
+import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ChevronRight, ShoppingCart, Pencil, RotateCcw, X, Info } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { CommanderMobileScroll } from "@/components/CommanderMobileScroll";
