@@ -24,6 +24,33 @@ afterEach(cleanup);
 beforeEach(() => { vi.clearAllMocks(); vi.mocked(getVariantProduct).mockResolvedValue(product); });
 
 describe("Commander inline Shopify variant selector", () => {
+  it("opens from the compact name/detail and switches the decrease control to removal at one", async () => {
+    const decrease = vi.fn();
+    const increase = vi.fn();
+    render(<CommanderVariantSelector variantId="current" lang="fr" disabled={false} onConfirm={vi.fn()}
+      row={{ title: "Gypse", detail: "½ po / 4x8", image: null, quantity: 1, onDecrease: decrease, onIncrease: increase }} />);
+    const trigger = await screen.findByRole("button", { name: "Changer de format : Gypse" });
+    await waitFor(() => expect(trigger).toBeEnabled());
+    expect(screen.queryByText("Changer de format", { exact: true })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Supprimer" }));
+    expect(decrease).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Augmenter la quantité" }));
+    expect(increase).toHaveBeenCalledOnce();
+    fireEvent.click(trigger);
+    await screen.findByRole("button", { name: "½ po" });
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("keeps a single-variant compact name inert without an arrow", async () => {
+    vi.mocked(getVariantProduct).mockResolvedValue({ ...product, variants: [product.variants[0]] });
+    const { container } = render(<CommanderVariantSelector variantId="current" lang="fr" disabled={false} onConfirm={vi.fn()}
+      row={{ title: "Gypse", detail: "½ po / 4x8", image: null, quantity: 2, onDecrease: vi.fn(), onIncrease: vi.fn() }} />);
+    await waitFor(() => expect(getVariantProduct).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "Gypse ½ po / 4x8" })).toBeDisabled();
+    expect(container.querySelector("[data-format-arrow]")).toBeNull();
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+  });
+
   it("selects the current variant, disables unavailable and nonexistent combinations and confirms an available variant", async () => {
     const confirm = vi.fn();
     render(<CommanderVariantSelector variantId="current" lang="fr" disabled={false} onConfirm={confirm} />);

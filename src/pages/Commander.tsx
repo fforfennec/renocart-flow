@@ -183,6 +183,12 @@ export default function Commander() {
   const [confirmRestart, setConfirmRestart] = useState(false);
   const isMobile = useIsMobile();
   const [bump, setBump] = useState(0);
+  const [removedProduct, setRemovedProduct] = useState<{ item: Item; index: number; key: string } | null>(null);
+  useEffect(() => {
+    if (!removedProduct) return;
+    const timer = window.setTimeout(() => setRemovedProduct(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [removedProduct]);
   const sig = items.map((i) => `${i.variantId}:${i.quantity}`).join("|");
   const firstSig = useRef(true);
   useEffect(() => { if (firstSig.current) { firstSig.current = false; return; } setBump((b) => b + 1); }, [sig]);
@@ -302,7 +308,27 @@ export default function Commander() {
     push({ id: uid(), from: "bot", formatChange: { title: shortName(product.title), before, after } });
   };
 
+  const decreaseProduct = (item: Item) => {
+    if (item.quantity > 1) { setQty(item.variantId, item.quantity - 1); return; }
+    setRemovedProduct({ item: { ...item }, index: items.findIndex((i) => i.variantId === item.variantId), key: uid() });
+    setQty(item.variantId, 0);
+  };
+  const undoRemoval = () => {
+    if (!removedProduct) return;
+    const { item, index } = removedProduct;
+    setItems((current) => {
+      if (current.some((i) => i.variantId === item.variantId)) return current.map((i) => i.variantId === item.variantId ? { ...i, quantity: i.quantity + item.quantity } : i);
+      const next = [...current]; next.splice(Math.max(0, Math.min(index, next.length)), 0, item); return next;
+    });
+    setRemovedProduct(null);
+  };
+  const removalNotice = removedProduct && <div role="status" className="shrink-0 px-4 py-2 border-t flex items-center justify-between gap-2 text-sm">
+    <span>{lang === "fr" ? "Produit retiré" : "Product removed"}</span>
+    <Button variant="ghost" className="h-11 text-secondary font-semibold" onClick={undoRemoval}>{t.cancel}</Button>
+  </div>;
   const variantSelector = (item: Item) => <CommanderVariantSelector variantId={item.variantId} lang={lang} disabled={busy || checkingOut}
+    row={{ title: shortName(item.productTitle), detail: item.variantTitle !== "Default Title" ? item.variantTitle : "", image: item.image,
+      quantity: item.quantity, onDecrease: () => decreaseProduct(item), onIncrease: () => setQty(item.variantId, item.quantity + 1) }}
     onConfirm={(product, variant, previous) => changeVariant(item.variantId, product, variant, previous)} />;
 
   const mobileSummary = isMobile && question === "summary" && !confirmRestart && !busy;
@@ -332,6 +358,7 @@ export default function Commander() {
 
   const restart = () => {
     setConfirmRestart(false);
+    setRemovedProduct(null);
     setItems([]); setMissing([]); setMsgs([]); setListDone(false); setAnswered([]); setEditing(null);
     setD({ delivery_date: null, time_window: null, truck_type: null, note: null });
   };
@@ -517,21 +544,6 @@ export default function Commander() {
         {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
         {items.map((i) => (
           <div key={i.variantId}>
-          <div className="flex gap-3 items-center">
-            <div className="h-14 w-14 rounded-md bg-muted overflow-hidden shrink-0">
-              {i.image && <img src={i.image} alt={i.productTitle} className="h-full w-full object-cover" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium leading-tight line-clamp-2">{i.productTitle}</p>
-              {i.variantTitle !== "Default Title" && <p className="text-xs text-muted-foreground">{i.variantTitle}</p>}
-              <div className="flex items-center gap-1 mt-1">
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setQty(i.variantId, i.quantity - 1)}><Minus className="h-3 w-3" /></Button>
-                <span className="w-8 text-center text-sm font-semibold">{i.quantity}</span>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setQty(i.variantId, i.quantity + 1)}><Plus className="h-3 w-3" /></Button>
-              </div>
-            </div>
-            <button aria-label="Supprimer" onClick={() => setQty(i.variantId, 0)} className="h-11 w-11 flex items-center justify-center text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
-          </div>
           {variantSelector(i)}
           </div>
         ))}
@@ -550,6 +562,7 @@ export default function Commander() {
           </div>
         )}
       </div>
+      {removalNotice}
       <p className="px-5 py-3 border-t text-xs text-muted-foreground">{t.priceNote}</p>
     </>
   );
@@ -679,24 +692,7 @@ export default function Commander() {
             <CommanderMobileScroll enabled className="flex-1 min-h-0 overflow-y-auto px-5">
               {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
               {items.map((i) => (
-                <div key={i.variantId} className="py-4 border-b">
-                  <div className="flex gap-3">
-                    <div className="h-16 w-16 rounded-xl bg-muted overflow-hidden shrink-0">
-                      {i.image && <img src={i.image} alt={i.productTitle} className="h-full w-full object-cover" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold leading-tight">{shortName(i.productTitle)}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-1">{i.variantTitle !== "Default Title" ? i.variantTitle : i.productTitle}</p>
-                    </div>
-                    <button aria-label="Supprimer" onClick={() => setQty(i.variantId, 0)} className="h-11 w-11 -mr-2 flex items-center justify-center text-muted-foreground hover:text-destructive"><Trash2 className="h-5 w-5" /></button>
-                  </div>
-                  <div className="mt-2 pl-[76px] flex items-center justify-between gap-2">
-                    <div className="flex items-center rounded-2xl border ml-auto">
-                      <button aria-label="−" onClick={() => setQty(i.variantId, i.quantity - 1)} className="h-11 w-11 flex items-center justify-center"><Minus className="h-4 w-4" /></button>
-                      <span className="w-10 text-center font-bold">{i.quantity}</span>
-                      <button aria-label="+" onClick={() => setQty(i.variantId, i.quantity + 1)} className="h-11 w-11 flex items-center justify-center"><Plus className="h-4 w-4" /></button>
-                    </div>
-                  </div>
+                <div key={i.variantId} className="py-3 border-b">
                   {variantSelector(i)}
                 </div>
               ))}
@@ -714,6 +710,7 @@ export default function Commander() {
                 </div>
               )}
             </CommanderMobileScroll>
+            {removalNotice}
             <div className="border-t px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
               <p className="text-sm text-muted-foreground flex items-center gap-2"><Info className="h-4 w-4" />{t.priceNote}</p>
               <Button size="lg" variant="secondary" className="w-full h-14 rounded-2xl text-base font-bold" onClick={() => setCartOpen(false)}>{t.backChat}</Button>
