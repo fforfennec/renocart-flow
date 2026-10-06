@@ -196,7 +196,7 @@ export default function Commander() {
   const question: Question = editing ?? (!started ? "list" : !listDone ? "more"
     : (["date", "window", "truck", "note"] as Field[]).find((f) => !answered.includes(f)) ?? "summary");
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs.length, question, busy, showCal, confirmRestart]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs.length, question, busy, showCal, confirmRestart, isMobile]);
 
   const push = (...m: Msg[]) => setMsgs((p) => [...p, ...m]);
 
