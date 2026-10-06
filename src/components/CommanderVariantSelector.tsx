@@ -71,7 +71,7 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm 
         {loading ? <Loader2 className="text-primary animate-spin" /> : <ArrowLeftRight className="text-primary" />}{label}
       </Button>
       <div className={cn("grid transition-[grid-template-rows,opacity] duration-200 motion-reduce:transition-none", open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
-        <div className="overflow-hidden min-h-0" inert={!open ? true : undefined}>
+        <div className="overflow-hidden min-h-0" ref={(element) => { element?.toggleAttribute("inert", !open); }}>
           <div id={id} role="region" aria-label={label} className="py-2 space-y-3">
             {product.options.map((option) => (
               <fieldset key={option.name} disabled={disabled || saving}>
