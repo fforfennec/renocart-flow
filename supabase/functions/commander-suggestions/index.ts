@@ -4,10 +4,12 @@ import { z } from "npm:zod@3";
 
 const shop = "e5ec80-69.myshopify.com";
 const gid = z.string().regex(/^gid:\/\/shopify\/(Product|ProductVariant)\/\d+$/);
+const qty = z.number().positive().max(10000).refine((n) => Math.round(n * 1000) === n * 1000, "3 décimales max");
 const ruleSchema = z.object({
-  id: z.string().uuid().optional(), trigger_kind: z.enum(["product", "product_type"]),
-  trigger_value: z.string().trim().min(1).max(255), variant_id: gid,
-  suggested_units: z.number().int().min(1).max(10000), trigger_units: z.number().int().min(1).max(10000),
+  id: z.string().uuid().optional(), trigger_kind: z.enum(["product", "product_type", "variant"]),
+  trigger_values: z.array(z.string().trim().min(1).max(255)).min(1).max(30), variant_id: gid,
+  suggested_qty: qty, trigger_qty: qty, priority: z.number().int().min(1).max(1000),
+  note: z.string().trim().max(1000).nullable().default(null),
   reason: z.string().trim().min(1).max(250), recommended: z.boolean(), active: z.boolean(),
 });
 const schema = z.discriminatedUnion("action", [
@@ -21,7 +23,9 @@ const schema = z.discriminatedUnion("action", [
 ]);
 type Product = { id: string; title: string; productType: string; featuredImage: { url: string } | null; collections: { nodes: { title: string }[]; pageInfo: { hasNextPage: boolean; endCursor: string } } };
 type Variant = { id: string; title: string; availableForSale: boolean; image: { url: string } | null; price: { amount: string; currencyCode: string }; product: Product };
-const banned = (value: string) => /(^|[^\p{L}\p{N}])(vis|screws?)(?=$|[^\p{L}\p{N}])/iu.test(value);
+// Permanent ban: screws and nails are never suggested, whatever a rule says.
+const banned = (value: string) => /(^|[^\p{L}\p{N}])(vis|screws?|clous?|nails?)(?=$|[^\p{L}\p{N}])/iu.test(value);
+const rulesOf = (rows: any[]) => rows.map((r) => ({ ...r, trigger_values: r.trigger_values?.length ? r.trigger_values : [r.trigger_value], suggested_qty: Number(r.suggested_qty ?? r.suggested_units), trigger_qty: Number(r.trigger_qty ?? r.trigger_units) }));
 async function storefront(query: string, variables: Record<string, unknown> = {}) {
   const token = Deno.env.get("SHOPIFY_STOREFRONT_ACCESS_TOKEN");
   if (!token) throw new Error("Connexion Shopify indisponible.");
