@@ -82,14 +82,16 @@ Deno.serve(async (req) => {
       const rule = body.rule;
       const [variant] = await variants([rule.variant_id]);
       if (!variant || !variant.availableForSale) return json({ error: "Cette variante Shopify n’est pas disponible." }, 400);
-      if (!await safeProduct(variant.product) || banned(variant.title) || banned(rule.reason)) return json({ error: "Les vis ne sont jamais suggérées." }, 400);
-      if (rule.trigger_kind === "product") {
-        if (!/^gid:\/\/shopify\/Product\/\d+$/.test(rule.trigger_value)) return json({ error: "Choisis un produit déclencheur." }, 400);
-        const p = await storefront(`query($id: ID!) { node(id: $id) { ... on Product { id } } }`, { id: rule.trigger_value });
-        if (!p.node?.id) return json({ error: "Produit déclencheur introuvable." }, 400);
+      if (!await safeProduct(variant.product) || banned(variant.title) || banned(rule.reason)) return json({ error: "Les vis et les clous ne sont jamais suggérés." }, 400);
+      if (rule.trigger_kind !== "product_type") {
+        const re = rule.trigger_kind === "product" ? /^gid:\/\/shopify\/Product\/\d+$/ : /^gid:\/\/shopify\/ProductVariant\/\d+$/;
+        if (!rule.trigger_values.every((v) => re.test(v))) return json({ error: "Choisis le ou les déclencheurs." }, 400);
+        const found = await storefront(`query($ids: [ID!]!) { nodes(ids: $ids) { id } }`, { ids: rule.trigger_values });
+        if (found.nodes.some((n: { id?: string } | null) => !n?.id)) return json({ error: "Déclencheur introuvable dans Shopify." }, 400);
       }
       const { id, ...values } = rule;
-      const result = id ? await db.from("suggestion_rules").update({ ...values, updated_at: new Date().toISOString() }).eq("id", id).select().single() : await db.from("suggestion_rules").insert(values).select().single();
+      const row = { ...values, trigger_value: values.trigger_values[0], suggested_units: Math.max(1, Math.ceil(values.suggested_qty)), trigger_units: Math.max(1, Math.ceil(values.trigger_qty)) };
+      const result = id ? await db.from("suggestion_rules").update({ ...row, updated_at: new Date().toISOString() }).eq("id", id).select().single() : await db.from("suggestion_rules").insert(row).select().single();
       if (result.error) throw result.error;
       return json({ rule: result.data });
     }
@@ -99,11 +101,12 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
     if (body.action === "list") {
-      const rules = await db.from("suggestion_rules").select("*").order("created_at");
+      const rules = await db.from("suggestion_rules").select("*").order("priority").order("created_at");
       const offers = await db.from("suggestion_offers").select("rule_id,accepted");
       if (rules.error || offers.error) throw rules.error || offers.error;
-      const vs = await variants((rules.data ?? []).map((r) => r.variant_id));
-      return json({ rules: (rules.data ?? []).map((r, i) => ({ ...r, productTitle: vs[i]?.product.title ?? "Produit introuvable", variantTitle: vs[i]?.title ?? "", proposed: offers.data?.filter((o) => o.rule_id === r.id).length ?? 0, accepted: offers.data?.filter((o) => o.rule_id === r.id && o.accepted).length ?? 0 })) });
+      const list = rulesOf(rules.data ?? []);
+      const vs = await variants(list.map((r) => r.variant_id));
+      return json({ rules: list.map((r, i) => ({ ...r, productTitle: vs[i]?.product.title ?? "Produit introuvable", variantTitle: vs[i]?.title ?? "", proposed: offers.data?.filter((o) => o.rule_id === r.id).length ?? 0, accepted: offers.data?.filter((o) => o.rule_id === r.id && o.accepted).length ?? 0 })) });
     }
     if (body.action === "offer") {
       const active = await db.from("suggestion_rules").select("id").in("id", body.ruleIds).eq("active", true);
@@ -122,31 +125,46 @@ Deno.serve(async (req) => {
     }
     const rules = await db.from("suggestion_rules").select("*").eq("active", true).order("recommended", { ascending: false }).order("created_at");
     if (rules.error) throw rules.error;
+    const activeRules = rulesOf(rules.data ?? []);
     const cartVariants = await variants(body.cart.map((i) => i.variantId));
-    const suggested = await variants((rules.data ?? []).map((r) => r.variant_id));
-    const suggestions = [];
-    for (let i = 0; i < (rules.data ?? []).length; i++) {
-      const rule = rules.data?.[i], variant = suggested[i];
-      if (!rule || !variant || !variant.availableForSale || banned(variant.title) || banned(rule.reason) || !await safeProduct(variant.product)) continue;
-      if (!body.include.includes(variant.id) && cartVariants.some((v) => v?.product.id === variant.product.id)) continue;
+    const suggested = await variants(activeRules.map((r) => r.variant_id));
+    const typeOf = (p?: Product) => (p?.productType ?? "").trim().toLocaleLowerCase();
+    type Row = { ruleIds: string[]; variantId: string; productId: string; productTitle: string; variantTitle: string; image: string | null; price: string; currency: string; available: boolean; quantity: number; raw: number; triggerCount: number; reason: string; recommended: boolean; priority: number };
+    const grouped = new Map<string, Row>();
+    for (let i = 0; i < activeRules.length; i++) {
+      const rule = activeRules[i], variant = suggested[i];
+      if (!variant || !variant.availableForSale || banned(variant.title) || banned(rule.reason) || !await safeProduct(variant.product)) continue;
+      if (!body.include.includes(variant.id)) {
+        // Skip when the cart already has this product or any product of the same Shopify type.
+        const t = typeOf(variant.product);
+        if (cartVariants.some((v) => v && (v.product.id === variant.product.id || (t && typeOf(v.product) === t)))) continue;
+      }
+      const values = rule.trigger_values.map((v: string) => v.toLocaleLowerCase());
       const n = body.cart.reduce((sum, item, index) => {
-        const p = cartVariants[index]?.product;
-        return sum + (p && (rule.trigger_kind === "product" ? p.id === rule.trigger_value : p.productType.toLocaleLowerCase() === rule.trigger_value.toLocaleLowerCase()) ? item.quantity : 0);
+        const v = cartVariants[index];
+        if (!v) return sum;
+        const hit = rule.trigger_kind === "variant" ? values.includes(v.id.toLocaleLowerCase())
+          : rule.trigger_kind === "product" ? values.includes(v.product.id.toLocaleLowerCase())
+          : values.includes(typeOf(v.product));
+        return sum + (hit ? item.quantity : 0);
       }, 0);
       if (!n) continue;
-      suggestions.push({ ruleIds: [rule.id], variantId: variant.id, productId: variant.product.id, productTitle: variant.product.title, variantTitle: variant.title,
+      const raw = n * rule.suggested_qty / rule.trigger_qty;
+      const reason = rule.reason.includes("{n}") ? rule.reason.replaceAll("{n}", String(n)) : `${rule.reason} · ${n}`;
+      const prev = grouped.get(variant.product.id);
+      if (prev) {
+        // Same product suggested by several rules: one line, quantities added.
+        prev.ruleIds.push(rule.id); prev.raw += raw; prev.recommended ||= rule.recommended;
+        prev.priority = Math.min(prev.priority, rule.priority ?? 100); prev.triggerCount += n;
+      } else grouped.set(variant.product.id, { ruleIds: [rule.id], variantId: variant.id, productId: variant.product.id, productTitle: variant.product.title, variantTitle: variant.title,
         image: variant.image?.url ?? variant.product.featuredImage?.url ?? null, price: variant.price.amount, currency: variant.price.currencyCode,
-        available: true, quantity: Math.max(1, Math.ceil(n * rule.suggested_units / rule.trigger_units)), triggerCount: n,
-        reason: rule.reason.includes("{n}") ? rule.reason.replaceAll("{n}", String(n)) : `${rule.reason} · ${n}`, recommended: rule.recommended });
+        available: true, quantity: 0, raw, triggerCount: n, reason, recommended: rule.recommended, priority: rule.priority ?? 100 });
     }
-    // One line per suggested product; merge rules rather than suggest duplicate variants.
-    const grouped = new Map<string, typeof suggestions[number]>();
-    for (const s of suggestions) {
-      const prev = grouped.get(s.productId);
-      if (prev) { prev.ruleIds.push(...s.ruleIds); if (prev.variantId === s.variantId) prev.quantity = Math.max(prev.quantity, s.quantity); }
-      else grouped.set(s.productId, s);
-    }
-    return json({ suggestions: Array.from(grouped.values()) });
+    const list = Array.from(grouped.values())
+      .map(({ raw, ...s }) => ({ ...s, quantity: Math.max(1, Math.ceil(raw - 1e-9)) }))
+      .sort((a, b) => Number(b.recommended) - Number(a.recommended) || a.priority - b.priority)
+      .slice(0, 5);
+    return json({ suggestions: list });
   } catch (error) {
     console.error("commander-suggestions:", error instanceof Error ? error.message : "request failed");
     return json({ error: "Les suggestions sont temporairement indisponibles." }, 500);
