@@ -6,8 +6,8 @@ import { hasScrewWord, type Suggestion } from "@/lib/commanderSuggestions";
 const suggestion = (name: string, recommended: boolean): Suggestion => ({ variantId: name, productId: name, productTitle: name, variantTitle: "Default Title", image: null, price: "20", currency: "CAD", available: true, quantity: 2, triggerCount: 40, reason: "Pour tes 40 feuilles", recommended, ruleIds: [name] });
 describe("finishing suggestions", () => {
   it("blocks screws as words, not unrelated substrings", () => {
-    for (const value of ["Vis à bois", "wood screws", "Screw", "VIS", "Vis-à-bois"]) expect(hasScrewWord(value)).toBe(true);
-    for (const value of ["Clous", "Visière", "Adhésif"]) expect(hasScrewWord(value)).toBe(false);
+    for (const value of ["Vis à bois", "wood screws", "Screw", "VIS", "Vis-à-bois", "Clous", "clou", "nails"]) expect(hasScrewWord(value)).toBe(true);
+    for (const value of ["Visière", "Adhésif", "Clouterie"]) expect(hasScrewWord(value)).toBe(false);
   });
   it("checks only recommended rows and submits selected quantity without a price", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
