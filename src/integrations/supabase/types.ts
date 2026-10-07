@@ -500,12 +500,17 @@ export type Database = {
           active: boolean
           created_at: string
           id: string
+          note: string | null
+          priority: number
           reason: string
           recommended: boolean
+          suggested_qty: number | null
           suggested_units: number
           trigger_kind: string
+          trigger_qty: number | null
           trigger_units: number
           trigger_value: string
+          trigger_values: string[]
           updated_at: string
           variant_id: string
         }
@@ -513,12 +518,17 @@ export type Database = {
           active?: boolean
           created_at?: string
           id?: string
+          note?: string | null
+          priority?: number
           reason?: string
           recommended?: boolean
+          suggested_qty?: number | null
           suggested_units?: number
           trigger_kind: string
+          trigger_qty?: number | null
           trigger_units?: number
           trigger_value: string
+          trigger_values?: string[]
           updated_at?: string
           variant_id: string
         }
@@ -526,12 +536,17 @@ export type Database = {
           active?: boolean
           created_at?: string
           id?: string
+          note?: string | null
+          priority?: number
           reason?: string
           recommended?: boolean
+          suggested_qty?: number | null
           suggested_units?: number
           trigger_kind?: string
+          trigger_qty?: number | null
           trigger_units?: number
           trigger_value?: string
+          trigger_values?: string[]
           updated_at?: string
           variant_id?: string
         }
