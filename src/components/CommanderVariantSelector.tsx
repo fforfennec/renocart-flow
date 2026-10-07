@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm, row }: {
   variantId: string; lang: "fr" | "en"; disabled: boolean;
-  row?: { title: string; detail: string; image: string | null; quantity: number; onDecrease: () => void; onIncrease: () => void };
+  row?: { title: string; detail: string; image: string | null; quantity: number; onDecrease: () => void; onIncrease: () => void; onSet?: (q: number) => void };
   onConfirm: (product: VariantProduct, variant: CatalogVariant, previous: CatalogVariant) => void;
 }) {
   const id = useId();
@@ -82,7 +82,7 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
           aria-label={row.quantity === 1 ? (fr ? "Supprimer" : "Remove") : (fr ? "Diminuer la quantité" : "Decrease quantity")}>
           {row.quantity === 1 ? <Trash2 /> : <Minus />}
         </Button>
-        <span className="min-w-6 px-1 text-center text-sm font-bold tabular-nums">{row.quantity}</span>
+        <QtyInput value={row.quantity} onSet={row.onSet} label={fr ? "Quantité" : "Quantity"} />
         <Button variant="ghost" size="icon" className="h-11 w-11" onClick={row.onIncrease} aria-label={fr ? "Augmenter la quantité" : "Increase quantity"}><Plus /></Button>
       </div>
     </div>
@@ -130,4 +130,14 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
       </div>
     </div>
   );
+}
+function QtyInput({ value, onSet, label }: { value: number; onSet?: (q: number) => void; label: string }) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => setText(String(value)), [value]);
+  if (!onSet) return <span className="min-w-6 px-1 text-center text-sm font-bold tabular-nums">{value}</span>;
+  const commit = () => { const n = parseInt(text, 10); if (Number.isFinite(n) && n >= 1) onSet(Math.min(n, 99999)); else setText(String(value)); };
+  return <input type="text" inputMode="numeric" pattern="[0-9]*" aria-label={label} value={text}
+    onChange={(e) => setText(e.target.value.replace(/\D/g, "").slice(0, 5))} onFocus={(e) => e.target.select()}
+    onBlur={commit} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+    className="w-12 h-11 bg-transparent text-center text-base md:text-sm font-bold tabular-nums rounded focus:outline-none focus:ring-2 focus:ring-ring" />;
 }
