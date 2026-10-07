@@ -50,6 +50,13 @@
       "when": 1791325716380,
       "tag": "0006_commander_suggestion_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791393792445,
+      "tag": "0007_suggestion_rules_priority_decimals",
+      "breakpoints": true
     }
   ]
 }

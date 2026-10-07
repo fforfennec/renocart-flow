@@ -10,7 +10,8 @@ export type SuggestionState = {
   suggestions: Suggestion[]; accepted: Suggestion[]; hidden: boolean; lastSig: string;
 };
 export const newSuggestionState = (): SuggestionState => ({ sessionId: crypto.randomUUID(), status: "idle", suggestions: [], accepted: [], hidden: false, lastSig: "" });
-export const hasScrewWord = (s: string) => /(^|[^\p{L}\p{N}])(vis|screws?)(?=$|[^\p{L}\p{N}])/iu.test(s);
+// Permanent ban: screws and nails are never suggested.
+export const hasScrewWord = (s: string) => /(^|[^\p{L}\p{N}])(vis|screws?|clous?|nails?)(?=$|[^\p{L}\p{N}])/iu.test(s);
 export async function suggestionsRequest<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke("commander-suggestions", { body });
   if (error) {
