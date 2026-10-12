@@ -36,7 +36,7 @@ const App = () => (
             
             {/* Supplier Routes */}
             <Route path="/supplier/respond" element={<SupplierRespond />} />
-            <Route path="/supplier/*" element={<ProtectedRoute requiredRole="supplier"><SupplierDashboard /></ProtectedRoute>} />
+            <Route path="/supplier/*" element={<ProtectedRoute requiredRole={["supplier", "partner"]}><SupplierDashboard /></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
