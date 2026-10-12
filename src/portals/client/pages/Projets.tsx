@@ -220,6 +220,8 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
           {form && <ProjectForm project={form.project} save={source?.saveProject} onCancel={() => setForm(null)} onSaved={() => { setForm(null); toast.success("Projet enregistré."); refresh(); }} />}
         </DialogContent>
       </Dialog>
+
+      <ProfileSettings open={profileOpen} onClose={() => setProfileOpen(false)} />
     </div>
   );
 }
