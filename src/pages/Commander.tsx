@@ -456,7 +456,7 @@ export default function Commander() {
 
   const joinList = (a: string[]) => a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} ${t.and} ${a[a.length - 1]}`;
   const clean = (s: string) => s.replace(/[.,;:!?\s]+$/, "");
-  const delta = (x: Change) => `${shortName(x.title)} : ${x.from} → ${x.q}`;
+  const delta = (x: Change) => `${x.full ? x.title : shortName(x.title)} : ${x.from} → ${x.q}`;
 
   const renderMsg = (m: Msg) => {
     if (m.from === "user") {
@@ -502,8 +502,8 @@ export default function Commander() {
     const partRemoved = m.removed.filter((x) => x.from != null && x.from - x.q > 0);
     if (isMobile && (m.added.length || m.removed.length)) {
       const rows = [
-        ...m.added.map((x) => ({ s: `+${x.q - (x.from ?? 0)}`, n: shortName(x.title), plus: true })),
-        ...m.removed.map((x) => ({ s: `−${x.q}`, n: shortName(x.title), plus: false })),
+        ...m.added.map((x) => ({ s: `+${x.q - (x.from ?? 0)}`, n: x.full ? x.title : shortName(x.title), plus: true })),
+        ...m.removed.map((x) => ({ s: `−${x.q}`, n: x.full ? x.title : shortName(x.title), plus: false })),
       ];
       return (
         <BotBubble key={m.id}>
@@ -523,7 +523,7 @@ export default function Commander() {
     }
     return (
       <BotBubble key={m.id}>
-        {newAdds.length > 0 && <p>{t.added} {joinList(newAdds.map((x) => `${x.q} ${shortName(x.title)}`))}.</p>}
+        {newAdds.length > 0 && <p>{t.added} {joinList(newAdds.map((x) => `${x.q} ${x.full ? x.title : shortName(x.title)}`))}.</p>}
         {m.added.filter((x) => x.from != null).map((x, i) => <p key={"a" + i}>{delta(x)}.</p>)}
         {partRemoved.map((x, i) => <p key={"p" + i}>{shortName(x.title)} : {x.from} → {(x.from ?? 0) - x.q}.</p>)}
         {fullRemoved.length > 0 && <p>{t.removed} {joinList(fullRemoved.map((x) => shortName(x.title)))}.</p>}
