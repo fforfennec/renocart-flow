@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2, Search, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { listAdminClients, type AdminClient } from "@/lib/adminClients";
+import { listAdminClients, getAdminClient, assignAdminOrder, saveAdminProject, type AdminClient } from "@/portals/team/lib/adminClients";
 import { money } from "@/lib/clientProjects";
-import Projets from "@/pages/Projets";
+import Projets from "@/portals/client/pages/Projets";
 
 export default function Clients() {
   const [clients, setClients] = useState<AdminClient[]>([]);
@@ -18,7 +18,12 @@ export default function Clients() {
     listAdminClients().then((data) => setClients(data.clients)).catch((e) => setError(e.message)).finally(() => setBusy(false));
   };
   useEffect(load, []);
-  if (selected) return <div><div className="px-6 pt-4 flex flex-wrap justify-between gap-2"><Button variant="ghost" onClick={() => { setSelected(null); load(); }}><ArrowLeft />Profils clients</Button><Button variant="outline" asChild><Link to="/commander"><ShoppingCart />Page de commande</Link></Button></div><Projets key={selected.id} adminClient={selected} /></div>;
+  if (selected) return <div><div className="px-6 pt-4 flex flex-wrap justify-between gap-2"><Button variant="ghost" onClick={() => { setSelected(null); load(); }}><ArrowLeft />Profils clients</Button><Button variant="outline" asChild><Link to="/admin/commander"><ShoppingCart />Page de commande</Link></Button></div><Projets key={selected.id} source={{
+    title: selected.name, subtitle: selected.email, extra: [selected.company, selected.phone].filter(Boolean).join(" · "),
+    load: () => getAdminClient(selected.id),
+    assign: (orderId, projectId) => assignAdminOrder(selected.id, orderId, projectId),
+    saveProject: (input, id) => saveAdminProject(selected.id, input, id),
+  }} /></div>;
   const filtered = clients.filter((c) => `${c.name} ${c.email} ${c.company}`.toLowerCase().includes(query.toLowerCase()));
   return <div className="p-6 md:p-8 space-y-6">
     <div><h1 className="text-2xl font-bold">Profils clients</h1><p className="text-muted-foreground mt-1">{clients.length} client(s)</p></div>

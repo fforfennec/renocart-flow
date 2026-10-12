@@ -1,19 +1,19 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import AdminDashboard from "./pages/admin/Dashboard";
-import SupplierDashboard from "./pages/supplier/Dashboard";
-import SupplierRespond from "./pages/supplier/SupplierRespond";
 import NotFound from "./pages/NotFound";
-import Commander from "./pages/Commander";
-import Projets from "./pages/Projets";
-import ResetPassword from "./pages/ResetPassword";
+import Index from "./portals/client/pages/Index";
+import Commander from "./portals/client/pages/Commander";
+import Projets from "./portals/client/pages/Projets";
+import ResetPassword from "./portals/client/pages/ResetPassword";
+
+// Second portal: loaded on demand so client visitors never download it.
+const TeamRoutes = lazy(() => import("./portals/team/TeamRoutes"));
+const team = (area: "equipe" | "admin" | "supplier") => <Suspense fallback={<div className="min-h-screen bg-background" />}><TeamRoutes area={area} /></Suspense>;
 
 const queryClient = new QueryClient();
 
@@ -26,19 +26,10 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
             <Route path="/commander" element={<Commander />} />
             <Route path="/projets" element={<Projets />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            
-            {/* Admin Routes */}
-            <Route path="/admin/*" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
-            
-            {/* Supplier Routes */}
-            <Route path="/supplier/respond" element={<SupplierRespond />} />
-            <Route path="/supplier/*" element={<ProtectedRoute requiredRole={["supplier", "partner", "admin"]}><SupplierDashboard /></ProtectedRoute>} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            {(["equipe", "admin", "supplier"] as const).map((a) => <Route key={a} path={`/${a}/*`} element={team(a)} />)}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

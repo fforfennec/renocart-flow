@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
         <h2>Nouvelle demande d'accès RenoCart</h2>
         <p><b>Nom :</b> ${esc(row.full_name ?? "—")}<br/><b>Courriel :</b> ${esc(row.email)}<br/>
         <b>Compagnie :</b> ${esc(row.company_name ?? "—")}<br/><b>Type demandé :</b> ${ROLE_LABEL[row.requested_role] ?? row.requested_role}</p>
-        <p><a href="${appUrl}/admin/utilisateurs" style="background:#F0AE2B;color:#1b2536;padding:10px 16px;border-radius:6px;text-decoration:none;font-weight:bold">Approuver ou refuser</a></p></div>`;
+        <p><a href="${appUrl}/equipe" style="background:#F0AE2B;color:#1b2536;padding:10px 16px;border-radius:6px;text-decoration:none;font-weight:bold">Approuver ou refuser</a></p></div>`;
       await sendGmailMessage(createRawEmail(ADMIN_EMAIL, `Demande d'accès : ${row.full_name ?? row.email}`, html, { html: true }));
       await admin.from("staff_accounts").update({ admin_notified: true }).eq("user_id", row.user_id);
       return json({ ok: true });

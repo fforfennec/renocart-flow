@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { LayoutDashboard, Package, BarChart3, HelpCircle, LogOut } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/portals/team/TeamAuthContext';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/NavLink';
 import SupplierOverview from './Overview';

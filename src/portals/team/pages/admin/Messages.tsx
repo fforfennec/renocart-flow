@@ -1,4 +1,4 @@
-import ProposalCard from '@/components/admin/ProposalCard';
+import ProposalCard from '@/portals/team/components/admin/ProposalCard';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';

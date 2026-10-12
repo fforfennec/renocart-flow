@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot, MessageCircle, ShoppingCart, UserCog, PanelLeftClose, PanelLeftOpen, ChevronDown } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/portals/team/TeamAuthContext';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/NavLink';
 import AdminOverview from './Overview';
@@ -16,7 +16,7 @@ import Messages from './Messages';
 import SuggestionRules from './SuggestionRules';
 import Utilisateurs from './Utilisateurs';
 import Clients from './Clients';
-import Commander from '@/pages/Commander';
+import Commander from '@/portals/client/pages/Commander';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();

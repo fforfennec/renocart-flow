@@ -1,31 +1,24 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
 
-type UserRole = Database['public']['Enums']['app_role'];
-
+// Session only.
 interface AuthContextType {
   user: User | null;
-  profile: Database['public']['Tables']['profiles']['Row'] | null;
-  userRole: UserRole | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  bypassSignIn: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Database['public']['Tables']['profiles']['Row'] | null>(null);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      setLoading(false);
       if (event === "SIGNED_IN") {
         const target = sessionStorage.getItem("client-auth-redirect");
         if (target && target.startsWith("/") && window.location.pathname !== target) {
@@ -33,98 +26,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           window.location.assign(target);
         }
       }
-      if (session?.user) {
-        if (event === "SIGNED_IN" || event === "USER_UPDATED") {
-          setLoading(true);
-          const id = session.user.id;
-          setTimeout(() => loadUserData(id), 0);
-        }
-      } else {
-        setProfile(null);
-        setUserRole(null);
-        setLoading(false);
-      }
     });
-
-    // THEN get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) {
-        loadUserData(session.user.id);
-      } else {
-        setLoading(false);
-      }
+      setLoading(false);
     });
-
     return () => subscription.unsubscribe();
   }, []);
-
-  const loadUserData = async (userId: string) => {
-    try {
-      // Load profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      setProfile(profileData);
-
-      // Load user roles (a user may have several — admin wins)
-      const { data: roleRows } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-
-      const roles = (roleRows ?? []).map((r) => r.role);
-      const priority: UserRole[] = ['admin', 'supplier', 'partner'];
-      setUserRole(priority.find((r) => roles.includes(r)) ?? null);
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    setProfile(null);
-    setUserRole(null);
   };
 
-  const bypassSignIn = (role: UserRole) => {
-    const mockId = '00000000-0000-0000-0000-000000000000';
-    setUser({
-      id: mockId,
-      email: `test-${role}@renocart.ca`,
-      aud: 'authenticated',
-      role: 'authenticated',
-    } as User);
-    setProfile({
-      id: '1',
-      user_id: mockId,
-      full_name: role === 'admin' ? 'Admin Test' : 'Fournisseur Test',
-      company_name: role === 'admin' ? 'RenoCart' : 'Fournisseur Test',
-      phone: null,
-      supplier_type: 'delivery',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-    setUserRole(role);
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, profile, userRole, loading, signOut, bypassSignIn }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ user, loading, signOut }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };

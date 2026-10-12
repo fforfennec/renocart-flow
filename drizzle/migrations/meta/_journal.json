@@ -78,6 +78,13 @@
       "when": 1791826967397,
       "tag": "0010_staff_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791831779899,
+      "tag": "0011_close_test_mode_policies",
+      "breakpoints": true
     }
   ]
 }
