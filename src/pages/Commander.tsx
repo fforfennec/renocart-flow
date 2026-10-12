@@ -363,17 +363,31 @@ export default function Commander() {
   const setQty = (id: string, q: number) =>
     setItems((p) => (q <= 0 ? p.filter((x) => x.variantId !== id) : p.map((x) => (x.variantId === id ? { ...x, quantity: q } : x))));
 
-  const changeVariant = (id: string, product: VariantProduct, variant: CatalogVariant, previous: CatalogVariant) => {
-    if (!items.some((i) => i.variantId === id)) return;
-    setItems((current) => {
-      const source = current.find((i) => i.variantId === id);
-      if (!source) return current;
-      const replacement = { ...source, variantId: variant.id, productTitle: product.title, variantTitle: variant.title,
+  const changeVariant = (id: string, product: VariantProduct, variant: CatalogVariant, previous: CatalogVariant, mode: "replace" | "add" = "replace") => {
+    const source = items.find((i) => i.variantId === id);
+    if (!source) return;
+    if (mode === "add") {
+      const existing = items.find((i) => i.variantId === variant.id);
+      const entry = { variantId: variant.id, productTitle: product.title, variantTitle: variant.title, quantity: source.quantity,
         image: variant.image?.url ?? product.featuredImage?.url ?? source.image,
+        price: variant.price.amount, currency: variant.price.currencyCode, available: variant.availableForSale };
+      setItems((current) => existing
+        ? current.map((i) => i.variantId === variant.id ? { ...i, quantity: i.quantity + source.quantity } : i)
+        : current.flatMap((i) => i.variantId === id ? [i, entry] : [i]));
+      push({ id: uid(), from: "bot", added: [existing
+        ? { q: existing.quantity + source.quantity, title: product.title, from: existing.quantity }
+        : { q: source.quantity, title: product.title }], removed: [], missing: [] });
+      return;
+    }
+    setItems((current) => {
+      const src = current.find((i) => i.variantId === id);
+      if (!src) return current;
+      const replacement = { ...src, variantId: variant.id, productTitle: product.title, variantTitle: variant.title,
+        image: variant.image?.url ?? product.featuredImage?.url ?? src.image,
         price: variant.price.amount, currency: variant.price.currencyCode, available: variant.availableForSale };
       const existing = current.find((i) => i.variantId === variant.id);
       if (existing) return current.filter((i) => i.variantId !== id).map((i) => i.variantId === variant.id
-        ? { ...replacement, quantity: existing.quantity + source.quantity } : i);
+        ? { ...replacement, quantity: existing.quantity + src.quantity } : i);
       return current.map((i) => i.variantId === id ? replacement : i);
     });
     const changed = previous.selectedOptions.filter((o) => variant.selectedOptions.some((v) => v.name === o.name && v.value !== o.value));
