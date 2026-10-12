@@ -38,7 +38,8 @@ type Msg =
   | { id: string; from: "bot"; suggestionAdjustment: { variantId: string; title: string; before: number; after: number; reason: string }[]; undone?: boolean }
   | { id: string; from: "bot"; formatChange: { title: string; before: string; after: string } }
   | { id: string; from: "bot"; added: Change[]; removed: Change[]; missing: Missing[] }
-  | { id: string; from: "bot"; nothing: true; dismissed?: boolean };
+  | { id: string; from: "bot"; nothing: true; dismissed?: boolean }
+  | { id: string; from: "bot"; note: string };
 
 const T = {
   fr: {
