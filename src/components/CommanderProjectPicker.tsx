@@ -45,7 +45,7 @@ export function ProjectPicker({ projects, value, onPick, onNew, lang, dark, drop
         aria-expanded={open}
         className={cn(
           "min-h-11 w-full rounded-full border-2 px-4 pr-3 text-sm font-semibold flex items-center justify-between gap-2 transition-colors text-left",
-          value ? "border-primary text-foreground" : dark ? "border-secondary-foreground/40 text-secondary-foreground hover:border-primary" : "border-border hover:border-primary",
+          value ? "border-primary text-secondary-foreground" : dark ? "border-secondary-foreground/40 text-secondary-foreground hover:border-primary" : "border-border hover:border-primary",
         )}
       >
         <span className="truncate">{label}</span>
