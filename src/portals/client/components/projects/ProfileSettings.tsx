@@ -24,11 +24,12 @@ export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () 
     if (!open || !user) return;
     setLoading(true);
     void (async () => {
-      const { data, error } = await supabase.from("profiles").select("full_name, phone, company_name").eq("user_id", user.id).maybeSingle();
+      const { data, error } = await supabase.from("profiles").select("full_name, phone, company_name, job_title").eq("user_id", user.id).maybeSingle();
       if (error) toast.error(error.message);
       setFullName(data?.full_name ?? (user.user_metadata?.full_name as string) ?? "");
       setPhone(data?.phone ?? "");
       setCompany(data?.company_name ?? "");
+      setJobTitle(data?.job_title ?? "");
       setLoading(false);
     })();
   }, [open, user]);
@@ -37,7 +38,7 @@ export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () 
     if (!user || !fullName.trim()) { toast.error("Le nom est requis."); return; }
     setSaving(true);
     const { error } = await supabase.from("profiles").upsert(
-      { user_id: user.id, full_name: fullName.trim(), phone: phone.trim() || null, company_name: company.trim() || null },
+      { user_id: user.id, full_name: fullName.trim(), phone: phone.trim() || null, company_name: company.trim() || null, job_title: jobTitle.trim() || null },
       { onConflict: "user_id" },
     );
     setSaving(false);
