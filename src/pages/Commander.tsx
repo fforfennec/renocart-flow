@@ -13,7 +13,7 @@ import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { createCheckout } from "@/lib/shopifyStorefront";
 import { useAuth } from "@/contexts/AuthContext";
 import { listProjects, projectAddress, type ClientProject } from "@/lib/clientProjects";
-import { NewProjectDialog, ProjectStrip, type ProjectChoice } from "@/components/CommanderProjectPicker";
+import { NewProjectDialog, ProjectPicker, type ProjectChoice } from "@/components/CommanderProjectPicker";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
@@ -631,7 +631,7 @@ export default function Commander() {
         if (project === null) return (
           <BotBubble>
             <p className="mb-3">{lang === "fr" ? "Associer cette commande à un projet ?" : "Link this order to a project?"}</p>
-            {projects.length ? <ProjectStrip dark projects={projects} value={project} onPick={setProject} onNew={() => setNewProject(true)} lang={lang} />
+            {projects.length ? <ProjectPicker dropUp dark projects={projects} value={project} onPick={setProject} onNew={() => setNewProject(true)} lang={lang} />
               : <div className="flex flex-wrap gap-2">
                 <Pill onClick={() => setNewProject(true)}>{lang === "fr" ? "Créer un projet" : "Create a project"}</Pill>
                 <Pill onClick={() => setProject("none")}>{lang === "fr" ? "Non, commander" : "No, just order"}</Pill>
@@ -764,7 +764,7 @@ export default function Commander() {
           {projects.length > 0 && !listDone && (
             <div className="shrink-0 px-4 md:px-8 pt-3">
               <p className="text-xs font-semibold uppercase tracking-widest opacity-70 mb-1.5">{lang === "fr" ? "Pour quel projet ?" : "Which project?"}</p>
-              <ProjectStrip dark projects={projects} value={project} onPick={setProject} onNew={() => setNewProject(true)} lang={lang} />
+              <ProjectPicker dark projects={projects} value={project} onPick={setProject} onNew={() => setNewProject(true)} lang={lang} />
             </div>
           )}
           <CommanderMobileScroll enabled={isMobile} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">

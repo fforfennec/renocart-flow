@@ -158,6 +158,11 @@
 
 .commander-mobile-scroll { scrollbar-width: none; }
 .commander-mobile-scroll::-webkit-scrollbar { display: none; }
+
+.thin-scroll { scrollbar-width: thin; scrollbar-color: hsl(var(--muted-foreground) / 0.4) transparent; }
+.thin-scroll::-webkit-scrollbar { width: 3px; }
+.thin-scroll::-webkit-scrollbar-track { background: transparent; }
+.thin-scroll::-webkit-scrollbar-thumb { border-radius: 999px; background: hsl(var(--muted-foreground) / 0.4); }
 .commander-scroll-indicator {
   position: absolute;
   top: 0;
