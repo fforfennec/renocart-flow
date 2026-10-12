@@ -551,6 +551,45 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_accounts: {
+        Row: {
+          admin_notified: boolean
+          company_name: string | null
+          created_at: string
+          decided_at: string | null
+          email: string
+          full_name: string | null
+          requested_role: string
+          status: string
+          supplier_company_id: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notified?: boolean
+          company_name?: string | null
+          created_at?: string
+          decided_at?: string | null
+          email: string
+          full_name?: string | null
+          requested_role?: string
+          status?: string
+          supplier_company_id?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notified?: boolean
+          company_name?: string | null
+          created_at?: string
+          decided_at?: string | null
+          email?: string
+          full_name?: string | null
+          requested_role?: string
+          status?: string
+          supplier_company_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       suggestion_offers: {
         Row: {
           accepted: boolean
@@ -981,7 +1020,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "supplier"
+      app_role: "admin" | "supplier" | "partner"
       supplier_type: "material" | "delivery"
     }
     CompositeTypes: {
@@ -1110,7 +1149,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "supplier"],
+      app_role: ["admin", "supplier", "partner"],
       supplier_type: ["material", "delivery"],
     },
   },

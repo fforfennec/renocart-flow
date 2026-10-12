@@ -34,7 +34,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
       if (session?.user) {
-        loadUserData(session.user.id);
+        if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+          setLoading(true);
+          const id = session.user.id;
+          setTimeout(() => loadUserData(id), 0);
+        }
       } else {
         setProfile(null);
         setUserRole(null);

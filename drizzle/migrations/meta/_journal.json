@@ -64,6 +64,20 @@
       "when": 1791824804307,
       "tag": "0008_client_projects",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791826948122,
+      "tag": "0009_add_partner_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791826967397,
+      "tag": "0010_staff_accounts",
+      "breakpoints": true
     }
   ]
 }

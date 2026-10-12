@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot, MessageCircle, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot, MessageCircle, ShoppingCart, UserCog } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/NavLink';
@@ -13,6 +13,7 @@ import SupplierDetail from './SupplierDetail';
 import Automations from './Automations';
 import Messages from './Messages';
 import SuggestionRules from './SuggestionRules';
+import Utilisateurs from './Utilisateurs';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
@@ -87,6 +88,14 @@ const AdminDashboard = () => {
           <NavLink to="/admin/suggestions" className="flex items-center gap-3 px-3 py-2 rounded-md text-secondary-foreground/70 hover:bg-secondary-foreground/5" activeClassName="bg-secondary-foreground/10 text-secondary-foreground">
             <Package size={20} /><span>Règles de suggestions</span>
           </NavLink>
+          <NavLink
+            to="/admin/utilisateurs"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
+            <UserCog size={20} />
+            <span>Utilisateurs</span>
+          </NavLink>
           <NavLink 
             to="/admin/faq"
             className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
@@ -129,6 +138,7 @@ const AdminDashboard = () => {
           <Route path="/stats" element={<AdminStats />} />
           <Route path="/automations" element={<Automations />} />
           <Route path="/suggestions" element={<SuggestionRules />} />
+          <Route path="/utilisateurs" element={<Utilisateurs />} />
           <Route path="/faq" element={<AdminFAQ />} />
         </Routes>
       </main>
