@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { createCheckout } from "@/lib/shopifyStorefront";
 import { useAuth } from "@/contexts/AuthContext";
-import { listProjects, projectAddress, type ClientProject } from "@/lib/clientProjects";
+import { canManageAccount, canOrder, getClientContext, listProjects, projectAddress, type AccountRole, type ClientProject } from "@/lib/clientProjects";
 import { NewProjectDialog, ProjectPicker, type ProjectChoice } from "@/portals/client/components/CommanderProjectPicker";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -200,8 +200,12 @@ export default function Commander() {
   const [projects, setProjects] = useState<ClientProject[]>([]);
   const [project, setProject] = useState<ProjectChoice>(saved?.project ?? null);
   const [newProject, setNewProject] = useState(false);
+  const [accountRole, setAccountRole] = useState<AccountRole | undefined>();
+  const mayCreateProject = !user || canManageAccount(accountRole);
+  const mayOrder = canOrder(accountRole);
   useEffect(() => {
-    if (!user) { setProjects([]); return; }
+    if (!user) { setProjects([]); setAccountRole(undefined); return; }
+    getClientContext().then((c) => setAccountRole(c?.role)).catch(() => {});
     listProjects().then((list) => {
       setProjects(list);
       setProject((cur) => cur && cur !== "none" ? list.find((p) => p.id === cur.id) ?? null : cur);
@@ -631,9 +635,9 @@ export default function Commander() {
         if (project === null) return (
           <BotBubble>
             <p className="mb-3">{lang === "fr" ? "Associer cette commande à un projet ?" : "Link this order to a project?"}</p>
-            {projects.length ? <ProjectPicker dropUp dark projects={projects} value={project} onPick={setProject} onNew={() => setNewProject(true)} lang={lang} />
+            {projects.length ? <ProjectPicker dropUp dark projects={projects} value={project} onPick={setProject} onNew={mayCreateProject ? () => setNewProject(true) : undefined} lang={lang} />
               : <div className="flex flex-wrap gap-2">
-                <Pill onClick={() => setNewProject(true)}>{lang === "fr" ? "Créer un projet" : "Create a project"}</Pill>
+                {mayCreateProject && <Pill onClick={() => setNewProject(true)}>{lang === "fr" ? "Créer un projet" : "Create a project"}</Pill>}
                 <Pill onClick={() => setProject("none")}>{lang === "fr" ? "Non, commander" : "No, just order"}</Pill>
               </div>}
           </BotBubble>
@@ -689,9 +693,10 @@ export default function Commander() {
               <Row f="truck" label={t.truck} value={fmt("truck", d.truck_type)} />
               <Row f="note" label={t.notes} value={d.note || t.none} />
             </dl>
-            <Button size="lg" className="w-full mt-4 h-14 text-base font-bold" onClick={checkout} disabled={checkingOut || !items.length}>
+            <Button size="lg" className="w-full mt-4 h-14 text-base font-bold" onClick={checkout} disabled={checkingOut || !items.length || !mayOrder}>
               {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.checkout}
             </Button>
+            {!mayOrder && <p className="mt-2 text-center text-sm">{lang === "fr" ? "Ton accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>}
           </div>
         );
       }
@@ -764,7 +769,7 @@ export default function Commander() {
           {projects.length > 0 && !listDone && (
             <div className="shrink-0 px-4 md:px-8 pt-3">
               <p className="text-xs font-semibold uppercase tracking-widest opacity-70 mb-1.5">{lang === "fr" ? "Pour quel projet ?" : "Which project?"}</p>
-              <ProjectPicker dark projects={projects} value={project} onPick={setProject} onNew={() => setNewProject(true)} lang={lang} />
+              <ProjectPicker dark projects={projects} value={project} onPick={setProject} onNew={mayCreateProject ? () => setNewProject(true) : undefined} lang={lang} />
             </div>
           )}
           <CommanderMobileScroll enabled={isMobile} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
@@ -803,7 +808,7 @@ export default function Commander() {
               </Button>
               {mobileSummary ? (
               <div>
-                <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={checkout} disabled={checkingOut || !items.length}>
+                <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={checkout} disabled={checkingOut || !items.length || !mayOrder}>
                   {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.checkout}
                 </Button>
                 <p className="mt-2 text-center text-xs opacity-70">{t.totalNote}</p>

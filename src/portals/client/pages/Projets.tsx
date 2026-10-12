@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ClientAuthForm } from "@/portals/client/components/projects/ClientAuthForm";
 import { ProjectForm } from "@/portals/client/components/projects/ProjectForm";
+import { AccountTeam, ProjectMembers } from "@/portals/client/components/projects/AccountTeam";
+import { canManageAccount, getClientContext, ROLE_LABEL, type ClientContext } from "@/lib/clientProjects";
 import { assignOrder, downloadInvoice, downloadInvoicesZip, listInvoices, listProjects, money, projectAddress, totals, type ClientProject, type InvoiceOrder } from "@/lib/clientProjects";
 
 const NONE = "__none__";
@@ -29,6 +31,10 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
   const [open, setOpen] = useState<string | null>(null); // project id or NONE
   const [form, setForm] = useState<{ project?: ClientProject } | null>(null);
   const [zipping, setZipping] = useState(false);
+  const [ctx, setCtx] = useState<ClientContext | null>(null);
+  // Admin view (source) has full rights; otherwise permissions follow the account role.
+  const role = source ? "owner" : ctx?.role;
+  const manage = canManageAccount(role);
 
   useEffect(() => { document.title = "RenoCart — Gestion de projet"; }, []);
   const refresh = useCallback(async () => {
@@ -36,7 +42,7 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
     setBusy(true);
     try {
       if (source) { const data = await source.load(); setProjects(data.projects); setOrders(data.orders); }
-      else { const [p, o] = await Promise.all([listProjects(), listInvoices()]); setProjects(p); setOrders(o); }
+      else { const c = await getClientContext(); setCtx(c); const [p, o] = await Promise.all([listProjects(), listInvoices()]); setProjects(p); setOrders(o); }
     }
     catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   }, [user, source]);
@@ -94,8 +100,9 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
                 <h1 className="text-3xl font-black tracking-tight">{source ? source.title : "Gestion de projet"}</h1>
                 <p className="text-muted-foreground">{source?.subtitle ?? user.email}</p>
                 {source?.extra && <p className="text-sm text-muted-foreground">{source.extra}</p>}
+                {!source && ctx && ctx.role !== "owner" && <p className="text-sm font-semibold mt-1">{ROLE_LABEL[ctx.role]}</p>}
               </div>
-              <Button className="h-11 font-bold" onClick={() => setForm({})}><Plus className="h-4 w-4 mr-2" />Nouveau projet</Button>
+              {manage && <Button className="h-11 font-bold" onClick={() => setForm({})}><Plus className="h-4 w-4 mr-2" />Nouveau projet</Button>}
             </div>
             {busy ? <Loader2 className="h-6 w-6 animate-spin mx-auto my-12" /> : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -120,9 +127,10 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
                   <p className="text-sm text-muted-foreground mt-1">Commandes non assignées. Tu peux les déplacer dans un projet.</p>
                   <p className="mt-4 text-sm"><b className="text-lg">{(byProject.get(NONE) ?? []).length}</b> facture(s)</p>
                 </Button>
-                {!projects.length && <p className="sm:col-span-2 text-muted-foreground self-center">Aucun projet pour l'instant. Crée ton premier projet pour regrouper tes commandes.</p>}
+                {!projects.length && <p className="sm:col-span-2 text-muted-foreground self-center">{manage ? "Aucun projet pour l'instant. Crée ton premier projet pour regrouper tes commandes." : "Aucun projet ne t'a encore été assigné."}</p>}
               </div>
             )}
+            {!source && manage && ctx && <AccountTeam selfMemberId={ctx.memberId} />}
           </>
         ) : (
           <>
@@ -138,7 +146,7 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
                 </div>}
               </div>
               <div className="flex gap-2">
-                {current && <Button variant="outline" className="h-11" onClick={() => setForm({ project: current })}><Pencil className="h-4 w-4 mr-2" />Modifier</Button>}
+                {current && manage && <Button variant="outline" className="h-11" onClick={() => setForm({ project: current })}><Pencil className="h-4 w-4 mr-2" />Modifier</Button>}
                 <Button className="h-11 font-bold" disabled={!list.length || zipping}
                   onClick={async () => { setZipping(true); try { await downloadInvoicesZip(list, `Factures-${current?.code ?? "sans-projet"}`); } finally { setZipping(false); } }}>
                   {zipping ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}Tout télécharger
@@ -164,7 +172,7 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
                       <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })} · {o.order_items.length} article(s)</p>
                     </div>
                     <span className="font-bold">{money(o.total_price, o.currency ?? "CAD")}</span>
-                    <Select value={o.project_id ?? NONE} onValueChange={(v) => assign(o.id, v)}>
+                    <Select value={o.project_id ?? NONE} onValueChange={(v) => assign(o.id, v)} disabled={role === "employee"}>
                       <SelectTrigger className="w-44 h-11" aria-label="Projet"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value={NONE}>Sans projet</SelectItem>
@@ -185,6 +193,7 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
                 ))}</ul>
               </section>
             </div>
+            {current && !source && ctx && ctx.role !== "employee" && <ProjectMembers key={current.id} projectId={current.id} role={ctx.role} selfMemberId={ctx.memberId} />}
           </>
         )}
       </main>
