@@ -44,7 +44,6 @@ const AdminDashboard = () => {
     { label: 'Dispatch', items: [
       { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
       { to: '/admin/messages', label: 'Messages suppliers', icon: MessageCircle },
-      { to: '/admin/messages-clients', label: 'Messages clients', icon: MessageCircle },
       { to: '/admin/historique', label: 'Historique', icon: Package },
       { to: '/admin/stats', label: 'Stats', icon: BarChart3 },
       { to: '/admin/suppliers', label: 'Fournisseurs & SP', icon: Truck },
@@ -53,6 +52,7 @@ const AdminDashboard = () => {
     { label: 'Gestion Clients', items: [
       { to: '/admin/commander', label: 'Page de commande', icon: ShoppingCart },
       { to: '/admin/clients', label: 'Profils clients', icon: Users },
+      { to: '/admin/messages-clients', label: 'Messages clients', icon: MessageCircle },
     ] },
     { label: 'Base de données', items: [
       { to: '/admin/suggestions', label: 'Règles de suggestions', icon: Package },
