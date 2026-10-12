@@ -25,7 +25,7 @@ type Missing = { name: string; quantity: number };
 type Field = "date" | "window" | "truck" | "note";
 type Question = "list" | "more" | Field | "summary";
 type Details = { delivery_date: string | null; time_window: string | null; truck_type: string | null; note: string | null };
-type Change = { q: number; title: string; from?: number };
+type Change = { q: number; title: string; from?: number; full?: boolean };
 type Msg =
   | { id: string; from: "user"; text: string }
   | { id: string; from: "user"; voice: number; transcript?: string }
@@ -374,9 +374,10 @@ export default function Commander() {
       setItems((current) => existing
         ? current.map((i) => i.variantId === variant.id ? { ...i, quantity: i.quantity + source.quantity } : i)
         : current.flatMap((i) => i.variantId === id ? [i, entry] : [i]));
+      const fullTitle = variant.title && variant.title !== "Default Title" ? `${product.title} — ${variant.title}` : product.title;
       push({ id: uid(), from: "bot", added: [existing
-        ? { q: existing.quantity + source.quantity, title: product.title, from: existing.quantity }
-        : { q: source.quantity, title: product.title }], removed: [], missing: [] });
+        ? { q: existing.quantity + source.quantity, title: fullTitle, from: existing.quantity, full: true }
+        : { q: source.quantity, title: fullTitle, full: true }], removed: [], missing: [] });
       return;
     }
     setItems((current) => {
@@ -415,7 +416,7 @@ export default function Commander() {
     <Button variant="ghost" className="h-11 text-secondary font-semibold" onClick={undoRemoval}>{t.cancel}</Button>
   </div>;
   const variantSelector = (item: Item) => <CommanderVariantSelector variantId={item.variantId} lang={lang} disabled={busy || checkingOut}
-    row={{ title: shortName(item.productTitle), detail: item.variantTitle !== "Default Title" ? item.variantTitle : "", image: item.image,
+    row={{ title: item.productTitle, detail: item.variantTitle !== "Default Title" ? item.variantTitle : "", image: item.image,
       quantity: item.quantity, onDecrease: () => decreaseProduct(item), onIncrease: () => setQty(item.variantId, item.quantity + 1), onSet: (q) => setQty(item.variantId, q) }}
     onConfirm={(product, variant, previous, mode) => changeVariant(item.variantId, product, variant, previous, mode)} />;
 
@@ -455,7 +456,7 @@ export default function Commander() {
 
   const joinList = (a: string[]) => a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} ${t.and} ${a[a.length - 1]}`;
   const clean = (s: string) => s.replace(/[.,;:!?\s]+$/, "");
-  const delta = (x: Change) => `${shortName(x.title)} : ${x.from} → ${x.q}`;
+  const delta = (x: Change) => `${x.full ? x.title : shortName(x.title)} : ${x.from} → ${x.q}`;
 
   const renderMsg = (m: Msg) => {
     if (m.from === "user") {
@@ -501,8 +502,8 @@ export default function Commander() {
     const partRemoved = m.removed.filter((x) => x.from != null && x.from - x.q > 0);
     if (isMobile && (m.added.length || m.removed.length)) {
       const rows = [
-        ...m.added.map((x) => ({ s: `+${x.q - (x.from ?? 0)}`, n: shortName(x.title), plus: true })),
-        ...m.removed.map((x) => ({ s: `−${x.q}`, n: shortName(x.title), plus: false })),
+        ...m.added.map((x) => ({ s: `+${x.q - (x.from ?? 0)}`, n: x.full ? x.title : shortName(x.title), plus: true })),
+        ...m.removed.map((x) => ({ s: `−${x.q}`, n: x.full ? x.title : shortName(x.title), plus: false })),
       ];
       return (
         <BotBubble key={m.id}>
@@ -522,7 +523,7 @@ export default function Commander() {
     }
     return (
       <BotBubble key={m.id}>
-        {newAdds.length > 0 && <p>{t.added} {joinList(newAdds.map((x) => `${x.q} ${shortName(x.title)}`))}.</p>}
+        {newAdds.length > 0 && <p>{t.added} {joinList(newAdds.map((x) => `${x.q} ${x.full ? x.title : shortName(x.title)}`))}.</p>}
         {m.added.filter((x) => x.from != null).map((x, i) => <p key={"a" + i}>{delta(x)}.</p>)}
         {partRemoved.map((x, i) => <p key={"p" + i}>{shortName(x.title)} : {x.from} → {(x.from ?? 0) - x.q}.</p>)}
         {fullRemoved.length > 0 && <p>{t.removed} {joinList(fullRemoved.map((x) => shortName(x.title)))}.</p>}
