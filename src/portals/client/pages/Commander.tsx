@@ -458,6 +458,7 @@ export default function Commander() {
       : v || t.noNote;
 
   const checkout = async () => {
+    if (!mayOrder) return;
     setCheckingOut(true);
     try {
       const attributes = [
@@ -811,7 +812,7 @@ export default function Commander() {
                 <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={checkout} disabled={checkingOut || !items.length || !mayOrder}>
                   {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.checkout}
                 </Button>
-                <p className="mt-2 text-center text-xs opacity-70">{t.totalNote}</p>
+                <p className="mt-2 text-center text-xs opacity-70">{mayOrder ? t.totalNote : lang === "fr" ? "Ton accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>
               </div>
             ) : (
                 <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
