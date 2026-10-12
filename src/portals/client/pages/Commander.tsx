@@ -52,7 +52,7 @@ const T = {
     type: "Écris ici…", cart: "Ton panier", empty: "Ton panier est vide. Parle ou écris ta liste pour commencer.",
     missing: "Pas disponible chez nous", missingSub: "On n'a pas trouvé ces articles dans notre catalogue.",
     priceNote: "Les prix et les taxes s'affichent au paiement.",
-    myProjects: "Mes projets", createProfile: "Créer un profil",
+    myProjects: "Mes projets",
     products: (n: number) => `${n} produit${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unité${n > 1 ? "s" : ""}`,
     added: "J'ai ajouté", removed: "J'ai enlevé", and: "et", notFound: "Je n'ai pas trouvé", nothing: "Je n'ai pas compris un des articles. Tu peux le répéter ?", repeat: "Répéter", ignore: "Ignorer", voice: "Message vocal",
     confirmRestart: "Effacer ton panier et la conversation ?", yesRestart: "Oui, recommencer", cancel: "Annuler",
