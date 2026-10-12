@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-// Session only. No role or staff data lives here: this context ships with the client portal.
+// Session only.
 interface AuthContextType {
   user: User | null;
   loading: boolean;
