@@ -32,6 +32,75 @@ export type Database = {
         }
         Relationships: []
       }
+      client_members: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          invited_by: string | null
+          owner_id: string
+          role: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          invited_by?: string | null
+          owner_id: string
+          role: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string | null
+          owner_id?: string
+          role?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      client_project_members: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          member_id: string
+          project_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          member_id: string
+          project_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          member_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_project_members_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "client_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_projects: {
         Row: {
           address1: string | null
@@ -1011,12 +1080,65 @@ export type Database = {
         Args: { _order_id: string; _project_id: string }
         Returns: undefined
       }
+      claim_client_invites: { Args: never; Returns: undefined }
+      client_can_manage_project_team: {
+        Args: { _pid: string }
+        Returns: boolean
+      }
+      client_can_order_project: { Args: { _pid: string }; Returns: boolean }
+      client_can_view_order: { Args: { _oid: string }; Returns: boolean }
+      client_can_view_project: { Args: { _pid: string }; Returns: boolean }
+      client_ctx: {
+        Args: never
+        Returns: {
+          member_id: string
+          owner_id: string
+          role: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      invite_client_member: {
+        Args: { _email: string; _role: string }
+        Returns: string
+      }
+      my_client_order_ids: { Args: never; Returns: string[] }
+      my_client_projects: {
+        Args: never
+        Returns: {
+          address1: string | null
+          city: string | null
+          code: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          owner_id: string
+          postal_code: string | null
+          province: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "client_projects"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      set_project_member: {
+        Args: { _assigned: boolean; _member_id: string; _project_id: string }
+        Returns: undefined
+      }
+      update_client_member: {
+        Args: { _member_id: string; _role: string }
+        Returns: undefined
       }
     }
     Enums: {
