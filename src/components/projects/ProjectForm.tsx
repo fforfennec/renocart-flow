@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { emptyProject, saveProject, type ClientProject, type ProjectInput } from "@/lib/clientProjects";
 
-export function ProjectForm({ project, onSaved, onCancel, compact }: { project?: ClientProject; onSaved: (p: ClientProject) => void; onCancel?: () => void; compact?: boolean }) {
+export function ProjectForm({ project, onSaved, onCancel, compact, save = saveProject }: { project?: ClientProject; onSaved: (p: ClientProject) => void; onCancel?: () => void; compact?: boolean; save?: (input: ProjectInput, id?: string) => Promise<ClientProject> }) {
   const [v, setV] = useState<ProjectInput>(project ? { ...emptyProject, ...Object.fromEntries(Object.keys(emptyProject).map((k) => [k, (project as never)[k] ?? ""])) } as ProjectInput : emptyProject);
   const [saving, setSaving] = useState(false);
   const f = (k: keyof ProjectInput, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
@@ -18,7 +18,7 @@ export function ProjectForm({ project, onSaved, onCancel, compact }: { project?:
   );
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
-    try { onSaved(await saveProject(v, project?.id)); } catch (err) { toast.error((err as Error).message); } finally { setSaving(false); }
+    try { onSaved(await save(v, project?.id)); } catch (err) { toast.error((err as Error).message); } finally { setSaving(false); }
   };
   return (
     <form onSubmit={submit} className="space-y-3 text-left">
