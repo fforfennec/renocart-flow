@@ -75,7 +75,7 @@ const T = {
     type: "Type here…", cart: "Your cart", empty: "Your cart is empty. Speak or type your list to start.",
     missing: "Not available from us", missingSub: "We couldn't find these items in our catalogue.",
     priceNote: "Prices and taxes are shown at checkout.",
-    myProjects: "My projects", createProfile: "Create a profile",
+    myProjects: "My projects",
     products: (n: number) => `${n} product${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unit${n > 1 ? "s" : ""}`,
     added: "I added", removed: "I removed", and: "and", notFound: "I couldn't find", nothing: "I didn't understand one of the items. Can you repeat it?", repeat: "Repeat", ignore: "Ignore", voice: "Voice message",
     confirmRestart: "Clear your cart and the conversation?", yesRestart: "Yes, start over", cancel: "Cancel",
