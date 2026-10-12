@@ -15,6 +15,7 @@ export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [pwBusy, setPwBusy] = useState(false);
@@ -23,11 +24,12 @@ export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () 
     if (!open || !user) return;
     setLoading(true);
     void (async () => {
-      const { data, error } = await supabase.from("profiles").select("full_name, phone, company_name").eq("user_id", user.id).maybeSingle();
+      const { data, error } = await supabase.from("profiles").select("full_name, phone, company_name, job_title").eq("user_id", user.id).maybeSingle();
       if (error) toast.error(error.message);
       setFullName(data?.full_name ?? (user.user_metadata?.full_name as string) ?? "");
       setPhone(data?.phone ?? "");
       setCompany(data?.company_name ?? "");
+      setJobTitle(data?.job_title ?? "");
       setLoading(false);
     })();
   }, [open, user]);
@@ -36,7 +38,7 @@ export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () 
     if (!user || !fullName.trim()) { toast.error("Le nom est requis."); return; }
     setSaving(true);
     const { error } = await supabase.from("profiles").upsert(
-      { user_id: user.id, full_name: fullName.trim(), phone: phone.trim() || null, company_name: company.trim() || null },
+      { user_id: user.id, full_name: fullName.trim(), phone: phone.trim() || null, company_name: company.trim() || null, job_title: jobTitle.trim() || null },
       { onConflict: "user_id" },
     );
     setSaving(false);
@@ -75,6 +77,10 @@ export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () 
             <div className="space-y-1.5">
               <Label htmlFor="pf-company">Entreprise (optionnel)</Label>
               <Input id="pf-company" value={company} onChange={(e) => setCompany(e.target.value)} autoComplete="organization" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pf-title">Titre / rôle (optionnel)</Label>
+              <Input id="pf-title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} autoComplete="organization-title" placeholder="Ex. : COO, chargé de projet…" />
             </div>
             <Button className="w-full h-11 font-bold" onClick={save} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Enregistrer

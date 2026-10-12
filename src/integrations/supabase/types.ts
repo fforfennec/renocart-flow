@@ -593,6 +593,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          job_title: string | null
           phone: string | null
           supplier_type: Database["public"]["Enums"]["supplier_type"] | null
           updated_at: string
@@ -603,6 +604,7 @@ export type Database = {
           created_at?: string
           full_name: string
           id?: string
+          job_title?: string | null
           phone?: string | null
           supplier_type?: Database["public"]["Enums"]["supplier_type"] | null
           updated_at?: string
@@ -613,6 +615,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          job_title?: string | null
           phone?: string | null
           supplier_type?: Database["public"]["Enums"]["supplier_type"] | null
           updated_at?: string
