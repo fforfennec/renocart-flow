@@ -8,7 +8,7 @@ import { toast } from "sonner";
 export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm, row }: {
   variantId: string; lang: "fr" | "en"; disabled: boolean;
   row?: { title: string; detail: string; image: string | null; quantity: number; onDecrease: () => void; onIncrease: () => void; onSet?: (q: number) => void };
-  onConfirm: (product: VariantProduct, variant: CatalogVariant, previous: CatalogVariant) => void;
+  onConfirm: (product: VariantProduct, variant: CatalogVariant, previous: CatalogVariant, mode: "replace" | "add") => void;
 }) {
   const id = useId();
   const [product, setProduct] = useState<VariantProduct | null>(null);
@@ -42,7 +42,7 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
     finally { setLoading(false); }
   };
 
-  const confirm = async () => {
+  const confirm = async (mode: "replace" | "add") => {
     setSaving(true);
     try {
       const latest = await getVariantProduct(variantId, true);
@@ -53,7 +53,7 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
         toast.error(fr ? "Ce format n'est plus disponible. Choisis une autre option." : "This option is no longer available. Choose another one.");
         return;
       }
-      if (variant.id !== variantId) onConfirm(latest, variant, previous);
+      if (variant.id !== variantId) onConfirm(latest, variant, previous, mode);
       setOpen(false);
     } catch { toast.error(errorText); }
     finally { setSaving(false); }
@@ -120,8 +120,11 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
               </fieldset>
             ))}
             <div className="flex flex-wrap gap-2">
-              <Button className="min-h-11" onClick={confirm} disabled={disabled || saving || !target?.availableForSale}>
-                {saving && <Loader2 className="animate-spin" />}{fr ? "Confirmer" : "Confirm"}
+              <Button className="min-h-11" onClick={() => confirm("add")} disabled={disabled || saving || !target?.availableForSale || target.id === variantId}>
+                {saving && <Loader2 className="animate-spin" />}{fr ? "Ajouter" : "Add"}
+              </Button>
+              <Button variant="secondary" className="min-h-11" onClick={() => confirm("replace")} disabled={disabled || saving || !target?.availableForSale || target.id === variantId}>
+                {saving && <Loader2 className="animate-spin" />}{fr ? "Remplacer" : "Replace"}
               </Button>
               <Button variant="outline" className="min-h-11" disabled={saving} onClick={() => setOpen(false)}>{fr ? "Annuler" : "Cancel"}</Button>
             </div>

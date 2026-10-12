@@ -51,7 +51,7 @@ describe("Commander inline Shopify variant selector", () => {
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
   });
 
-  it("selects the current variant, disables unavailable and nonexistent combinations and confirms an available variant", async () => {
+  it("selects the current variant, disables unavailable and nonexistent combinations and replaces with an available variant", async () => {
     const confirm = vi.fn();
     render(<CommanderVariantSelector variantId="current" lang="fr" disabled={false} onConfirm={confirm} />);
     fireEvent.click(await screen.findByRole("button", { name: "Changer de format" }));
@@ -60,10 +60,21 @@ describe("Commander inline Shopify variant selector", () => {
     expect(screen.getByRole("button", { name: "1 po" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "4x10" })).toBeDisabled();
     expect(screen.getByRole("region")).not.toHaveTextContent("20.00");
+    expect(screen.getByRole("button", { name: "Ajouter" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remplacer" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "5/8 po" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirmer" }));
-    await waitFor(() => expect(confirm).toHaveBeenCalledWith(product, product.variants[1], product.variants[0]));
+    fireEvent.click(screen.getByRole("button", { name: "Remplacer" }));
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith(product, product.variants[1], product.variants[0], "replace"));
     expect(screen.getByRole("button", { name: "Changer de format" })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("adds the selected variant as a new line with the Ajouter button", async () => {
+    const confirm = vi.fn();
+    render(<CommanderVariantSelector variantId="current" lang="fr" disabled={false} onConfirm={confirm} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Changer de format" }));
+    fireEvent.click(await screen.findByRole("button", { name: "5/8 po" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ajouter" }));
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith(product, product.variants[1], product.variants[0], "add"));
   });
 
   it("discards the draft when cancelled and restores the current variant on reopen", async () => {
@@ -92,7 +103,7 @@ describe("Commander inline Shopify variant selector", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Changer de format" }));
     fireEvent.click(await screen.findByRole("button", { name: "5/8 po" }));
     vi.mocked(getVariantProduct).mockResolvedValue({ ...product, variants: product.variants.map((v) => v.id === "other" ? { ...v, availableForSale: false } : v) });
-    fireEvent.click(screen.getByRole("button", { name: "Confirmer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remplacer" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "5/8 po" })).toBeDisabled());
     expect(confirm).not.toHaveBeenCalled();
   });
