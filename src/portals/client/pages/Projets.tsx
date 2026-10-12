@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ClientAuthForm } from "@/portals/client/components/projects/ClientAuthForm";
 import { ProjectForm } from "@/portals/client/components/projects/ProjectForm";
+import { OrderTracking, StatusBadge } from "@/portals/client/components/projects/OrderTracking";
 import { AccountTeam, ProjectMembers } from "@/portals/client/components/projects/AccountTeam";
 import { canManageAccount, getClientContext, ROLE_LABEL, type ClientContext } from "@/lib/clientProjects";
 import { assignOrder, downloadInvoice, downloadInvoicesZip, listInvoices, listProjects, money, projectAddress, totals, type ClientProject, type InvoiceOrder } from "@/lib/clientProjects";
@@ -31,6 +32,7 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
   const [open, setOpen] = useState<string | null>(null); // project id or NONE
   const [form, setForm] = useState<{ project?: ClientProject } | null>(null);
   const [zipping, setZipping] = useState(false);
+  const [tab, setTab] = useState<"projets" | "suivi">("projets");
   const [ctx, setCtx] = useState<ClientContext | null>(null);
   // Admin view (source) has full rights; otherwise permissions follow the account role.
   const role = source ? "owner" : ctx?.role;
@@ -104,7 +106,10 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
               </div>
               {manage && <Button className="h-11 font-bold" onClick={() => setForm({})}><Plus className="h-4 w-4 mr-2" />Nouveau projet</Button>}
             </div>
-            {busy ? <Loader2 className="h-6 w-6 animate-spin mx-auto my-12" /> : (
+            <div className="flex gap-2 mb-5" role="tablist">
+              {(["projets", "suivi"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant={tab === t ? "default" : "outline"} className="h-11 font-bold" onClick={() => setTab(t)}>{t === "projets" ? "Projets" : "Suivi"}</Button>)}
+            </div>
+            {busy ? <Loader2 className="h-6 w-6 animate-spin mx-auto my-12" /> : tab === "suivi" ? <OrderTracking orders={orders} projects={projects} /> : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {projects.map((p) => {
                   const t = totals(byProject.get(p.id) ?? []);
@@ -130,7 +135,7 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
                 {!projects.length && <p className="sm:col-span-2 text-muted-foreground self-center">{manage ? "Aucun projet pour l'instant. Crée ton premier projet pour regrouper tes commandes." : "Aucun projet ne t'a encore été assigné."}</p>}
               </div>
             )}
-            {!source && manage && ctx && <AccountTeam selfMemberId={ctx.memberId} />}
+            {tab === "projets" && !source && manage && ctx && <AccountTeam selfMemberId={ctx.memberId} />}
           </>
         ) : (
           <>
@@ -171,6 +176,7 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
                       <p className="font-semibold">#{o.order_number}</p>
                       <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })} · {o.order_items.length} article(s)</p>
                     </div>
+                    <StatusBadge status={o.status} />
                     <span className="font-bold">{money(o.total_price, o.currency ?? "CAD")}</span>
                     <Select value={o.project_id ?? NONE} onValueChange={(v) => assign(o.id, v)} disabled={role === "employee"}>
                       <SelectTrigger className="w-44 h-11" aria-label="Projet"><SelectValue /></SelectTrigger>
