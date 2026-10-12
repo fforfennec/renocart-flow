@@ -8,12 +8,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ClientAuthForm } from "@/portals/client/components/projects/ClientAuthForm";
 import { ProjectForm } from "@/portals/client/components/projects/ProjectForm";
-import { assignAdminOrder, getAdminClient, saveAdminProject, type AdminClient } from "@/portals/team/lib/adminClients";
 import { assignOrder, downloadInvoice, downloadInvoicesZip, listInvoices, listProjects, money, projectAddress, totals, type ClientProject, type InvoiceOrder } from "@/lib/clientProjects";
 
 const NONE = "__none__";
 
-export default function Projets({ adminClient }: { adminClient?: AdminClient }) {
+export interface ProjetsSource {
+  title: string;
+  subtitle?: string;
+  extra?: string;
+  load: () => Promise<{ projects: ClientProject[]; orders: InvoiceOrder[] }>;
+  assign: (orderId: string, projectId: string | null) => Promise<unknown>;
+  saveProject: NonNullable<React.ComponentProps<typeof ProjectForm>["save"]>;
+}
+
+export default function Projets({ source }: { source?: ProjetsSource }) {
   const { user, loading, signOut } = useAuth();
   const [projects, setProjects] = useState<ClientProject[]>([]);
   const [orders, setOrders] = useState<InvoiceOrder[]>([]);
@@ -27,11 +35,11 @@ export default function Projets({ adminClient }: { adminClient?: AdminClient }) 
     if (!user) return;
     setBusy(true);
     try {
-      if (adminClient) { const data = await getAdminClient(adminClient.id); setProjects(data.projects); setOrders(data.orders); }
+      if (source) { const data = await source.load(); setProjects(data.projects); setOrders(data.orders); }
       else { const [p, o] = await Promise.all([listProjects(), listInvoices()]); setProjects(p); setOrders(o); }
     }
     catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
-  }, [user, adminClient]);
+  }, [user, source]);
   useEffect(() => { refresh(); }, [refresh]);
 
   const byProject = useMemo(() => {
@@ -42,7 +50,7 @@ export default function Projets({ adminClient }: { adminClient?: AdminClient }) 
 
   const assign = async (orderId: string, projectId: string) => {
     try {
-      if (adminClient) await assignAdminOrder(adminClient.id, orderId, projectId === NONE ? null : projectId);
+      if (source) await source.assign(orderId, projectId === NONE ? null : projectId);
       else await assignOrder(orderId, projectId === NONE ? null : projectId);
       toast.success("Commande déplacée."); refresh();
     }
@@ -77,15 +85,15 @@ export default function Projets({ adminClient }: { adminClient?: AdminClient }) 
   const stats = totals(list);
 
   return (
-    <div className={adminClient ? "bg-background" : "min-h-screen bg-background"}>{!adminClient && header}
+    <div className={source ? "bg-background" : "min-h-screen bg-background"}>{!source && header}
       <main className="max-w-6xl mx-auto px-4 py-8">
         {!open ? (
           <>
             <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
               <div>
-                <h1 className="text-3xl font-black tracking-tight">{adminClient ? adminClient.name : "Gestion de projet"}</h1>
-                <p className="text-muted-foreground">{adminClient?.email ?? user.email}</p>
-                {adminClient && <p className="text-sm text-muted-foreground">{[adminClient.company, adminClient.phone].filter(Boolean).join(" · ")}</p>}
+                <h1 className="text-3xl font-black tracking-tight">{source ? source.title : "Gestion de projet"}</h1>
+                <p className="text-muted-foreground">{source?.subtitle ?? user.email}</p>
+                {source?.extra && <p className="text-sm text-muted-foreground">{source.extra}</p>}
               </div>
               <Button className="h-11 font-bold" onClick={() => setForm({})}><Plus className="h-4 w-4 mr-2" />Nouveau projet</Button>
             </div>
@@ -184,7 +192,7 @@ export default function Projets({ adminClient }: { adminClient?: AdminClient }) 
       <Dialog open={!!form} onOpenChange={(o) => !o && setForm(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{form?.project ? "Modifier le projet" : "Nouveau projet"}</DialogTitle></DialogHeader>
-          {form && <ProjectForm project={form.project} save={adminClient ? (input, id) => saveAdminProject(adminClient.id, input, id) : undefined} onCancel={() => setForm(null)} onSaved={() => { setForm(null); toast.success("Projet enregistré."); refresh(); }} />}
+          {form && <ProjectForm project={form.project} save={source?.saveProject} onCancel={() => setForm(null)} onSaved={() => { setForm(null); toast.success("Projet enregistré."); refresh(); }} />}
         </DialogContent>
       </Dialog>
     </div>

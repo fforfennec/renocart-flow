@@ -29,6 +29,13 @@ const Auth = () => {
   const { toast } = useToast();
   const { user, userRole, loading: authLoading } = useAuth();
 
+  useEffect(() => {
+    const m = document.createElement('meta');
+    m.name = 'robots'; m.content = 'noindex,nofollow';
+    document.head.appendChild(m);
+    return () => { m.remove(); };
+  }, []);
+
   // Session déjà active : ne jamais redemander les identifiants, renvoyer
   // directement vers le portail correspondant au rôle.
   useEffect(() => {
@@ -69,7 +76,7 @@ const Auth = () => {
     const { error } = await supabase.auth.signUp({
       email, password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth`,
+        emailRedirectTo: `${window.location.origin}/equipe`,
         data: { full_name: fullName.trim(), company_name: company.trim(), staff_role: portal },
       },
     });
@@ -81,7 +88,7 @@ const Auth = () => {
 
   const handleForgot = async () => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/equipe/reset-password`,
     });
     if (error) throw error;
     setPendingMsg(`Lien de réinitialisation envoyé à ${email}. Ouvre le courriel et suis le lien pour choisir un nouveau mot de passe.`);
