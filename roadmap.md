@@ -5,3 +5,7 @@
 - [x] Verify desktop/mobile with fixtures, screw-word unit tests, live empty evaluation and unchanged voice pipeline.
 - [ ] Configure real suggestion products and ratios — waiting for the user's rules; no ratios invented.
 - [ ] Verify live rule save, Shopify screw rejection and real offer statistics — requesting user's account has supplier role, not admin.
+# Gestion de projet
+- [x] Client accounts, projects, invoices (single + ZIP), totals and materials at /projets.
+- [x] Project choice in /commander (strip at start / question at end), address prefill, project sent to Shopify.
+- [ ] Shopify-store login reuse — needs Shopify customer accounts setup.
