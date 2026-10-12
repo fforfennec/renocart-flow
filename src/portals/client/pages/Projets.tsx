@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { ClientAuthForm } from "@/portals/client/components/projects/ClientAuthForm";
 import { ProjectForm } from "@/portals/client/components/projects/ProjectForm";
 import { OrderTracking, StatusBadge } from "@/portals/client/components/projects/OrderTracking";
+import { SupportChat } from "@/portals/client/components/projects/SupportChat";
 import { AccountTeam, ProjectMembers } from "@/portals/client/components/projects/AccountTeam";
 import { ProfileSettings } from "@/portals/client/components/projects/ProfileSettings";
 import { canManageAccount, getClientContext, ROLE_LABEL, type ClientContext } from "@/lib/clientProjects";
@@ -33,7 +34,7 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
   const [open, setOpen] = useState<string | null>(null); // project id or NONE
   const [form, setForm] = useState<{ project?: ClientProject } | null>(null);
   const [zipping, setZipping] = useState(false);
-  const [tab, setTab] = useState<"projets" | "suivi">("projets");
+  const [tab, setTab] = useState<"projets" | "suivi" | "support">("projets");
   const [ctx, setCtx] = useState<ClientContext | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   // Admin view (source) has full rights; otherwise permissions follow the account role.
@@ -116,9 +117,9 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
               {manage && <Button className="h-11 font-bold" onClick={() => setForm({})}><Plus className="h-4 w-4 mr-2" />Nouveau projet</Button>}
             </div>
             <div className="flex gap-2 mb-5" role="tablist">
-              {(["projets", "suivi"] as const).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant={tab === t ? "default" : "outline"} className="h-11 font-bold" onClick={() => setTab(t)}>{t === "projets" ? "Projets" : "Suivi"}</Button>)}
+              {(["projets", "suivi", ...(source ? [] : ["support"])] as ("projets" | "suivi" | "support")[]).map((t) => <Button key={t} role="tab" aria-selected={tab === t} variant={tab === t ? "default" : "outline"} className="h-11 font-bold" onClick={() => setTab(t)}>{t === "projets" ? "Projets" : t === "suivi" ? "Suivi" : "Support"}</Button>)}
             </div>
-            {busy ? <Loader2 className="h-6 w-6 animate-spin mx-auto my-12" /> : tab === "suivi" ? <OrderTracking orders={orders} projects={projects} /> : (
+            {busy ? <Loader2 className="h-6 w-6 animate-spin mx-auto my-12" /> : tab === "suivi" ? <OrderTracking orders={orders} projects={projects} /> : tab === "support" ? <SupportChat orders={orders} projects={projects} /> : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {projects.map((p) => {
                   const t = totals(byProject.get(p.id) ?? []);

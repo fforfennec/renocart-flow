@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createHmac } from "node:crypto";
+import { sendClientConfirmation } from "../_shared/clientSupport.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -241,6 +242,12 @@ Deno.serve(async (req) => {
     console.log(
       `Imported order ${orderNumber} with ${items.length} items`
     );
+
+    // RenoCart's own confirmation email: client replies land in the support messages.
+    if (customerEmail) {
+      try { await sendClientConfirmation(supabase, newOrder.id); }
+      catch (e) { console.error(`Client confirmation for ${orderNumber} failed:`, e); }
+    }
 
     // Auto-dispatch is now handled by escalation-check after a 5-minute hold period.
     // Orders remain in "pending" status until the automation picks them up.

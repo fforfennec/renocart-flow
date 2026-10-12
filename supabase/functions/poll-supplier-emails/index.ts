@@ -9,6 +9,7 @@ import {
   markMessageAsRead,
   stripQuotedReply,
 } from "../_shared/gmail.ts";
+import { handleClientEmail } from "../_shared/clientSupport.ts";
 
 Deno.serve(async (req) => {
   // This function is intended to be called by pg_cron or admin invocation.
@@ -56,6 +57,31 @@ Deno.serve(async (req) => {
               .limit(1)
               .maybeSingle()
           : { data: null };
+
+        // Client support replies (RenoCart confirmation / support threads) go to client messages.
+        if (!thread) {
+          const handled = await handleClientEmail(supabase, {
+            threadId: messageData.threadId ?? null, messageId, fromEmail,
+            fromName: from.match(/^"?([^"<]+)"?\s*</)?.[1]?.trim() || fromEmail, subject,
+            body: stripQuotedReply(extractTextBody(messageData.payload)),
+            orderNumber: extractOrderNumber(subject),
+            saveAttachments: async (prefix) => {
+              const out: { name: string; path: string; mime: string; size: number }[] = [];
+              for (const a of listAttachments(messageData.payload)) {
+                if (a.size > 20 * 1024 * 1024) continue;
+                try {
+                  const bytes = await getAttachmentBytes(messageId, a.attachmentId);
+                  const path = `${prefix}/${a.filename.replace(/[^\w.\-]+/g, "_")}`;
+                  const { error } = await supabase.storage.from("support-attachments").upload(path, bytes, { contentType: a.mimeType, upsert: true });
+                  if (error) throw error;
+                  out.push({ name: a.filename, path, mime: a.mimeType, size: bytes.length });
+                } catch (e) { console.error(`Support attachment ${a.filename} failed:`, e); }
+              }
+              return out;
+            },
+          });
+          if (handled) { await markMessageAsRead(messageId); processed.push(messageId); continue; }
+        }
 
         // Only accept replies to our own threads, or emails from a known supplier.
         const { data: existingUsersEarly } = await supabase.auth.admin.listUsers({ perPage: 1000 });
