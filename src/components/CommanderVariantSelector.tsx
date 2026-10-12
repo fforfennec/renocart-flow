@@ -8,7 +8,7 @@ import { toast } from "sonner";
 export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm, row }: {
   variantId: string; lang: "fr" | "en"; disabled: boolean;
   row?: { title: string; detail: string; image: string | null; quantity: number; onDecrease: () => void; onIncrease: () => void; onSet?: (q: number) => void };
-  onConfirm: (product: VariantProduct, variant: CatalogVariant, previous: CatalogVariant) => void;
+  onConfirm: (product: VariantProduct, variant: CatalogVariant, previous: CatalogVariant, mode: "replace" | "add") => void;
 }) {
   const id = useId();
   const [product, setProduct] = useState<VariantProduct | null>(null);
@@ -42,7 +42,7 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
     finally { setLoading(false); }
   };
 
-  const confirm = async () => {
+  const confirm = async (mode: "replace" | "add") => {
     setSaving(true);
     try {
       const latest = await getVariantProduct(variantId, true);
@@ -53,7 +53,7 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
         toast.error(fr ? "Ce format n'est plus disponible. Choisis une autre option." : "This option is no longer available. Choose another one.");
         return;
       }
-      if (variant.id !== variantId) onConfirm(latest, variant, previous);
+      if (variant.id !== variantId) onConfirm(latest, variant, previous, mode);
       setOpen(false);
     } catch { toast.error(errorText); }
     finally { setSaving(false); }
