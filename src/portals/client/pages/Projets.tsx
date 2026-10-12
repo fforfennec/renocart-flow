@@ -86,7 +86,6 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
       <main className="max-w-md mx-auto px-4 py-12">
         <p className="inline-block rounded-md bg-primary/20 px-2 py-0.5 text-xs font-bold uppercase tracking-widest text-secondary mb-3">Gestion de projet</p>
         <h1 className="text-3xl font-black tracking-tight mb-2">Crée ton profil pour voir tes projets</h1>
-        <p className="text-muted-foreground mb-5">Sans profil, tes commandes restent anonymes : tu ne peux pas les retrouver, ni télécharger tes factures.</p>
         <ul className="space-y-2 mb-6">
           {["Toutes tes commandes classées par projet", "Tes factures en PDF, une à une ou en fichier ZIP", "Le suivi de tes livraisons : à venir, en cours, livrées"].map((p) => (
             <li key={p} className="flex gap-2 text-sm font-medium"><Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />{p}</li>
