@@ -72,7 +72,7 @@ const AdminDashboard = () => {
             const open = openGroups[group.label] !== false;
             return <section key={group.label} aria-label={group.label}>
               {!collapsed && <button type="button" onClick={() => toggleGroup(group.label)} aria-expanded={open} title={open ? `Replier ${group.label}` : `Déplier ${group.label}`} className="flex min-h-8 w-full items-center gap-2 px-3 mb-1 rounded-md text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/50 hover:text-sidebar-foreground/80 hover:bg-sidebar-accent/50 transition-colors">
-                <ChevronDown size={14} className={`shrink-0 transition-transform duration-200 motion-reduce:transition-none ${open ? '' : '-rotate-90'}`} />
+                <ChevronDown size={14} className={`h-5 w-5 shrink-0 transition-transform duration-200 motion-reduce:transition-none ${open ? '' : '-rotate-90'}`} />
                 <span>{group.label}</span>
               </button>}
               <div className={`space-y-0.5 ${open || collapsed ? '' : 'hidden'}`}>{group.items.map((item) => <NavLink key={item.to} to={item.to} end={'end' in item && item.end} title={item.label} aria-label={item.label} className={linkClass} activeClassName="bg-sidebar-accent !text-sidebar-accent-foreground">
