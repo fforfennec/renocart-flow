@@ -52,6 +52,7 @@ const T = {
     type: "Écris ici…", cart: "Ton panier", empty: "Ton panier est vide. Parle ou écris ta liste pour commencer.",
     missing: "Pas disponible chez nous", missingSub: "On n'a pas trouvé ces articles dans notre catalogue.",
     priceNote: "Les prix et les taxes s'affichent au paiement.",
+    myProjects: "Mes projets", createProfile: "Créer un profil",
     products: (n: number) => `${n} produit${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unité${n > 1 ? "s" : ""}`,
     added: "J'ai ajouté", removed: "J'ai enlevé", and: "et", notFound: "Je n'ai pas trouvé", nothing: "Je n'ai pas compris un des articles. Tu peux le répéter ?", repeat: "Répéter", ignore: "Ignorer", voice: "Message vocal",
     confirmRestart: "Effacer ton panier et la conversation ?", yesRestart: "Oui, recommencer", cancel: "Annuler",
@@ -74,6 +75,7 @@ const T = {
     type: "Type here…", cart: "Your cart", empty: "Your cart is empty. Speak or type your list to start.",
     missing: "Not available from us", missingSub: "We couldn't find these items in our catalogue.",
     priceNote: "Prices and taxes are shown at checkout.",
+    myProjects: "My projects", createProfile: "Create a profile",
     products: (n: number) => `${n} product${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unit${n > 1 ? "s" : ""}`,
     added: "I added", removed: "I removed", and: "and", notFound: "I couldn't find", nothing: "I didn't understand one of the items. Can you repeat it?", repeat: "Repeat", ignore: "Ignore", voice: "Voice message",
     confirmRestart: "Clear your cart and the conversation?", yesRestart: "Yes, start over", cancel: "Cancel",
@@ -742,7 +744,7 @@ export default function Commander() {
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="text-2xl font-black tracking-tight text-secondary">RENO<span className="text-primary">CART</span></div>
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <Link to="/projets" className="min-h-11 flex items-center px-2 text-secondary hover:underline">{lang === "fr" ? "Mes projets" : "My projects"}</Link>
+            <Link to="/projets" className="min-h-11 flex items-center px-2 font-bold text-secondary hover:underline">{user ? t.myProjects : t.createProfile}</Link>
             {started && !isMobile && <button onClick={() => setConfirmRestart(true)} className="text-xs text-muted-foreground hover:underline mr-2">{t.restart}</button>}
             {isMobile && <Button variant="ghost" size="icon" aria-label={t.restart} title={t.restart} onClick={() => setConfirmRestart(true)} className="h-11 w-11 shrink-0"><RotateCcw className="h-5 w-5" /></Button>}
             <div className={cn("flex", isMobile && "rounded-xl bg-muted p-1")}>
