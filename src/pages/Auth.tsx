@@ -101,6 +101,16 @@ const Auth = () => {
 
   const current = PORTALS.find((p) => p.id === portal);
 
+  // Pendant la restauration de la session, afficher un chargement plutôt que
+  // le formulaire de connexion (évite de croire qu'on est déconnecté).
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-rc-beige">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-rc-beige p-4">
       <Card className="w-full max-w-md shadow-soft">
