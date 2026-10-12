@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Search, AlertCircle, List, LayoutGrid, CalendarDays } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
-import { AssignmentInfo } from '@/components/admin/OrderCard';
-import OrderListView from '@/components/admin/OrderListView';
-import OrderBoardView from '@/components/admin/OrderBoardView';
-import OrderCalendarView from '@/components/admin/OrderCalendarView';
+import { AssignmentInfo } from '@/portals/team/components/admin/OrderCard';
+import OrderListView from '@/portals/team/components/admin/OrderListView';
+import OrderBoardView from '@/portals/team/components/admin/OrderBoardView';
+import OrderCalendarView from '@/portals/team/components/admin/OrderCalendarView';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 type FilterType = 'all' | 'new' | 'contacted' | 'done' | 'late';

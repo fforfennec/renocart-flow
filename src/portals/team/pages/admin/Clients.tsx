@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2, Search, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { listAdminClients, type AdminClient } from "@/lib/adminClients";
+import { listAdminClients, type AdminClient } from "@/portals/team/lib/adminClients";
 import { money } from "@/lib/clientProjects";
-import Projets from "@/pages/Projets";
+import Projets from "@/portals/client/pages/Projets";
 
 export default function Clients() {
   const [clients, setClients] = useState<AdminClient[]>([]);

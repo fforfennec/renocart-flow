@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/portals/team/TeamAuthContext';
 import { Loader2, Shield, Truck, Handshake, ArrowLeft, Clock } from 'lucide-react';
 
 type Portal = 'admin' | 'supplier' | 'partner';

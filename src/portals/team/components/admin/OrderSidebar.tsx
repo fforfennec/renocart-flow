@@ -1,7 +1,7 @@
-import ProposalCard from '@/components/admin/ProposalCard';
+import ProposalCard from '@/portals/team/components/admin/ProposalCard';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/portals/team/TeamAuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { MessageSquare, Lock, Send, PanelRightClose, Mail, Users, ChevronDown, ChevronUp } from 'lucide-react';

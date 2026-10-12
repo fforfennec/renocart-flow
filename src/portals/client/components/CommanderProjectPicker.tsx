@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { FolderPlus, Ban, Check, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ClientAuthForm } from "@/components/projects/ClientAuthForm";
-import { ProjectForm } from "@/components/projects/ProjectForm";
+import { ClientAuthForm } from "@/portals/client/components/projects/ClientAuthForm";
+import { ProjectForm } from "@/portals/client/components/projects/ProjectForm";
 import type { ClientProject } from "@/lib/clientProjects";
 import { cn } from "@/lib/utils";
 

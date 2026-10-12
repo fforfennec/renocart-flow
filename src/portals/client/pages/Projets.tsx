@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ClientAuthForm } from "@/components/projects/ClientAuthForm";
-import { ProjectForm } from "@/components/projects/ProjectForm";
-import { assignAdminOrder, getAdminClient, saveAdminProject, type AdminClient } from "@/lib/adminClients";
+import { ClientAuthForm } from "@/portals/client/components/projects/ClientAuthForm";
+import { ProjectForm } from "@/portals/client/components/projects/ProjectForm";
+import { assignAdminOrder, getAdminClient, saveAdminProject, type AdminClient } from "@/portals/team/lib/adminClients";
 import { assignOrder, downloadInvoice, downloadInvoicesZip, listInvoices, listProjects, money, projectAddress, totals, type ClientProject, type InvoiceOrder } from "@/lib/clientProjects";
 
 const NONE = "__none__";
