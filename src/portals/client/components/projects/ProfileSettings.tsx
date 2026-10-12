@@ -78,6 +78,10 @@ export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () 
               <Label htmlFor="pf-company">Entreprise (optionnel)</Label>
               <Input id="pf-company" value={company} onChange={(e) => setCompany(e.target.value)} autoComplete="organization" />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pf-title">Titre / rôle (optionnel)</Label>
+              <Input id="pf-title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} autoComplete="organization-title" placeholder="Ex. : COO, chargé de projet…" />
+            </div>
             <Button className="w-full h-11 font-bold" onClick={save} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Enregistrer
             </Button>
