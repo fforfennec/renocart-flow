@@ -76,7 +76,7 @@ export default function SuggestionRules() {
     finally { setWorking(false); }
   };
   if (access === "loading") return <div className="p-8"><Loader2 className="animate-spin" aria-label="Chargement" /></div>;
-  if (access === "denied") return <div className="p-6 md:p-8 space-y-4"><h1 className="text-2xl font-bold">Règles de suggestions</h1><p>Connecte-toi avec ton compte administrateur pour gérer les règles.</p><Button asChild><Link to="/auth">Se connecter</Link></Button></div>;
+  if (access === "denied") return <div className="p-6 md:p-8 space-y-4"><h1 className="text-2xl font-bold">Règles de suggestions</h1><p>Connecte-toi avec ton compte administrateur pour gérer les règles.</p><Button asChild><Link to="/equipe">Se connecter</Link></Button></div>;
   const triggerLabel = (r: Rule) => r.trigger_kind === "product_type" ? r.trigger_values.join(", ") : r.trigger_values.map((v) => labels[v] ?? v.split("/").pop()).join(", ");
   return <div className="p-6 md:p-8 max-w-6xl">
     <div className="flex items-center justify-between gap-4 mb-6"><h1 className="text-2xl font-bold">Règles de suggestions</h1><Button onClick={() => open(blank())}><Plus className="h-4 w-4 mr-2" />Nouvelle règle</Button></div>
