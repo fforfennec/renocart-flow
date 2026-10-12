@@ -63,7 +63,7 @@ export default function Projets({ adminClient }: { adminClient?: AdminClient }) 
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (!user) return (
-    <div className={adminClient ? "bg-background" : "min-h-screen bg-background"}>{!adminClient && header}
+    <div className="min-h-screen bg-background">{header}
       <main className="max-w-md mx-auto px-4 py-12">
         <h1 className="text-3xl font-black tracking-tight mb-2">Gestion de projet</h1>
         <p className="text-muted-foreground mb-6">Suis tes dépenses et télécharge tes factures, projet par projet.</p>
@@ -77,7 +77,7 @@ export default function Projets({ adminClient }: { adminClient?: AdminClient }) 
   const stats = totals(list);
 
   return (
-    <div className="min-h-screen bg-background">{header}
+    <div className={adminClient ? "bg-background" : "min-h-screen bg-background"}>{!adminClient && header}
       <main className="max-w-6xl mx-auto px-4 py-8">
         {!open ? (
           <>

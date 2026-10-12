@@ -1,7 +1,7 @@
 # Admin navigation and client profiles
-- [ ] Group and rename the admin menu links; keep FAQ separate.
-- [ ] Add admin-only client profiles with projects, invoices, totals and project management.
-- [ ] Verify authenticated navigation, client detail and project actions.
+- [x] Group and rename the admin menu links; keep FAQ separate.
+- [x] Add admin-only client profiles with projects, invoices, totals and project management.
+- [x] Verify authenticated navigation, client detail, project editing and PDF/ZIP downloads.
 
 # Commander suggestions
 - [x] Add authenticated suggestion rules, Shopify validation and proposal/acceptance statistics.
