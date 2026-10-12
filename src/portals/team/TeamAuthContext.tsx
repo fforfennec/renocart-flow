@@ -42,9 +42,10 @@ export const TeamAuthProvider = ({ children }: { children: React.ReactNode }) =>
     return () => { cancelled = true; };
   }, [user, sessionLoading]);
 
+  const teamSignOut = async () => { await signOut(); window.location.assign('/equipe'); };
   const loading = sessionLoading || (!!user && loadedFor !== user.id);
   return (
-    <TeamAuthContext.Provider value={{ user, profile, userRole, loading, signOut }}>
+    <TeamAuthContext.Provider value={{ user, profile, userRole, loading, signOut: teamSignOut }}>
       {children}
     </TeamAuthContext.Provider>
   );
