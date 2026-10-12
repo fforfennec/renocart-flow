@@ -24,12 +24,23 @@ const CART_CREATE = `
     }
   }`;
 
+export type BuyerIdentity = {
+  email?: string;
+  deliveryAddressPreferences?: { deliveryAddress: { address1: string; city?: string; province?: string; zip?: string; country: string; firstName?: string; lastName?: string; phone?: string } }[];
+};
+
 export async function createCheckout(
   lines: { merchandiseId: string; quantity: number }[],
   attributes: { key: string; value: string }[],
   note: string,
+  buyerIdentity?: BuyerIdentity,
 ): Promise<string> {
-  const data = await storefrontApiRequest(CART_CREATE, { input: { lines, attributes, note } });
+  let data = await storefrontApiRequest(CART_CREATE, { input: { lines, attributes, note, ...(buyerIdentity ? { buyerIdentity } : {}) } })
+    .catch((e) => { if (!buyerIdentity) throw e; return null; });
+  // Retry without the prefilled address if Shopify rejects it.
+  if (buyerIdentity && (!data || data?.data?.cartCreate?.userErrors?.length)) {
+    data = await storefrontApiRequest(CART_CREATE, { input: { lines, attributes, note, ...(buyerIdentity.email ? { buyerIdentity: { email: buyerIdentity.email } } : {}) } });
+  }
   const errs = data?.data?.cartCreate?.userErrors || [];
   if (errs.length) throw new Error(errs.map((e: { message: string }) => e.message).join(", "));
   const url = data?.data?.cartCreate?.cart?.checkoutUrl;
