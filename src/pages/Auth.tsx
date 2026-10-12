@@ -17,7 +17,7 @@ const PORTALS: { id: Portal; label: string; icon: typeof Shield; desc: string }[
 
 const Auth = () => {
   const [portal, setPortal] = useState<Portal | null>(null);
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -69,13 +69,21 @@ const Auth = () => {
     setPendingMsg("Demande envoyée. Confirme ton courriel, puis RenoCart approuvera ton accès. Tu pourras ensuite te connecter.");
   };
 
+  const handleForgot = async () => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+    setPendingMsg(`Lien de réinitialisation envoyé à ${email}. Ouvre le courriel et suis le lien pour choisir un nouveau mot de passe.`);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === 'login') await handleLogin(); else await handleSignup();
+      if (mode === 'login') await handleLogin(); else if (mode === 'forgot') await handleForgot(); else await handleSignup();
     } catch (err: any) {
-      toast({ title: mode === 'login' ? 'Connexion impossible' : 'Inscription impossible', description: err.message, variant: 'destructive' });
+      toast({ title: mode === 'login' ? 'Connexion impossible' : mode === 'forgot' ? 'Envoi impossible' : 'Inscription impossible', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
