@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { Database } from '@/integrations/supabase/types';
 import NotFound from '@/pages/NotFound';
 import { TeamAuthProvider, useAuth } from './TeamAuthContext';
@@ -18,20 +18,24 @@ const TeamGuard = ({ roles, children }: { roles: UserRole[]; children: React.Rea
   return <>{children}</>;
 };
 
-const TeamRoutes = () => {
-  const location = useLocation();
-  return (
+export type TeamArea = 'equipe' | 'admin' | 'supplier';
+
+// Mounted under /equipe/*, /admin/* or /supplier/*; inner paths are relative to that mount.
+const TeamRoutes = ({ area }: { area: TeamArea }) => (
   <TeamAuthProvider>
-    <Routes location={{ ...location, pathname: location.pathname }}>
-      <Route path="/equipe" element={<TeamLogin />} />
-      <Route path="/equipe/reset-password" element={<TeamResetPassword />} />
-      <Route path="/admin/*" element={<TeamGuard roles={['admin']}><AdminDashboard /></TeamGuard>} />
-      <Route path="/supplier/respond" element={<SupplierRespond />} />
-      <Route path="/supplier/*" element={<TeamGuard roles={['supplier', 'partner', 'admin']}><SupplierDashboard /></TeamGuard>} />
+    <Routes>
+      {area === 'equipe' && <>
+        <Route index element={<TeamLogin />} />
+        <Route path="reset-password" element={<TeamResetPassword />} />
+      </>}
+      {area === 'admin' && <Route path="*" element={<TeamGuard roles={['admin']}><AdminDashboard /></TeamGuard>} />}
+      {area === 'supplier' && <>
+        <Route path="respond" element={<SupplierRespond />} />
+        <Route path="*" element={<TeamGuard roles={['supplier', 'partner', 'admin']}><SupplierDashboard /></TeamGuard>} />
+      </>}
       <Route path="*" element={<NotFound />} />
     </Routes>
   </TeamAuthProvider>
-  );
-};
+);
 
 export default TeamRoutes;

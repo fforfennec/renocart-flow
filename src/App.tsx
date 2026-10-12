@@ -13,7 +13,7 @@ import ResetPassword from "./portals/client/pages/ResetPassword";
 
 // Second portal: loaded on demand so client visitors never download it.
 const TeamRoutes = lazy(() => import("./portals/team/TeamRoutes"));
-const team = <Suspense fallback={<div className="min-h-screen bg-background" />}><TeamRoutes /></Suspense>;
+const team = (area: "equipe" | "admin" | "supplier") => <Suspense fallback={<div className="min-h-screen bg-background" />}><TeamRoutes area={area} /></Suspense>;
 
 const queryClient = new QueryClient();
 
@@ -29,7 +29,7 @@ const App = () => (
             <Route path="/commander" element={<Commander />} />
             <Route path="/projets" element={<Projets />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            {["/equipe/*", "/admin/*", "/supplier/*"].map((p) => <Route key={p} path={p} element={team} />)}
+            {(["equipe", "admin", "supplier"] as const).map((a) => <Route key={a} path={`/${a}/*`} element={team(a)} />)}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
