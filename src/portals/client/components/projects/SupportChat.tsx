@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Mail, MessageSquarePlus, Paperclip, Send, HelpCircle, Folder } from "lucide-react";
-import { type ClientProject, type InvoiceOrder, fmtDay, trackStage } from "@/lib/clientProjects";
+import { type ClientProject, type InvoiceOrder, fmtDay } from "@/lib/clientProjects";
 import { StatusBadge } from "./OrderTracking";
 
 type Att = { name: string; path: string; mime: string; size: number };
@@ -137,7 +137,7 @@ export function SupportChat({ orders, projects }: { orders: InvoiceOrder[]; proj
               <p className="font-bold text-sm">{o.order_number}</p>
               <p className="text-xs text-muted-foreground truncate">{o.project_name || "Sans projet"}</p>
               <p className="text-xs">{o.delivery_date ? `Livraison ${fmtDay(o.delivery_date)}` : fmtDay(o.created_at)}</p>
-              <StatusBadge stage={trackStage(o.status)} />
+              <StatusBadge status={o.status} />
             </button>
           ))}
         </div>

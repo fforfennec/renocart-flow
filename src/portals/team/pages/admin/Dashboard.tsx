@@ -13,6 +13,7 @@ import AdminSuppliers from './Suppliers';
 import SupplierDetail from './SupplierDetail';
 import Automations from './Automations';
 import Messages from './Messages';
+import ClientMessages from './ClientMessages';
 import SuggestionRules from './SuggestionRules';
 import Utilisateurs from './Utilisateurs';
 import Clients from './Clients';
@@ -43,6 +44,7 @@ const AdminDashboard = () => {
     { label: 'Dispatch', items: [
       { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
       { to: '/admin/messages', label: 'Messages suppliers', icon: MessageCircle },
+      { to: '/admin/messages-clients', label: 'Messages clients', icon: MessageCircle },
       { to: '/admin/historique', label: 'Historique', icon: Package },
       { to: '/admin/stats', label: 'Stats', icon: BarChart3 },
       { to: '/admin/suppliers', label: 'Fournisseurs & SP', icon: Truck },
@@ -100,6 +102,7 @@ const AdminDashboard = () => {
           <Route path="/" element={<AdminOverview />} />
           <Route path="/orders/:orderId" element={<AdminOrderDetail />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/messages-clients" element={<ClientMessages />} />
           <Route path="/historique" element={<AdminHistorique />} />
           <Route path="/suppliers" element={<AdminSuppliers />} />
           <Route path="/suppliers/:supplierId" element={<SupplierDetail />} />
