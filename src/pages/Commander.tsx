@@ -370,7 +370,7 @@ export default function Commander() {
           return n;
         });
         setAnswered((p) => Array.from(new Set([...p, ...got.map(([f]) => f)])));
-        if (!listDone && started) setListDone(true);
+        if (!listDone && started && next.some((i) => i.quantity > 0)) setListDone(true);
         setEditing(null);
       } else if (r.done && (question === "more" || question === "list") && (next.some((i) => i.quantity > 0))) {
         setListDone(true); setEditing(null);
