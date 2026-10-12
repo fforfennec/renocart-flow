@@ -99,6 +99,13 @@
       "when": 1791835725429,
       "tag": "0013_add_job_title_to_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791837064462,
+      "tag": "0014_client_support_messages",
+      "breakpoints": true
     }
   ]
 }

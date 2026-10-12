@@ -1055,6 +1055,103 @@ export type Database = {
         }
         Relationships: []
       }
+      support_messages: {
+        Row: {
+          attachments: Json
+          author_user_id: string | null
+          content: string
+          created_at: string
+          email_message_id: string | null
+          id: string
+          sender_name: string
+          sender_role: string
+          source: string
+          thread_id: string
+        }
+        Insert: {
+          attachments?: Json
+          author_user_id?: string | null
+          content?: string
+          created_at?: string
+          email_message_id?: string | null
+          id?: string
+          sender_name?: string
+          sender_role?: string
+          source?: string
+          thread_id: string
+        }
+        Update: {
+          attachments?: Json
+          author_user_id?: string | null
+          content?: string
+          created_at?: string
+          email_message_id?: string | null
+          id?: string
+          sender_name?: string
+          sender_role?: string
+          source?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "support_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_threads: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_email: string | null
+          gmail_thread_id: string | null
+          id: string
+          last_message_at: string | null
+          order_id: string | null
+          owner_id: string | null
+          rfc_message_id: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_email?: string | null
+          gmail_thread_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          order_id?: string | null
+          owner_id?: string | null
+          rfc_message_id?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_email?: string | null
+          gmail_thread_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          order_id?: string | null
+          owner_id?: string | null
+          rfc_message_id?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_threads_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1091,6 +1188,10 @@ export type Database = {
       client_can_order_project: { Args: { _pid: string }; Returns: boolean }
       client_can_view_order: { Args: { _oid: string }; Returns: boolean }
       client_can_view_project: { Args: { _pid: string }; Returns: boolean }
+      client_can_view_support_thread: {
+        Args: { _tid: string }
+        Returns: boolean
+      }
       client_ctx: {
         Args: never
         Returns: {
@@ -1135,9 +1236,17 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      post_support_message: {
+        Args: { _attachments?: Json; _content: string; _thread_id: string }
+        Returns: string
+      }
       set_project_member: {
         Args: { _assigned: boolean; _member_id: string; _project_id: string }
         Returns: undefined
+      }
+      start_support_thread: {
+        Args: { _attachments?: Json; _content: string; _order_id: string }
+        Returns: string
       }
       update_client_member: {
         Args: { _member_id: string; _role: string }
