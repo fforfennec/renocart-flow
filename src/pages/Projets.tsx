@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ClientAuthForm } from "@/components/projects/ClientAuthForm";
 import { ProjectForm } from "@/components/projects/ProjectForm";
+import { assignAdminOrder, getAdminClient, saveAdminProject, type AdminClient } from "@/lib/adminClients";
 import { assignOrder, downloadInvoice, downloadInvoicesZip, listInvoices, listProjects, money, projectAddress, totals, type ClientProject, type InvoiceOrder } from "@/lib/clientProjects";
 
 const NONE = "__none__";
 
-export default function Projets() {
+export default function Projets({ adminClient }: { adminClient?: AdminClient }) {
   const { user, loading, signOut } = useAuth();
   const [projects, setProjects] = useState<ClientProject[]>([]);
   const [orders, setOrders] = useState<InvoiceOrder[]>([]);
@@ -25,9 +26,12 @@ export default function Projets() {
   const refresh = useCallback(async () => {
     if (!user) return;
     setBusy(true);
-    try { const [p, o] = await Promise.all([listProjects(), listInvoices()]); setProjects(p); setOrders(o); }
+    try {
+      if (adminClient) { const data = await getAdminClient(adminClient.id); setProjects(data.projects); setOrders(data.orders); }
+      else { const [p, o] = await Promise.all([listProjects(), listInvoices()]); setProjects(p); setOrders(o); }
+    }
     catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
-  }, [user]);
+  }, [user, adminClient]);
   useEffect(() => { refresh(); }, [refresh]);
 
   const byProject = useMemo(() => {
@@ -37,7 +41,11 @@ export default function Projets() {
   }, [orders]);
 
   const assign = async (orderId: string, projectId: string) => {
-    try { await assignOrder(orderId, projectId === NONE ? null : projectId); toast.success("Commande déplacée."); refresh(); }
+    try {
+      if (adminClient) await assignAdminOrder(adminClient.id, orderId, projectId === NONE ? null : projectId);
+      else await assignOrder(orderId, projectId === NONE ? null : projectId);
+      toast.success("Commande déplacée."); refresh();
+    }
     catch (e) { toast.error((e as Error).message); }
   };
 
@@ -69,14 +77,15 @@ export default function Projets() {
   const stats = totals(list);
 
   return (
-    <div className="min-h-screen bg-background">{header}
+    <div className={adminClient ? "bg-background" : "min-h-screen bg-background"}>{!adminClient && header}
       <main className="max-w-6xl mx-auto px-4 py-8">
         {!open ? (
           <>
             <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
               <div>
-                <h1 className="text-3xl font-black tracking-tight">Gestion de projet</h1>
-                <p className="text-muted-foreground">{user.email}</p>
+                <h1 className="text-3xl font-black tracking-tight">{adminClient ? adminClient.name : "Gestion de projet"}</h1>
+                <p className="text-muted-foreground">{adminClient?.email ?? user.email}</p>
+                {adminClient && <p className="text-sm text-muted-foreground">{[adminClient.company, adminClient.phone].filter(Boolean).join(" · ")}</p>}
               </div>
               <Button className="h-11 font-bold" onClick={() => setForm({})}><Plus className="h-4 w-4 mr-2" />Nouveau projet</Button>
             </div>
@@ -85,7 +94,7 @@ export default function Projets() {
                 {projects.map((p) => {
                   const t = totals(byProject.get(p.id) ?? []);
                   return (
-                    <button key={p.id} onClick={() => setOpen(p.id)} className="text-left bg-card rounded-2xl p-5 shadow-soft border hover:border-primary transition-colors">
+                    <Button variant="outline" key={p.id} onClick={() => setOpen(p.id)} className="block h-auto whitespace-normal text-left bg-card rounded-lg p-5 shadow-soft border hover:border-primary transition-colors">
                       <div className="flex items-start justify-between gap-2">
                         <h2 className="font-black text-lg leading-tight">{p.name}</h2>
                         <span className="shrink-0 rounded-md bg-primary/15 px-2 py-0.5 text-xs font-bold">{p.code}</span>
@@ -95,21 +104,21 @@ export default function Projets() {
                         <span><b className="text-lg">{money(t.spent)}</b><br /><span className="text-muted-foreground">dépensé</span></span>
                         <span className="text-right"><b className="text-lg">{(byProject.get(p.id) ?? []).length}</b><br /><span className="text-muted-foreground">facture(s)</span></span>
                       </div>
-                    </button>
+                    </Button>
                   );
                 })}
-                <button onClick={() => setOpen(NONE)} className="text-left bg-muted rounded-2xl p-5 border border-dashed">
+                <Button variant="outline" onClick={() => setOpen(NONE)} className="block h-auto whitespace-normal text-left bg-muted rounded-lg p-5 border border-dashed">
                   <h2 className="font-black text-lg flex items-center gap-2"><FolderOpen className="h-5 w-5" />Sans projet</h2>
                   <p className="text-sm text-muted-foreground mt-1">Commandes non assignées. Tu peux les déplacer dans un projet.</p>
                   <p className="mt-4 text-sm"><b className="text-lg">{(byProject.get(NONE) ?? []).length}</b> facture(s)</p>
-                </button>
+                </Button>
                 {!projects.length && <p className="sm:col-span-2 text-muted-foreground self-center">Aucun projet pour l'instant. Crée ton premier projet pour regrouper tes commandes.</p>}
               </div>
             )}
           </>
         ) : (
           <>
-            <button onClick={() => setOpen(null)} className="min-h-11 flex items-center gap-1 text-sm font-semibold text-secondary mb-2"><ArrowLeft className="h-4 w-4" />Tous les projets</button>
+            <Button variant="ghost" onClick={() => setOpen(null)} className="min-h-11 flex items-center gap-1 text-sm font-semibold text-secondary mb-2"><ArrowLeft className="h-4 w-4" />Tous les projets</Button>
             <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
               <div>
                 <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">{current ? current.name : "Sans projet"}
@@ -175,7 +184,7 @@ export default function Projets() {
       <Dialog open={!!form} onOpenChange={(o) => !o && setForm(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{form?.project ? "Modifier le projet" : "Nouveau projet"}</DialogTitle></DialogHeader>
-          {form && <ProjectForm project={form.project} onCancel={() => setForm(null)} onSaved={() => { setForm(null); toast.success("Projet enregistré."); refresh(); }} />}
+          {form && <ProjectForm project={form.project} save={adminClient ? (input, id) => saveAdminProject(adminClient.id, input, id) : undefined} onCancel={() => setForm(null)} onSaved={() => { setForm(null); toast.success("Projet enregistré."); refresh(); }} />}
         </DialogContent>
       </Dialog>
     </div>

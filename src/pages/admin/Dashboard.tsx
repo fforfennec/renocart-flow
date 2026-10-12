@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot, MessageCircle, ShoppingCart, UserCog } from 'lucide-react';
+import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot, MessageCircle, ShoppingCart, UserCog, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/NavLink';
@@ -14,117 +15,59 @@ import Automations from './Automations';
 import Messages from './Messages';
 import SuggestionRules from './SuggestionRules';
 import Utilisateurs from './Utilisateurs';
+import Clients from './Clients';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
+  const [collapsed, setCollapsed] = useState(false);
+  const groups = [
+    { label: 'Dispatch', items: [
+      { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
+      { to: '/admin/messages', label: 'Messages suppliers', icon: MessageCircle },
+      { to: '/admin/historique', label: 'Historique', icon: Package },
+      { to: '/admin/stats', label: 'Stats', icon: BarChart3 },
+      { to: '/admin/suppliers', label: 'Fournisseurs & SP', icon: Truck },
+      { to: '/admin/automations', label: 'Automations', icon: Bot },
+    ] },
+    { label: 'Gestion Clients', items: [
+      { to: '/commander', label: 'Page de commande', icon: ShoppingCart },
+      { to: '/admin/clients', label: 'Profils clients', icon: Users },
+    ] },
+    { label: 'Base de données', items: [
+      { to: '/admin/suggestions', label: 'Règles de suggestions', icon: Package },
+    ] },
+    { label: 'Paramètres', items: [
+      { to: '/admin/utilisateurs', label: 'Utilisateurs', icon: UserCog },
+    ] },
+  ];
+  const linkClass = 'flex min-h-11 items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors';
 
   return (
     <div className="min-h-screen flex bg-rc-beige">
-      {/* Sidebar */}
-      <aside className="w-64 bg-rc-navy text-white flex flex-col">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 bg-rc-gold rounded flex items-center justify-center font-bold text-rc-navy">R</div>
-          <span className="text-xl font-bold">RenoCart</span>
+      <aside className={`${collapsed ? 'w-16' : 'w-64'} shrink-0 bg-sidebar text-sidebar-foreground flex flex-col h-screen sticky top-0 transition-[width] duration-200 motion-reduce:transition-none`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center p-4' : 'gap-3 p-6'}`}>
+          <div className="w-8 h-8 shrink-0 bg-sidebar-primary rounded flex items-center justify-center font-bold text-sidebar-primary-foreground">R</div>
+          {!collapsed && <span className="text-xl font-bold">RenoCart</span>}
         </div>
-        
-        <nav className="flex-1 px-4 space-y-2 mt-4">
-          <NavLink 
-            to="/admin" 
-            end
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-            activeClassName="bg-white/10 !text-white"
-          >
-            <LayoutDashboard size={20} />
-            <span>Overview</span>
-          </NavLink>
-          <NavLink 
-            to="/admin/messages"
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-            activeClassName="bg-white/10 !text-white"
-          >
-            <MessageCircle size={20} />
-            <span>Messages</span>
-          </NavLink>
-          <NavLink 
-            to="/admin/historique"
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-            activeClassName="bg-white/10 !text-white"
-          >
-            <Package size={20} />
-            <span>Historique</span>
-          </NavLink>
-          <NavLink 
-            to="/admin/stats"
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-            activeClassName="bg-white/10 !text-white"
-          >
-            <BarChart3 size={20} />
-            <span>Stats</span>
-          </NavLink>
-          <NavLink 
-            to="/admin/suppliers"
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-            activeClassName="bg-white/10 !text-white"
-          >
-            <Truck size={20} />
-            <span>Fournisseurs & DSP</span>
-          </NavLink>
-          <NavLink 
-            to="/admin/automations"
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-            activeClassName="bg-white/10 !text-white"
-          >
-            <Bot size={20} />
-            <span>Automations</span>
-          </NavLink>
-          <NavLink
-            to="/commander"
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-            activeClassName="bg-white/10 !text-white"
-          >
-            <ShoppingCart size={20} />
-            <span>Commander</span>
-          </NavLink>
-          <NavLink to="/admin/suggestions" className="flex items-center gap-3 px-3 py-2 rounded-md text-secondary-foreground/70 hover:bg-secondary-foreground/5" activeClassName="bg-secondary-foreground/10 text-secondary-foreground">
-            <Package size={20} /><span>Règles de suggestions</span>
-          </NavLink>
-          <NavLink
-            to="/admin/utilisateurs"
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-            activeClassName="bg-white/10 !text-white"
-          >
-            <UserCog size={20} />
-            <span>Utilisateurs</span>
-          </NavLink>
-          <NavLink 
-            to="/admin/faq"
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-            activeClassName="bg-white/10 !text-white"
-          >
-            <HelpCircle size={20} />
-            <span>FAQ</span>
-          </NavLink>
+        <nav aria-label="Menu administrateur" className={`${collapsed ? 'px-1' : 'px-4'} flex-1 overflow-y-auto pb-4 space-y-4`}>
+          {groups.map((group) => <section key={group.label} aria-label={group.label}>
+            {!collapsed && <h3 className="px-3 mb-1 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/50">{group.label}</h3>}
+            <div className="space-y-0.5">{group.items.map((item) => <NavLink key={item.to} to={item.to} end={'end' in item && item.end} title={item.label} aria-label={item.label} className={linkClass} activeClassName="bg-sidebar-accent !text-sidebar-accent-foreground">
+              <item.icon size={20} className="shrink-0" />{!collapsed && <span className="leading-snug">{item.label}</span>}
+            </NavLink>)}</div>
+          </section>)}
+          <div className="border-t border-sidebar-border pt-3"><NavLink to="/admin/faq" title="FAQ" aria-label="FAQ" className={linkClass} activeClassName="bg-sidebar-accent !text-sidebar-accent-foreground"><HelpCircle size={20} className="shrink-0" />{!collapsed && <span>FAQ</span>}</NavLink></div>
         </nav>
-
-        <div className="p-4 border-t border-white/10">
-          <div className="mb-4 px-3">
-            <p className="text-sm font-medium">{profile?.full_name || 'Admin User'}</p>
-            <p className="text-xs text-white/50">COO / Operations</p>
-          </div>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
-            onClick={signOut}
-          >
-            <LogOut size={20} className="mr-3" />
-            Sign Out
-          </Button>
+        <div className={`${collapsed ? 'p-1' : 'p-4'} border-t border-sidebar-border`}>
+          {!collapsed && <div className="mb-3 px-3"><p className="text-sm font-medium truncate">{profile?.full_name || 'Admin User'}</p><p className="text-xs text-sidebar-foreground/50">COO / Operations</p></div>}
+          <Button variant="ghost" title="Sign Out" aria-label="Sign Out" className="w-full justify-start text-sidebar-foreground/75 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent" onClick={signOut}><LogOut size={20} className="shrink-0" />{!collapsed && 'Sign Out'}</Button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <header className="bg-white border-b border-border h-16 flex items-center px-6">
+      <main className="flex-1 min-w-0 overflow-auto">
+        <header className="bg-card border-b border-border h-16 flex items-center gap-3 px-6">
+          <Button variant="ghost" size="icon" aria-label={collapsed ? 'Déplier le menu' : 'Réduire le menu'} title={collapsed ? 'Déplier le menu' : 'Réduire le menu'} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button>
           <h2 className="text-lg font-medium text-muted-foreground">Admin Portal</h2>
         </header>
         
@@ -138,6 +81,7 @@ const AdminDashboard = () => {
           <Route path="/stats" element={<AdminStats />} />
           <Route path="/automations" element={<Automations />} />
           <Route path="/suggestions" element={<SuggestionRules />} />
+          <Route path="/clients" element={<Clients />} />
           <Route path="/utilisateurs" element={<Utilisateurs />} />
           <Route path="/faq" element={<AdminFAQ />} />
         </Routes>
