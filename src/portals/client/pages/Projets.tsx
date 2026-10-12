@@ -10,6 +10,7 @@ import { ClientAuthForm } from "@/portals/client/components/projects/ClientAuthF
 import { ProjectForm } from "@/portals/client/components/projects/ProjectForm";
 import { OrderTracking, StatusBadge } from "@/portals/client/components/projects/OrderTracking";
 import { AccountTeam, ProjectMembers } from "@/portals/client/components/projects/AccountTeam";
+import { ProfileSettings } from "@/portals/client/components/projects/ProfileSettings";
 import { canManageAccount, getClientContext, ROLE_LABEL, type ClientContext } from "@/lib/clientProjects";
 import { assignOrder, downloadInvoice, downloadInvoicesZip, listInvoices, listProjects, money, projectAddress, totals, type ClientProject, type InvoiceOrder } from "@/lib/clientProjects";
 
@@ -34,6 +35,7 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
   const [zipping, setZipping] = useState(false);
   const [tab, setTab] = useState<"projets" | "suivi">("projets");
   const [ctx, setCtx] = useState<ClientContext | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
   // Admin view (source) has full rights; otherwise permissions follow the account role.
   const role = source ? "owner" : ctx?.role;
   const manage = canManageAccount(role);
@@ -71,6 +73,7 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
         <Link to="/commander" className="text-2xl font-black tracking-tight text-secondary">RENO<span className="text-primary">CART</span></Link>
         {user && <div className="flex items-center gap-1">
           <Button asChild variant="ghost" className="h-11"><Link to="/commander"><ShoppingCart className="h-4 w-4 mr-2" />Commander</Link></Button>
+          <Button variant="ghost" className="h-11" onClick={() => setProfileOpen(true)}><User className="h-4 w-4 mr-2" />Profil</Button>
           <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Se déconnecter" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
         </div>}
       </div>
@@ -217,6 +220,8 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
           {form && <ProjectForm project={form.project} save={source?.saveProject} onCancel={() => setForm(null)} onSaved={() => { setForm(null); toast.success("Projet enregistré."); refresh(); }} />}
         </DialogContent>
       </Dialog>
+
+      <ProfileSettings open={profileOpen} onClose={() => setProfileOpen(false)} />
     </div>
   );
 }
