@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Download, FileText, FolderOpen, Loader2, LogOut, MapPin, Pencil, Phone, Plus, ShoppingCart, User } from "lucide-react";
+import { ArrowLeft, Check, Download, FileText, FolderOpen, Loader2, LogOut, MapPin, Pencil, Phone, Plus, ShoppingCart, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -81,9 +81,16 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
   if (!user) return (
     <div className="min-h-screen bg-background">{header}
       <main className="max-w-md mx-auto px-4 py-12">
-        <h1 className="text-3xl font-black tracking-tight mb-2">Gestion de projet</h1>
-        <p className="text-muted-foreground mb-6">Suis tes dépenses et télécharge tes factures, projet par projet.</p>
-        <div className="bg-card rounded-2xl p-6 shadow-soft"><ClientAuthForm /></div>
+        <p className="inline-block rounded-md bg-primary/20 px-2 py-0.5 text-xs font-bold uppercase tracking-widest text-secondary mb-3">Gestion de projet</p>
+        <h1 className="text-3xl font-black tracking-tight mb-2">Crée ton profil pour voir tes projets</h1>
+        <p className="text-muted-foreground mb-5">Sans profil, tes commandes restent anonymes : tu ne peux pas les retrouver, ni télécharger tes factures.</p>
+        <ul className="space-y-2 mb-6">
+          {["Toutes tes commandes classées par projet", "Tes factures en PDF, une à une ou en fichier ZIP", "Le suivi de tes livraisons : à venir, en cours, livrées"].map((p) => (
+            <li key={p} className="flex gap-2 text-sm font-medium"><Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />{p}</li>
+          ))}
+        </ul>
+        <div className="bg-card rounded-2xl p-6 shadow-soft"><ClientAuthForm initialMode="signup" /></div>
+        <p className="text-xs text-muted-foreground mt-4">Tu as déjà commandé sans profil ? Choisis « J'ai déjà un compte » et utilise le même courriel : tes factures s'y rattachent automatiquement.</p>
       </main>
     </div>
   );

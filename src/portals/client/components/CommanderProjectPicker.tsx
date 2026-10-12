@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 export type ProjectChoice = ClientProject | "none" | null;
 
 const L = {
-  fr: { none: "Aucun projet", add: "Nouveau projet", project: "Projet", newTitle: "Nouveau projet", login: "Connecte-toi pour créer un projet", select: "Choisir un projet", search: "Rechercher un projet…" },
-  en: { none: "No project", add: "New project", project: "Project", newTitle: "New project", login: "Sign in to create a project", select: "Choose a project", search: "Search a project…" },
+  fr: { none: "Aucun projet", add: "Nouveau projet", project: "Projet", newTitle: "Nouveau projet", login: "Crée un profil pour enregistrer ce projet", select: "Choisir un projet", search: "Rechercher un projet…" },
+  en: { none: "No project", add: "New project", project: "Project", newTitle: "New project", login: "Create a profile to save this project", select: "Choose a project", search: "Search a project…" },
 };
 
 /** Compact dropdown with a scrollable list of projects (projects + none + new). Display only — independent of the voice pipeline. */
@@ -104,7 +104,7 @@ export function NewProjectDialog({ open, onOpenChange, signedIn, onCreated, lang
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
         <DialogHeader><DialogTitle>{signedIn ? t.newTitle : t.login}</DialogTitle></DialogHeader>
-        {signedIn ? <ProjectForm compact onCancel={() => onOpenChange(false)} onSaved={onCreated} /> : <ClientAuthForm redirectPath="/commander" />}
+        {signedIn ? <ProjectForm compact onCancel={() => onOpenChange(false)} onSaved={onCreated} /> : <ClientAuthForm redirectPath="/commander" initialMode="signup" lang={lang} />}
       </DialogContent>
     </Dialog>
   );
