@@ -16,6 +16,7 @@ import Messages from './Messages';
 import SuggestionRules from './SuggestionRules';
 import Utilisateurs from './Utilisateurs';
 import Clients from './Clients';
+import Commander from '@/pages/Commander';
 
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
@@ -48,7 +49,7 @@ const AdminDashboard = () => {
       { to: '/admin/automations', label: 'Automations', icon: Bot },
     ] },
     { label: 'Gestion Clients', items: [
-      { to: '/commander', label: 'Page de commande', icon: ShoppingCart },
+      { to: '/admin/commander', label: 'Page de commande', icon: ShoppingCart },
       { to: '/admin/clients', label: 'Profils clients', icon: Users },
     ] },
     { label: 'Base de données', items: [
@@ -106,6 +107,7 @@ const AdminDashboard = () => {
           <Route path="/automations" element={<Automations />} />
           <Route path="/suggestions" element={<SuggestionRules />} />
           <Route path="/clients" element={<Clients />} />
+          <Route path="/commander" element={<Commander />} />
           <Route path="/utilisateurs" element={<Utilisateurs />} />
           <Route path="/faq" element={<AdminFAQ />} />
         </Routes>

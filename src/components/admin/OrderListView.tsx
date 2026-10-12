@@ -216,7 +216,6 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
         <div className="w-10 text-center" title="Supplier"><Package className="h-3.5 w-3.5 mx-auto" /></div>
         <div className="w-10 text-center" title="DSP"><Truck className="h-3.5 w-3.5 mx-auto" /></div>
         <div className="w-20 text-right">Created</div>
-        <div className="w-20 text-right">Created</div>
       </div>
 
       <div className="space-y-3">
@@ -255,7 +254,11 @@ export default function OrderListView({ orders, assignmentsByOrder, onOrderRead,
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p><span className="font-medium">Client:</span> {order.client_name}</p>
                   <p><span className="font-medium">Address:</span> {order.client_address}</p>
-                  <p><span className="font-medium">Delivery:</span> {new Date(order.delivery_date).toLocaleDateString()} - {order.delivery_time_window}</p>
+                  {order.delivery_date ? (
+                    <p><span className="font-medium">Delivery:</span> {new Date(order.delivery_date).toLocaleDateString()}{order.delivery_time_window ? ` - ${order.delivery_time_window}` : ''}</p>
+                  ) : (
+                    <p><span className="font-medium">Delivery:</span> À planifier</p>
+                  )}
                   {order.truck_type && <p><span className="font-medium">Truck:</span> {order.truck_type}</p>}
                 </div>
               </div>
