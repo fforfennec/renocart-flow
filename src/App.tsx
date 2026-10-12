@@ -12,6 +12,8 @@ import SupplierDashboard from "./pages/supplier/Dashboard";
 import SupplierRespond from "./pages/supplier/SupplierRespond";
 import NotFound from "./pages/NotFound";
 import Commander from "./pages/Commander";
+import Projets from "./pages/Projets";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +28,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/commander" element={<Commander />} />
+            <Route path="/projets" element={<Projets />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             
             {/* Admin Routes */}
             <Route path="/admin/*" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
