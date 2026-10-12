@@ -17,7 +17,7 @@ const PORTALS: { id: Portal; label: string; icon: typeof Shield; desc: string }[
 
 const Auth = () => {
   const [portal, setPortal] = useState<Portal | null>(null);
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -69,13 +69,21 @@ const Auth = () => {
     setPendingMsg("Demande envoyée. Confirme ton courriel, puis RenoCart approuvera ton accès. Tu pourras ensuite te connecter.");
   };
 
+  const handleForgot = async () => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+    setPendingMsg(`Lien de réinitialisation envoyé à ${email}. Ouvre le courriel et suis le lien pour choisir un nouveau mot de passe.`);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === 'login') await handleLogin(); else await handleSignup();
+      if (mode === 'login') await handleLogin(); else if (mode === 'forgot') await handleForgot(); else await handleSignup();
     } catch (err: any) {
-      toast({ title: mode === 'login' ? 'Connexion impossible' : 'Inscription impossible', description: err.message, variant: 'destructive' });
+      toast({ title: mode === 'login' ? 'Connexion impossible' : mode === 'forgot' ? 'Envoi impossible' : 'Inscription impossible', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -92,7 +100,7 @@ const Auth = () => {
           </div>
           <CardTitle className="text-2xl font-bold text-rc-navy">RenoCart Portal</CardTitle>
           <CardDescription>
-            {current ? `${current.label} — ${mode === 'login' ? 'connexion' : 'demande d\u2019accès'}` : 'Choisis ton accès'}
+            {current ? `${current.label} — ${mode === 'login' ? 'connexion' : mode === 'forgot' ? 'mot de passe oublié' : 'demande d\u2019accès'}` : 'Choisis ton accès'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -129,17 +137,32 @@ const Auth = () => {
               )}
               <div className="space-y-2"><Label htmlFor="email">Courriel</Label>
                 <Input id="email" type="email" placeholder="ton@courriel.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} /></div>
-              <div className="space-y-2"><Label htmlFor="password">Mot de passe</Label>
-                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} /></div>
+              {mode !== 'forgot' && (
+                <div className="space-y-2"><Label htmlFor="password">Mot de passe</Label>
+                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} /></div>
+              )}
               <Button type="submit" className="w-full bg-rc-gold hover:bg-rc-gold/90 text-rc-navy font-semibold" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === 'login' ? 'Se connecter' : "Demander l'accès"}
+                {mode === 'login' ? 'Se connecter' : mode === 'forgot' ? 'Envoyer le lien de réinitialisation' : "Demander l'accès"}
               </Button>
+              {mode === 'login' && (
+                <p className="text-center text-sm">
+                  <button type="button" className="text-muted-foreground underline hover:text-foreground" onClick={() => setMode('forgot')}>
+                    Mot de passe oublié ?
+                  </button>
+                </p>
+              )}
               <p className="text-center text-sm text-muted-foreground">
-                {mode === 'login' ? "Pas encore de compte ? " : 'Déjà un compte ? '}
-                <button type="button" className="font-medium text-rc-navy underline" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>
-                  {mode === 'login' ? "Demander l'accès" : 'Se connecter'}
-                </button>
+                {mode === 'forgot' ? (
+                  <button type="button" className="font-medium text-rc-navy underline" onClick={() => setMode('login')}>Retour à la connexion</button>
+                ) : (
+                  <>
+                    {mode === 'login' ? "Pas encore de compte ? " : 'Déjà un compte ? '}
+                    <button type="button" className="font-medium text-rc-navy underline" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>
+                      {mode === 'login' ? "Demander l'accès" : 'Se connecter'}
+                    </button>
+                  </>
+                )}
               </p>
               {mode === 'signup' && <p className="text-center text-xs text-muted-foreground">Chaque nouveau compte doit être approuvé par RenoCart.</p>}
             </form>
