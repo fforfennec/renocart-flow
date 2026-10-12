@@ -66,18 +66,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       setProfile(profileData);
 
-      // Load user role
-      const { data: roleData } = await supabase
+      // Load user roles (a user may have several — admin wins)
+      const { data: roleRows } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', userId)
-        .single();
+        .eq('user_id', userId);
 
-      setUserRole(roleData?.role || null);
+      const roles = (roleRows ?? []).map((r) => r.role);
+      const priority: UserRole[] = ['admin', 'supplier', 'partner'];
+      setUserRole(priority.find((r) => roles.includes(r)) ?? null);
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
