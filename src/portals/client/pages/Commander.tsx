@@ -741,7 +741,7 @@ export default function Commander() {
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="text-2xl font-black tracking-tight text-secondary">RENO<span className="text-primary">CART</span></div>
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <a href="/projets" className="min-h-11 flex items-center px-2 text-secondary hover:underline">{lang === "fr" ? "Mes projets" : "My projects"}</a>
+            <Link to="/projets" className="min-h-11 flex items-center px-2 text-secondary hover:underline">{lang === "fr" ? "Mes projets" : "My projects"}</Link>
             {started && !isMobile && <button onClick={() => setConfirmRestart(true)} className="text-xs text-muted-foreground hover:underline mr-2">{t.restart}</button>}
             {isMobile && <Button variant="ghost" size="icon" aria-label={t.restart} title={t.restart} onClick={() => setConfirmRestart(true)} className="h-11 w-11 shrink-0"><RotateCcw className="h-5 w-5" /></Button>}
             <div className={cn("flex", isMobile && "rounded-xl bg-muted p-1")}>
