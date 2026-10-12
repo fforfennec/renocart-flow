@@ -140,14 +140,26 @@ Deno.serve(async (req) => {
     const attrTruck = ["Boom", "Boom 90ft", "Van/Cube", "Hiab", "Other"].includes(attrs["truck_type"]) ? attrs["truck_type"] : null;
 
 
-    // Client email + project (project only kept if its owner's email matches the order email)
+    // Client email + project: kept only if the order email is the project owner's,
+    // or an active sub-account allowed to order for it (super admin, or assigned project manager).
     const customerEmail: string | null = (shopifyOrder.email || shopifyOrder.customer?.email || shopifyOrder.contact_email || null)?.toLowerCase() ?? null;
     let project: { id: string; name: string; code: string } | null = null;
     if (attrs["project_id"] && customerEmail && /^[0-9a-f-]{36}$/i.test(attrs["project_id"])) {
       const { data: p } = await supabase.from("client_projects").select("id, name, code, owner_id").eq("id", attrs["project_id"]).maybeSingle();
       if (p) {
         const { data: owner } = await supabase.auth.admin.getUserById(p.owner_id);
-        if (owner?.user?.email?.toLowerCase() === customerEmail) project = { id: p.id, name: p.name, code: p.code };
+        let allowed = owner?.user?.email?.toLowerCase() === customerEmail;
+        if (!allowed) {
+          const { data: m } = await supabase.from("client_members").select("id, role")
+            .eq("owner_id", p.owner_id).eq("status", "active").ilike("email", customerEmail).maybeSingle();
+          if (m?.role === "super_admin") allowed = true;
+          else if (m?.role === "project_manager") {
+            const { data: a } = await supabase.from("client_project_members").select("member_id")
+              .eq("project_id", p.id).eq("member_id", m.id).maybeSingle();
+            allowed = !!a;
+          }
+        }
+        if (allowed) project = { id: p.id, name: p.name, code: p.code };
       }
     }
     const num = (v: unknown) => (v == null || v === "" || isNaN(Number(v)) ? null : Number(v));
