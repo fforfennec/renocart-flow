@@ -15,6 +15,7 @@ export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [pwBusy, setPwBusy] = useState(false);
