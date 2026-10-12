@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     const token = req.headers.get("Authorization")?.replace("Bearer ", "");
     if (!token) return json({ error: "Unauthorized" }, 401);
     const { data: { user } } = await admin.auth.getUser(token);
-    if (!user) return json({ error: "Unauthorized" }, 401);
+    if (!user) { console.log("support-reply: invalid session"); return json({ error: "Unauthorized" }, 401); }
     const { data: isAdmin } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" });
     if (!isAdmin) return json({ error: "Forbidden" }, 403);
 
