@@ -139,6 +139,19 @@ Deno.serve(async (req) => {
     const attrWindow = ["AM", "PM", "Early", "Day"].includes(attrs["delivery_time_window"]) ? attrs["delivery_time_window"] : null;
     const attrTruck = ["Boom", "Boom 90ft", "Van/Cube", "Hiab", "Other"].includes(attrs["truck_type"]) ? attrs["truck_type"] : null;
 
+
+    // Client email + project (project only kept if its owner's email matches the order email)
+    const customerEmail: string | null = (shopifyOrder.email || shopifyOrder.customer?.email || shopifyOrder.contact_email || null)?.toLowerCase() ?? null;
+    let project: { id: string; name: string; code: string } | null = null;
+    if (attrs["project_id"] && customerEmail && /^[0-9a-f-]{36}$/i.test(attrs["project_id"])) {
+      const { data: p } = await supabase.from("client_projects").select("id, name, code, owner_id").eq("id", attrs["project_id"]).maybeSingle();
+      if (p) {
+        const { data: owner } = await supabase.auth.admin.getUserById(p.owner_id);
+        if (owner?.user?.email?.toLowerCase() === customerEmail) project = { id: p.id, name: p.name, code: p.code };
+      }
+    }
+    const num = (v: unknown) => (v == null || v === "" || isNaN(Number(v)) ? null : Number(v));
+
     // Insert order
     const shippingMethod = shopifyOrder.shipping_lines?.[0]?.title || null;
     const { data: newOrder, error: orderErr } = await supabase
@@ -154,6 +167,15 @@ Deno.serve(async (req) => {
         internal_notes: shopifyOrder.note || null,
         truck_type: attrTruck,
         shipping_method: shippingMethod,
+        customer_email: customerEmail,
+        project_id: project?.id ?? null,
+        project_name: project?.name ?? null,
+        project_code: project?.code ?? null,
+        subtotal_price: num(shopifyOrder.subtotal_price),
+        total_tax: num(shopifyOrder.total_tax),
+        shipping_price_total: num(shopifyOrder.total_shipping_price_set?.shop_money?.amount),
+        total_price: num(shopifyOrder.total_price),
+        currency: shopifyOrder.currency || null,
       })
       .select("id")
       .single();
