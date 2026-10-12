@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot, MessageCircle, ShoppingCart, UserCog, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot, MessageCircle, ShoppingCart, UserCog, PanelLeftClose, PanelLeftOpen, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/NavLink';
@@ -20,6 +20,24 @@ import Clients from './Clients';
 const AdminDashboard = () => {
   const { signOut, profile } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('rc-admin-groups');
+      if (saved) return JSON.parse(saved) as Record<string, boolean>;
+    } catch {
+      // ignore unreadable preference
+    }
+    return {};
+  });
+  const toggleGroup = (label: string) => setOpenGroups((prev) => {
+    const next = { ...prev, [label]: !(prev[label] !== false) };
+    try {
+      localStorage.setItem('rc-admin-groups', JSON.stringify(next));
+    } catch {
+      // ignore write failure
+    }
+    return next;
+  });
   const groups = [
     { label: 'Dispatch', items: [
       { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -50,12 +68,18 @@ const AdminDashboard = () => {
           {!collapsed && <span className="text-xl font-bold">RenoCart</span>}
         </div>
         <nav aria-label="Menu administrateur" className={`${collapsed ? 'px-1' : 'px-4'} flex-1 overflow-y-auto pb-4 space-y-4`}>
-          {groups.map((group) => <section key={group.label} aria-label={group.label}>
-            {!collapsed && <h3 className="px-3 mb-1 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/50">{group.label}</h3>}
-            <div className="space-y-0.5">{group.items.map((item) => <NavLink key={item.to} to={item.to} end={'end' in item && item.end} title={item.label} aria-label={item.label} className={linkClass} activeClassName="bg-sidebar-accent !text-sidebar-accent-foreground">
-              <item.icon size={20} className="shrink-0" />{!collapsed && <span className="leading-snug">{item.label}</span>}
-            </NavLink>)}</div>
-          </section>)}
+          {groups.map((group) => {
+            const open = openGroups[group.label] !== false;
+            return <section key={group.label} aria-label={group.label}>
+              {!collapsed && <button type="button" onClick={() => toggleGroup(group.label)} aria-expanded={open} title={open ? `Replier ${group.label}` : `Déplier ${group.label}`} className="flex min-h-8 w-full items-center justify-between gap-2 px-3 mb-1 rounded-md text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/50 hover:text-sidebar-foreground/80 hover:bg-sidebar-accent/50 transition-colors">
+                <span>{group.label}</span>
+                <ChevronDown size={14} className={`shrink-0 transition-transform duration-200 motion-reduce:transition-none ${open ? '' : '-rotate-90'}`} />
+              </button>}
+              <div className={`space-y-0.5 ${open || collapsed ? '' : 'hidden'}`}>{group.items.map((item) => <NavLink key={item.to} to={item.to} end={'end' in item && item.end} title={item.label} aria-label={item.label} className={linkClass} activeClassName="bg-sidebar-accent !text-sidebar-accent-foreground">
+                <item.icon size={20} className="shrink-0" />{!collapsed && <span className="leading-snug">{item.label}</span>}
+              </NavLink>)}</div>
+            </section>;
+          })}
           <div className="border-t border-sidebar-border pt-3"><NavLink to="/admin/faq" title="FAQ" aria-label="FAQ" className={linkClass} activeClassName="bg-sidebar-accent !text-sidebar-accent-foreground"><HelpCircle size={20} className="shrink-0" />{!collapsed && <span>FAQ</span>}</NavLink></div>
         </nav>
         <div className={`${collapsed ? 'p-1' : 'p-4'} border-t border-sidebar-border`}>
