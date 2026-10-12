@@ -32,6 +32,54 @@ export type Database = {
         }
         Relationships: []
       }
+      client_projects: {
+        Row: {
+          address1: string | null
+          city: string | null
+          code: string
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          owner_id: string
+          postal_code: string | null
+          province: string | null
+          updated_at: string
+        }
+        Insert: {
+          address1?: string | null
+          city?: string | null
+          code: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          owner_id: string
+          postal_code?: string | null
+          province?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address1?: string | null
+          city?: string | null
+          code?: string
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          owner_id?: string
+          postal_code?: string | null
+          province?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       internal_cron_tokens: {
         Row: {
           name: string
@@ -214,6 +262,8 @@ export type Database = {
           quantity: number
           sku: string | null
           sort_order: number | null
+          unit_price: number | null
+          variant_title: string | null
           vendor: string | null
         }
         Insert: {
@@ -226,6 +276,8 @@ export type Database = {
           quantity?: number
           sku?: string | null
           sort_order?: number | null
+          unit_price?: number | null
+          variant_title?: string | null
           vendor?: string | null
         }
         Update: {
@@ -238,6 +290,8 @@ export type Database = {
           quantity?: number
           sku?: string | null
           sort_order?: number | null
+          unit_price?: number | null
+          variant_title?: string | null
           vendor?: string | null
         }
         Relationships: [
@@ -373,14 +427,23 @@ export type Database = {
           client_phone: string | null
           created_at: string
           created_by: string | null
+          currency: string | null
+          customer_email: string | null
           delivery_date: string | null
           delivery_time_window: string | null
           id: string
           internal_notes: string | null
           order_number: string
           parent_order_id: string | null
+          project_code: string | null
+          project_id: string | null
+          project_name: string | null
           shipping_method: string | null
+          shipping_price_total: number | null
           status: string
+          subtotal_price: number | null
+          total_price: number | null
+          total_tax: number | null
           truck_type: string | null
           updated_at: string
         }
@@ -391,14 +454,23 @@ export type Database = {
           client_phone?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
+          customer_email?: string | null
           delivery_date?: string | null
           delivery_time_window?: string | null
           id?: string
           internal_notes?: string | null
           order_number: string
           parent_order_id?: string | null
+          project_code?: string | null
+          project_id?: string | null
+          project_name?: string | null
           shipping_method?: string | null
+          shipping_price_total?: number | null
           status?: string
+          subtotal_price?: number | null
+          total_price?: number | null
+          total_tax?: number | null
           truck_type?: string | null
           updated_at?: string
         }
@@ -409,14 +481,23 @@ export type Database = {
           client_phone?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
+          customer_email?: string | null
           delivery_date?: string | null
           delivery_time_window?: string | null
           id?: string
           internal_notes?: string | null
           order_number?: string
           parent_order_id?: string | null
+          project_code?: string | null
+          project_id?: string | null
+          project_name?: string | null
           shipping_method?: string | null
+          shipping_price_total?: number | null
           status?: string
+          subtotal_price?: number | null
+          total_price?: number | null
+          total_tax?: number | null
           truck_type?: string | null
           updated_at?: string
         }
@@ -426,6 +507,13 @@ export type Database = {
             columns: ["parent_order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -880,6 +968,10 @@ export type Database = {
     }
     Functions: {
       archive_old_delivered_orders: { Args: never; Returns: number }
+      assign_order_project: {
+        Args: { _order_id: string; _project_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
