@@ -38,7 +38,8 @@ type Msg =
   | { id: string; from: "bot"; suggestionAdjustment: { variantId: string; title: string; before: number; after: number; reason: string }[]; undone?: boolean }
   | { id: string; from: "bot"; formatChange: { title: string; before: string; after: string } }
   | { id: string; from: "bot"; added: Change[]; removed: Change[]; missing: Missing[] }
-  | { id: string; from: "bot"; nothing: true; dismissed?: boolean };
+  | { id: string; from: "bot"; nothing: true; dismissed?: boolean }
+  | { id: string; from: "bot"; note: string };
 
 const T = {
   fr: {
@@ -54,6 +55,7 @@ const T = {
     added: "J'ai ajouté", removed: "J'ai enlevé", and: "et", notFound: "Je n'ai pas trouvé", nothing: "Je n'ai pas compris un des articles. Tu peux le répéter ?", repeat: "Répéter", ignore: "Ignorer", voice: "Message vocal",
     confirmRestart: "Effacer ton panier et la conversation ?", yesRestart: "Oui, recommencer", cancel: "Annuler",
     qList: "Qu'est-ce qu'il te faut ?", qMore: "Autre chose à ajouter ?", done: "C'est tout", addMore: "Ajouter autre chose", addMoreHint: "Vas-y, dis-moi ce que tu veux ajouter.",
+    needOne: "Ton panier est vide. Ajoute au moins un produit pour continuer.",
     qDate: "Pour quand ?", tomorrow: "Demain", after: "Après-demain", pick: "Choisir une date",
     qWindow: "À quel moment de la journée ?", qTruck: "Quel camion ?",
     qNote: "Autre chose à savoir pour la livraison ? (étage, ruelle…)", noNote: "Non, c'est tout",
@@ -75,6 +77,7 @@ const T = {
     added: "I added", removed: "I removed", and: "and", notFound: "I couldn't find", nothing: "I didn't understand one of the items. Can you repeat it?", repeat: "Repeat", ignore: "Ignore", voice: "Voice message",
     confirmRestart: "Clear your cart and the conversation?", yesRestart: "Yes, start over", cancel: "Cancel",
     qList: "What do you need?", qMore: "Anything else to add?", done: "That's all", addMore: "Add something else", addMoreHint: "Go ahead, tell me what to add.",
+    needOne: "Your cart is empty. Add at least one product to continue.",
     qDate: "When?", tomorrow: "Tomorrow", after: "Day after tomorrow", pick: "Pick a date",
     qWindow: "What time of day?", qTruck: "Which truck?",
     qNote: "Anything else to know for delivery? (floor, alley…)", noNote: "No, that's all",
@@ -307,7 +310,11 @@ export default function Commander() {
     setEditing(null);
   };
 
-  const finishList = () => { push({ id: uid(), from: "user", done: true }); setListDone(true); setEditing(null); };
+  const finishList = () => {
+    push({ id: uid(), from: "user", done: true });
+    if (!items.some((i) => i.quantity > 0)) { push({ id: uid(), from: "bot", note: t.needOne }); return; }
+    setListDone(true); setEditing(null);
+  };
 
   const send = async (payload: { audio?: Blob; text?: string; dur?: number }) => {
     setBusy(true);
@@ -364,7 +371,7 @@ export default function Commander() {
           return n;
         });
         setAnswered((p) => Array.from(new Set([...p, ...got.map(([f]) => f)])));
-        if (!listDone && started) setListDone(true);
+        if (!listDone && started && next.some((i) => i.quantity > 0)) setListDone(true);
         setEditing(null);
       } else if (r.done && (question === "more" || question === "list") && (next.some((i) => i.quantity > 0))) {
         setListDone(true); setEditing(null);
@@ -499,6 +506,7 @@ export default function Commander() {
         </div>
       );
     }
+    if ("note" in m) return <BotBubble key={m.id}>{m.note}</BotBubble>;
     if ("suggestionAdded" in m) return <BotBubble key={m.id}>{lang === "fr" ? "C’est ajouté : " : "Added: "}{m.suggestionAdded.map((s) => `+${s.quantity} ${s.title}`).join(", ")}.</BotBubble>;
     if ("suggestionAdjustment" in m) return <BotBubble key={m.id}>
       {m.suggestionAdjustment.map((a) => <p key={a.variantId}>{a.title} : {a.before} → {a.after} · {a.reason}.</p>)}
