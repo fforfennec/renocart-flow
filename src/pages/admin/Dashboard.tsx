@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot, MessageCircle, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/NavLink';
@@ -75,6 +75,14 @@ const AdminDashboard = () => {
           >
             <Bot size={20} />
             <span>Automations</span>
+          </NavLink>
+          <NavLink
+            to="/commander"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
+            activeClassName="bg-white/10 !text-white"
+          >
+            <ShoppingCart size={20} />
+            <span>Commander</span>
           </NavLink>
           <NavLink to="/admin/suggestions" className="flex items-center gap-3 px-3 py-2 rounded-md text-secondary-foreground/70 hover:bg-secondary-foreground/5" activeClassName="bg-secondary-foreground/10 text-secondary-foreground">
             <Package size={20} /><span>Règles de suggestions</span>
