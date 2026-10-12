@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Shield, Truck, Handshake, ArrowLeft, Clock } from 'lucide-react';
 
 type Portal = 'admin' | 'supplier' | 'partner';
@@ -26,6 +27,15 @@ const Auth = () => {
   const [pendingMsg, setPendingMsg] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, userRole, loading: authLoading } = useAuth();
+
+  // Session déjà active : ne jamais redemander les identifiants, renvoyer
+  // directement vers le portail correspondant au rôle.
+  useEffect(() => {
+    if (authLoading || !user || !userRole) return;
+    if (userRole === 'admin') navigate('/admin', { replace: true });
+    else if (userRole === 'supplier' || userRole === 'partner') navigate('/supplier', { replace: true });
+  }, [authLoading, user, userRole, navigate]);
 
   const handleLogin = async () => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -90,6 +100,16 @@ const Auth = () => {
   };
 
   const current = PORTALS.find((p) => p.id === portal);
+
+  // Pendant la restauration de la session, afficher un chargement plutôt que
+  // le formulaire de connexion (évite de croire qu'on est déconnecté).
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-rc-beige">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-rc-beige p-4">
