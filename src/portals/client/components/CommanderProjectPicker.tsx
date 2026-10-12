@@ -15,7 +15,7 @@ const L = {
 
 /** Compact dropdown with a scrollable list of projects (projects + none + new). Display only — independent of the voice pipeline. */
 export function ProjectPicker({ projects, value, onPick, onNew, lang, dark, dropUp }: {
-  projects: ClientProject[]; value: ProjectChoice; onPick: (p: ProjectChoice) => void; onNew: () => void; lang: "fr" | "en"; dark?: boolean; dropUp?: boolean;
+  projects: ClientProject[]; value: ProjectChoice; onPick: (p: ProjectChoice) => void; onNew?: () => void; lang: "fr" | "en"; dark?: boolean; dropUp?: boolean;
 }) {
   const t = L[lang];
   const [open, setOpen] = useState(false);
@@ -85,10 +85,10 @@ export function ProjectPicker({ projects, value, onPick, onNew, lang, dark, drop
               <Ban className="h-4 w-4 shrink-0 opacity-60" />
               <span className="truncate">{t.none}</span>
             </button>
-            <button type="button" onClick={() => { setOpen(false); onNew(); }} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-left hover:bg-accent min-h-11">
+            {onNew && <button type="button" onClick={() => { setOpen(false); onNew(); }} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-left hover:bg-accent min-h-11">
               <FolderPlus className="h-4 w-4 shrink-0" />
               <span className="truncate">{t.add}</span>
-            </button>
+            </button>}
           </div>
         </div>
       )}
