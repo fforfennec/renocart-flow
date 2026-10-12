@@ -103,7 +103,7 @@ describe("Commander inline Shopify variant selector", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Changer de format" }));
     fireEvent.click(await screen.findByRole("button", { name: "5/8 po" }));
     vi.mocked(getVariantProduct).mockResolvedValue({ ...product, variants: product.variants.map((v) => v.id === "other" ? { ...v, availableForSale: false } : v) });
-    fireEvent.click(screen.getByRole("button", { name: "Confirmer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remplacer" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "5/8 po" })).toBeDisabled());
     expect(confirm).not.toHaveBeenCalled();
   });
