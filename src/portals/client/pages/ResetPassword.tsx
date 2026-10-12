@@ -16,10 +16,8 @@ export default function ResetPassword() {
     const { error } = await supabase.auth.updateUser({ password: pw });
     setBusy(false);
     if (error) return toast.error(error.message);
-    const { data: roles } = await supabase.from("user_roles").select("role").limit(5);
-    const isStaff = (roles ?? []).some((r) => r.role === "admin" || r.role === "supplier" || r.role === "partner");
     toast.success("Mot de passe changé.");
-    nav(isStaff ? "/auth" : "/projets");
+    nav("/projets");
   };
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

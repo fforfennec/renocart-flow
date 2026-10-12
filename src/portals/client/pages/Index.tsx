@@ -1,7 +1,5 @@
 import { Navigate } from 'react-router-dom';
 
-const Index = () => {
-  return <Navigate to="/auth" replace />;
-};
+const Index = () => <Navigate to="/commander" replace />;
 
 export default Index;
