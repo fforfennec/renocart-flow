@@ -54,6 +54,7 @@ const T = {
     added: "J'ai ajouté", removed: "J'ai enlevé", and: "et", notFound: "Je n'ai pas trouvé", nothing: "Je n'ai pas compris un des articles. Tu peux le répéter ?", repeat: "Répéter", ignore: "Ignorer", voice: "Message vocal",
     confirmRestart: "Effacer ton panier et la conversation ?", yesRestart: "Oui, recommencer", cancel: "Annuler",
     qList: "Qu'est-ce qu'il te faut ?", qMore: "Autre chose à ajouter ?", done: "C'est tout", addMore: "Ajouter autre chose", addMoreHint: "Vas-y, dis-moi ce que tu veux ajouter.",
+    needOne: "Ton panier est vide. Ajoute au moins un produit pour continuer.",
     qDate: "Pour quand ?", tomorrow: "Demain", after: "Après-demain", pick: "Choisir une date",
     qWindow: "À quel moment de la journée ?", qTruck: "Quel camion ?",
     qNote: "Autre chose à savoir pour la livraison ? (étage, ruelle…)", noNote: "Non, c'est tout",
@@ -75,6 +76,7 @@ const T = {
     added: "I added", removed: "I removed", and: "and", notFound: "I couldn't find", nothing: "I didn't understand one of the items. Can you repeat it?", repeat: "Repeat", ignore: "Ignore", voice: "Voice message",
     confirmRestart: "Clear your cart and the conversation?", yesRestart: "Yes, start over", cancel: "Cancel",
     qList: "What do you need?", qMore: "Anything else to add?", done: "That's all", addMore: "Add something else", addMoreHint: "Go ahead, tell me what to add.",
+    needOne: "Your cart is empty. Add at least one product to continue.",
     qDate: "When?", tomorrow: "Tomorrow", after: "Day after tomorrow", pick: "Pick a date",
     qWindow: "What time of day?", qTruck: "Which truck?",
     qNote: "Anything else to know for delivery? (floor, alley…)", noNote: "No, that's all",
@@ -307,7 +309,11 @@ export default function Commander() {
     setEditing(null);
   };
 
-  const finishList = () => { push({ id: uid(), from: "user", done: true }); setListDone(true); setEditing(null); };
+  const finishList = () => {
+    push({ id: uid(), from: "user", done: true });
+    if (!items.some((i) => i.quantity > 0)) { push({ id: uid(), from: "bot", text: t.needOne }); return; }
+    setListDone(true); setEditing(null);
+  };
 
   const send = async (payload: { audio?: Blob; text?: string; dur?: number }) => {
     setBusy(true);
