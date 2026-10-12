@@ -47,6 +47,20 @@ const L = {
   },
 };
 
+/** Turns raw auth errors into something a customer can act on. */
+function friendly(msg: string, lang: "fr" | "en") {
+  const m = msg.toLowerCase();
+  const map: [RegExp, { fr: string; en: string }][] = [
+    [/user is banned/, { fr: "Ce compte est bloqué. Écris à admin@renocart.ca pour le réactiver.", en: "This account is blocked. Write to admin@renocart.ca to reactivate it." }],
+    [/invalid login credentials/, { fr: "Courriel ou mot de passe incorrect.", en: "Incorrect email or password." }],
+    [/email not confirmed/, { fr: "Confirme ton courriel avant de te connecter : vérifie ta boîte de réception.", en: "Confirm your email before signing in: check your inbox." }],
+    [/rate limit|too many requests|overloaded/, { fr: "Trop de tentatives. Réessaie dans une minute.", en: "Too many attempts. Try again in a minute." }],
+    [/already registered|already exists/, { fr: "Ce courriel a déjà un profil : connecte-toi.", en: "This email already has a profile: sign in." }],
+  ];
+  const hit = map.find(([re]) => re.test(m));
+  return hit ? hit[1][lang] : msg;
+}
+
 export function ClientAuthForm({ redirectPath = "/projets", initialMode = "login", lang = "fr" }: {
   redirectPath?: string; initialMode?: "login" | "signup"; lang?: "fr" | "en";
 }) {
@@ -73,7 +87,7 @@ export function ClientAuthForm({ redirectPath = "/projets", initialMode = "login
         if (error) throw error;
         setSent(t.sentForgot);
       }
-    } catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
+    } catch (err) { toast.error(friendly((err as Error).message, lang)); } finally { setBusy(false); }
   };
 
   if (sent) return <div className="text-center space-y-4"><p>{sent}</p><Button variant="ghost" onClick={() => { setSent(null); setMode("login"); }}>{t.back}</Button></div>;
