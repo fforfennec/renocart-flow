@@ -25,7 +25,7 @@ type Missing = { name: string; quantity: number };
 type Field = "date" | "window" | "truck" | "note";
 type Question = "list" | "more" | Field | "summary";
 type Details = { delivery_date: string | null; time_window: string | null; truck_type: string | null; note: string | null };
-type Change = { q: number; title: string; from?: number };
+type Change = { q: number; title: string; from?: number; full?: boolean };
 type Msg =
   | { id: string; from: "user"; text: string }
   | { id: string; from: "user"; voice: number; transcript?: string }
@@ -374,9 +374,10 @@ export default function Commander() {
       setItems((current) => existing
         ? current.map((i) => i.variantId === variant.id ? { ...i, quantity: i.quantity + source.quantity } : i)
         : current.flatMap((i) => i.variantId === id ? [i, entry] : [i]));
+      const fullTitle = variant.title && variant.title !== "Default Title" ? `${product.title} — ${variant.title}` : product.title;
       push({ id: uid(), from: "bot", added: [existing
-        ? { q: existing.quantity + source.quantity, title: product.title, from: existing.quantity }
-        : { q: source.quantity, title: product.title }], removed: [], missing: [] });
+        ? { q: existing.quantity + source.quantity, title: fullTitle, from: existing.quantity, full: true }
+        : { q: source.quantity, title: fullTitle, full: true }], removed: [], missing: [] });
       return;
     }
     setItems((current) => {
