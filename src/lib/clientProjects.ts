@@ -15,12 +15,59 @@ export type InvoiceOrder = {
 
 export const emptyProject: ProjectInput = { name: "", code: "", address1: "", city: "", province: "QC", postal_code: "", contact_name: "", contact_phone: "", notes: "" };
 
+export type AccountRole = "owner" | "super_admin" | "project_manager" | "employee";
+export type ClientContext = { ownerId: string; memberId: string | null; role: AccountRole };
+export const ROLE_LABEL: Record<AccountRole, string> = { owner: "Compte principal", super_admin: "Super admin", project_manager: "Gestionnaire de projets", employee: "Employé" };
+export const canManageAccount = (r?: AccountRole) => r === "owner" || r === "super_admin";
+export const canOrder = (r?: AccountRole) => r !== "employee";
+
+/** Accepts pending invitations for the signed-in email, then returns the account the user acts in. */
+export async function getClientContext(): Promise<ClientContext | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  await supabase.rpc("claim_client_invites");
+  const { data, error } = await supabase.rpc("client_ctx");
+  if (error) throw error;
+  const row = (data ?? [])[0];
+  return row ? { ownerId: row.owner_id, memberId: row.member_id, role: row.role as AccountRole } : null;
+}
+
 export async function listProjects(): Promise<ClientProject[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
-  const { data, error } = await supabase.from("client_projects").select("*").eq("owner_id", user.id).order("created_at", { ascending: false });
+  const { data, error } = await supabase.rpc("my_client_projects");
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as ClientProject[];
+}
+
+export type ClientMember = { id: string; email: string; role: Exclude<AccountRole, "owner">; status: "invited" | "active"; user_id: string | null };
+export async function listMembers(): Promise<ClientMember[]> {
+  const ctx = await getClientContext();
+  if (!ctx) return [];
+  const { data, error } = await supabase.from("client_members").select("id, email, role, status, user_id").eq("owner_id", ctx.ownerId).order("created_at");
+  if (error) throw error;
+  return (data ?? []) as ClientMember[];
+}
+export async function listProjectMemberIds(projectId: string): Promise<string[]> {
+  const { data, error } = await supabase.from("client_project_members").select("member_id").eq("project_id", projectId);
+  if (error) throw error;
+  return (data ?? []).map((r) => r.member_id);
+}
+export async function inviteMember(email: string, role: ClientMember["role"]): Promise<{ emailed: boolean }> {
+  const { data, error } = await supabase.functions.invoke("client-team", { body: { email, role } });
+  if (error) {
+    const msg = await (error as { context?: Response }).context?.json?.().then((b: { error?: string }) => b.error).catch(() => null);
+    throw new Error(msg || error.message);
+  }
+  return { emailed: !!data?.emailed };
+}
+export async function updateMember(memberId: string, role: ClientMember["role"] | null) {
+  const { error } = await supabase.rpc("update_client_member", { _member_id: memberId, _role: role as string });
+  if (error) throw error;
+}
+export async function setProjectMember(projectId: string, memberId: string, assigned: boolean) {
+  const { error } = await supabase.rpc("set_project_member", { _project_id: projectId, _member_id: memberId, _assigned: assigned });
+  if (error) throw error;
 }
 
 const clean = (p: ProjectInput) => Object.fromEntries(Object.entries(p).map(([k, v]) => [k, typeof v === "string" ? (v.trim() || null) : v])) as ProjectInput;
@@ -32,7 +79,7 @@ export async function saveProject(input: ProjectInput, id?: string): Promise<Cli
   if (!v.name || !v.code) throw new Error("Le nom et le code du projet sont obligatoires.");
   const q = id
     ? supabase.from("client_projects").update(v).eq("id", id).select().single()
-    : supabase.from("client_projects").insert({ ...v, name: v.name, code: v.code, owner_id: user.id }).select().single();
+    : supabase.from("client_projects").insert({ ...v, name: v.name, code: v.code, owner_id: (await getClientContext())?.ownerId ?? user.id }).select().single();
   const { data, error } = await q;
   if (error) throw new Error(error.code === "23505" ? "Ce code de projet existe déjà." : error.message);
   return data;
@@ -41,9 +88,13 @@ export async function saveProject(input: ProjectInput, id?: string): Promise<Cli
 export async function listInvoices(): Promise<InvoiceOrder[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return [];
+  const { data: ids, error: idErr } = await supabase.rpc("my_client_order_ids");
+  if (idErr) throw idErr;
+  const list = ((ids ?? []) as unknown as (string | { my_client_order_ids: string })[]).map((r) => typeof r === "string" ? r : r.my_client_order_ids);
+  if (!list.length) return [];
   const { data, error } = await supabase.from("orders")
     .select("id, order_number, created_at, client_name, client_address, status, project_id, project_name, project_code, subtotal_price, total_tax, shipping_price_total, total_price, currency, order_items(id, name, variant_title, sku, quantity, unit_price)")
-    .ilike("customer_email", user.email)
+    .in("id", list)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as unknown as InvoiceOrder[];
