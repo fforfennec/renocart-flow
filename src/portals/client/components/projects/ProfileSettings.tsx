@@ -22,14 +22,14 @@ export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () 
   useEffect(() => {
     if (!open || !user) return;
     setLoading(true);
-    supabase.from("profiles").select("full_name, phone, company_name").eq("user_id", user.id).maybeSingle()
-      .then(({ data, error }) => {
-        if (error) toast.error(error.message);
-        setFullName(data?.full_name ?? (user.user_metadata?.full_name as string) ?? "");
-        setPhone(data?.phone ?? "");
-        setCompany(data?.company_name ?? "");
-      })
-      .finally(() => setLoading(false));
+    void (async () => {
+      const { data, error } = await supabase.from("profiles").select("full_name, phone, company_name").eq("user_id", user.id).maybeSingle();
+      if (error) toast.error(error.message);
+      setFullName(data?.full_name ?? (user.user_metadata?.full_name as string) ?? "");
+      setPhone(data?.phone ?? "");
+      setCompany(data?.company_name ?? "");
+      setLoading(false);
+    })();
   }, [open, user]);
 
   const save = async () => {
