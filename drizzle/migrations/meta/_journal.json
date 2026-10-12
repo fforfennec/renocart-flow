@@ -57,6 +57,13 @@
       "when": 1791393792445,
       "tag": "0007_suggestion_rules_priority_decimals",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791824804307,
+      "tag": "0008_client_projects",
+      "breakpoints": true
     }
   ]
 }
