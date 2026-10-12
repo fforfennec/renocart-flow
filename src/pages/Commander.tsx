@@ -416,7 +416,7 @@ export default function Commander() {
     <Button variant="ghost" className="h-11 text-secondary font-semibold" onClick={undoRemoval}>{t.cancel}</Button>
   </div>;
   const variantSelector = (item: Item) => <CommanderVariantSelector variantId={item.variantId} lang={lang} disabled={busy || checkingOut}
-    row={{ title: shortName(item.productTitle), detail: item.variantTitle !== "Default Title" ? item.variantTitle : "", image: item.image,
+    row={{ title: item.productTitle, detail: item.variantTitle !== "Default Title" ? item.variantTitle : "", image: item.image,
       quantity: item.quantity, onDecrease: () => decreaseProduct(item), onIncrease: () => setQty(item.variantId, item.quantity + 1), onSet: (q) => setQty(item.variantId, q) }}
     onConfirm={(product, variant, previous, mode) => changeVariant(item.variantId, product, variant, previous, mode)} />;
 
