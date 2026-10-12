@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createHmac } from "node:crypto";
+import { sendClientConfirmation } from "../_shared/clientSupport.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
