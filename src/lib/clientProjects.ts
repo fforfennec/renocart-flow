@@ -8,6 +8,7 @@ export type ProjectInput = Pick<ClientProject, "name" | "code" | "address1" | "c
 export type InvoiceItem = { id: string; name: string; variant_title: string | null; sku: string | null; quantity: number; unit_price: number | null };
 export type InvoiceOrder = {
   id: string; order_number: string; created_at: string; client_name: string; client_address: string; status: string;
+  delivery_date?: string | null; delivery_time_window?: string | null; updated_at?: string | null;
   project_id: string | null; project_name: string | null; project_code: string | null;
   subtotal_price: number | null; total_tax: number | null; shipping_price_total: number | null; total_price: number | null; currency: string | null;
   order_items: InvoiceItem[];
@@ -93,7 +94,7 @@ export async function listInvoices(): Promise<InvoiceOrder[]> {
   const list = ((ids ?? []) as unknown as (string | { my_client_order_ids: string })[]).map((r) => typeof r === "string" ? r : r.my_client_order_ids);
   if (!list.length) return [];
   const { data, error } = await supabase.from("orders")
-    .select("id, order_number, created_at, client_name, client_address, status, project_id, project_name, project_code, subtotal_price, total_tax, shipping_price_total, total_price, currency, order_items(id, name, variant_title, sku, quantity, unit_price)")
+    .select("id, order_number, created_at, updated_at, delivery_date, delivery_time_window, client_name, client_address, status, project_id, project_name, project_code, subtotal_price, total_tax, shipping_price_total, total_price, currency, order_items(id, name, variant_title, sku, quantity, unit_price)")
     .in("id", list)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -187,3 +188,13 @@ export async function downloadInvoicesZip(orders: InvoiceOrder[], zipName: strin
   a.href = URL.createObjectURL(blob); a.download = `${zipName.replace(/[^\w.-]+/g, "_")}.zip`;
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
+
+export type TrackStage = "delivered" | "en_route" | "upcoming" | "cancelled";
+export const STAGE_LABEL: Record<TrackStage, string> = { delivered: "Livrée", en_route: "En cours de livraison", upcoming: "Pas encore en livraison", cancelled: "Annulée / retournée" };
+export function trackStage(status: string): TrackStage {
+  if (["delivered", "fulfilled", "archived"].includes(status)) return "delivered";
+  if (status === "in_progress") return "en_route";
+  if (["cancelled", "returned"].includes(status)) return "cancelled";
+  return "upcoming";
+}
+export const fmtDay = (d?: string | null) => d ? new Date(d.length === 10 ? d + "T12:00:00" : d).toLocaleDateString("fr-CA", { weekday: "short", day: "numeric", month: "long" }) : "À planifier";
