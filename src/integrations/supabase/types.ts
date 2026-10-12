@@ -1188,6 +1188,10 @@ export type Database = {
       client_can_order_project: { Args: { _pid: string }; Returns: boolean }
       client_can_view_order: { Args: { _oid: string }; Returns: boolean }
       client_can_view_project: { Args: { _pid: string }; Returns: boolean }
+      client_can_view_support_file: {
+        Args: { _path: string }
+        Returns: boolean
+      }
       client_can_view_support_thread: {
         Args: { _tid: string }
         Returns: boolean
