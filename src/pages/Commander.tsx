@@ -11,6 +11,9 @@ import { fr as frLocale, enCA } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { createCheckout } from "@/lib/shopifyStorefront";
+import { useAuth } from "@/contexts/AuthContext";
+import { listProjects, projectAddress, type ClientProject } from "@/lib/clientProjects";
+import { NewProjectDialog, ProjectStrip, type ProjectChoice } from "@/components/CommanderProjectPicker";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
@@ -190,6 +193,18 @@ export default function Commander() {
   const [removedProduct, setRemovedProduct] = useState<{ item: Item; index: number; key: string } | null>(null);
   const [suggestions, setSuggestions] = useState<SuggestionState>(() => saved?.suggestions ?? newSuggestionState());
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<ClientProject[]>([]);
+  const [project, setProject] = useState<ProjectChoice>(saved?.project ?? null);
+  const [newProject, setNewProject] = useState(false);
+  useEffect(() => {
+    if (!user) { setProjects([]); return; }
+    listProjects().then((list) => {
+      setProjects(list);
+      setProject((cur) => cur && cur !== "none" ? list.find((p) => p.id === cur.id) ?? null : cur);
+    }).catch(() => setProjects([]));
+  }, [user]);
+  const projectCreated = (p: ClientProject) => { setProjects((l) => [p, ...l]); setProject(p); setNewProject(false); };
   const suggestionGeneration = useRef(0);
   useEffect(() => {
     if (!removedProduct) return;
@@ -205,8 +220,8 @@ export default function Commander() {
 
   useEffect(() => { document.title = lang === "fr" ? "RenoCart — Dis-nous ce dont tu as besoin" : "RenoCart — Tell us what you need"; }, [lang]);
   useEffect(() => {
-    localStorage.setItem(STORE, JSON.stringify({ items, missing, msgs, d, listDone, answered, lang, suggestions }));
-  }, [items, missing, msgs, d, listDone, answered, lang, suggestions]);
+    localStorage.setItem(STORE, JSON.stringify({ items, missing, msgs, d, listDone, answered, lang, suggestions, project }));
+  }, [items, missing, msgs, d, listDone, answered, lang, suggestions, project]);
 
   // Independent Shopify rules: never changes transcription, extraction or matching.
   useEffect(() => {
@@ -420,7 +435,7 @@ export default function Commander() {
       quantity: item.quantity, onDecrease: () => decreaseProduct(item), onIncrease: () => setQty(item.variantId, item.quantity + 1), onSet: (q) => setQty(item.variantId, q) }}
     onConfirm={(product, variant, previous, mode) => changeVariant(item.variantId, product, variant, previous, mode)} />;
 
-  const mobileSummary = isMobile && question === "summary" && !confirmRestart && !busy && !suggestionsLoading && suggestions.status !== "pending";
+  const mobileSummary = isMobile && question === "summary" && project !== null && !confirmRestart && !busy && !suggestionsLoading && suggestions.status !== "pending";
   const units = items.reduce((s, i) => s + i.quantity, 0);
   const cartLabel = `${t.products(items.length)} · ${t.units(units)}`;
 
@@ -438,9 +453,19 @@ export default function Commander() {
         d.delivery_date && { key: "delivery_date", value: d.delivery_date },
         d.time_window && { key: "delivery_time_window", value: d.time_window },
         d.truck_type && d.truck_type !== "unknown" && { key: "truck_type", value: d.truck_type },
+        project && project !== "none" && { key: "project_id", value: project.id },
+        project && project !== "none" && { key: "project_name", value: project.name },
+        project && project !== "none" && { key: "project_code", value: project.code },
       ].filter(Boolean) as { key: string; value: string }[];
       const noteParts = [d.note, missing.length ? `${t.missingNote}: ${missing.map((m) => `${m.quantity} × ${m.name}`).join(", ")}` : ""].filter(Boolean);
-      const url = await createCheckout(items.map((i) => ({ merchandiseId: i.variantId, quantity: i.quantity })), attributes, noteParts.join("\n"));
+      const p = project && project !== "none" ? project : null;
+      const [firstName, ...rest] = (p?.contact_name ?? "").split(" ");
+      const buyer = user?.email || p?.address1 ? {
+        ...(user?.email ? { email: user.email } : {}),
+        ...(p?.address1 ? { deliveryAddressPreferences: [{ deliveryAddress: { address1: p.address1, city: p.city ?? undefined, province: p.province ?? undefined, zip: p.postal_code ?? undefined, country: "CA",
+          ...(p.contact_name ? { firstName, lastName: rest.join(" ") || undefined } : {}), ...(p.contact_phone ? { phone: p.contact_phone } : {}) } }] } : {}),
+      } : undefined;
+      const url = await createCheckout(items.map((i) => ({ merchandiseId: i.variantId, quantity: i.quantity })), attributes, noteParts.join("\n"), buyer);
       window.location.href = url;
     } catch (e) { toast.error((e as Error).message); setCheckingOut(false); }
   };
@@ -452,6 +477,7 @@ export default function Commander() {
     setRemovedProduct(null);
     setItems([]); setMissing([]); setMsgs([]); setListDone(false); setAnswered([]); setEditing(null);
     setD({ delivery_date: null, time_window: null, truck_type: null, note: null });
+    setProject(null);
   };
 
   const joinList = (a: string[]) => a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} ${t.and} ${a[a.length - 1]}`;
@@ -594,6 +620,17 @@ export default function Commander() {
           </BotBubble>
         );
       case "summary": {
+        if (project === null) return (
+          <BotBubble>
+            <p className="mb-3">{lang === "fr" ? "Associer cette commande à un projet ?" : "Link this order to a project?"}</p>
+            {projects.length ? <ProjectStrip dark projects={projects} value={project} onPick={setProject} onNew={() => setNewProject(true)} lang={lang} />
+              : <div className="flex flex-wrap gap-2">
+                <Pill onClick={() => setNewProject(true)}>{lang === "fr" ? "Créer un projet" : "Create a project"}</Pill>
+                <Pill onClick={() => setProject("none")}>{lang === "fr" ? "Non, commander" : "No, just order"}</Pill>
+              </div>}
+          </BotBubble>
+        );
+        const projectLabel = project === "none" ? (lang === "fr" ? "Aucun projet" : "No project") : `${project.name} (${project.code})`;
         const editF = (f: Question) => { setEditing(f); if (f === "more") setListDone(false); openMic(); };
         if (isMobile) {
           const MRow = ({ label, f, children, action }: { label: string; f: Question; children: React.ReactNode; action?: string }) => (
@@ -608,6 +645,13 @@ export default function Commander() {
           return (
             <div className="motion-safe:animate-in motion-safe:fade-in duration-300 rounded-3xl bg-card text-card-foreground p-5 shadow-soft">
               <h3 className="text-2xl font-black mb-2">{t.summary}</h3>
+              <div className="py-3 border-b">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{lang === "fr" ? "Projet" : "Project"}</span>
+                  <button onClick={() => setProject(null)} className="min-h-11 -my-3 flex items-center gap-1.5 font-semibold text-secondary"><Pencil className="h-4 w-4" />{t.edit}</button>
+                </div>
+                <p className="mt-1 font-semibold">{projectLabel}</p>
+              </div>
               <MRow label={t.delivery} f="date"><p className="font-semibold first-letter:uppercase">{fmt("date", d.delivery_date)} · {fmt("window", d.time_window).toLowerCase()}</p></MRow>
               <MRow label={t.truck} f="truck"><p className="font-semibold">{fmt("truck", d.truck_type)}</p></MRow>
               <MRow label={t.notes} f="note"><p className={d.note ? "font-semibold" : "text-muted-foreground"}>{d.note || t.none}</p></MRow>
@@ -627,6 +671,11 @@ export default function Commander() {
             <h3 className="text-lg font-black mb-2">{t.summary}</h3>
             <dl>
               <Row f="more" label={t.materials} value={<ul className="space-y-0.5 font-medium">{items.map((i) => <li key={i.variantId}>{i.quantity} × {i.productTitle}</li>)}</ul>} />
+              <div className="flex items-start gap-3 py-2.5 border-b">
+                <dt className="w-24 shrink-0 text-sm text-muted-foreground">{lang === "fr" ? "Projet" : "Project"}</dt>
+                <dd className="flex-1 text-sm font-semibold">{projectLabel}{project !== "none" && projectAddress(project) && <span className="block font-normal text-muted-foreground">{projectAddress(project)}</span>}</dd>
+                <button onClick={() => setProject(null)} className="min-h-11 -my-2 px-2 text-xs font-semibold text-secondary hover:underline flex items-center gap-1"><Pencil className="h-3 w-3" />{t.edit}</button>
+              </div>
               <Row f="date" label={t.date} value={fmt("date", d.delivery_date)} />
               <Row f="window" label={t.when} value={fmt("window", d.time_window)} />
               <Row f="truck" label={t.truck} value={fmt("truck", d.truck_type)} />
@@ -703,6 +752,12 @@ export default function Commander() {
             </div>
           )}
 
+          {projects.length > 0 && !listDone && (
+            <div className="shrink-0 px-4 md:px-8 pt-3">
+              <p className="text-xs font-semibold uppercase tracking-widest opacity-70 mb-1.5">{lang === "fr" ? "Pour quel projet ?" : "Which project?"}</p>
+              <ProjectStrip dark projects={projects} value={project} onPick={setProject} onNew={() => setNewProject(true)} lang={lang} />
+            </div>
+          )}
           <CommanderMobileScroll enabled={isMobile} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
             {!started && !confirmRestart ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-6">
@@ -783,6 +838,7 @@ export default function Commander() {
         </aside>
       </main>
 
+      <NewProjectDialog open={newProject} onOpenChange={setNewProject} signedIn={!!user} onCreated={projectCreated} lang={lang} />
       {isMobile && (
         <Drawer open={cartOpen} onOpenChange={setCartOpen}>
           <DrawerContent className="h-[75dvh] flex flex-col">
