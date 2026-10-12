@@ -27,6 +27,15 @@ const Auth = () => {
   const [pendingMsg, setPendingMsg] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, userRole, loading: authLoading } = useAuth();
+
+  // Session déjà active : ne jamais redemander les identifiants, renvoyer
+  // directement vers le portail correspondant au rôle.
+  useEffect(() => {
+    if (authLoading || !user || !userRole) return;
+    if (userRole === 'admin') navigate('/admin', { replace: true });
+    else if (userRole === 'supplier' || userRole === 'partner') navigate('/supplier', { replace: true });
+  }, [authLoading, user, userRole, navigate]);
 
   const handleLogin = async () => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
