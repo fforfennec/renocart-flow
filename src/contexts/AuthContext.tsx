@@ -24,8 +24,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Set up auth listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === "SIGNED_IN") {
+        const target = sessionStorage.getItem("client-auth-redirect");
+        if (target && target.startsWith("/") && window.location.pathname !== target) {
+          sessionStorage.removeItem("client-auth-redirect");
+          window.location.assign(target);
+        }
+      }
       if (session?.user) {
         loadUserData(session.user.id);
       } else {
