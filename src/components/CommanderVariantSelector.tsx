@@ -120,8 +120,11 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
               </fieldset>
             ))}
             <div className="flex flex-wrap gap-2">
-              <Button className="min-h-11" onClick={confirm} disabled={disabled || saving || !target?.availableForSale}>
-                {saving && <Loader2 className="animate-spin" />}{fr ? "Confirmer" : "Confirm"}
+              <Button className="min-h-11" onClick={() => confirm("add")} disabled={disabled || saving || !target?.availableForSale || target.id === variantId}>
+                {saving && <Loader2 className="animate-spin" />}{fr ? "Ajouter" : "Add"}
+              </Button>
+              <Button variant="secondary" className="min-h-11" onClick={() => confirm("replace")} disabled={disabled || saving || !target?.availableForSale || target.id === variantId}>
+                {saving && <Loader2 className="animate-spin" />}{fr ? "Remplacer" : "Replace"}
               </Button>
               <Button variant="outline" className="min-h-11" disabled={saving} onClick={() => setOpen(false)}>{fr ? "Annuler" : "Cancel"}</Button>
             </div>
