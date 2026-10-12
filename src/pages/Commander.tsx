@@ -312,7 +312,7 @@ export default function Commander() {
 
   const finishList = () => {
     push({ id: uid(), from: "user", done: true });
-    if (!items.some((i) => i.quantity > 0)) { push({ id: uid(), from: "bot", text: t.needOne }); return; }
+    if (!items.some((i) => i.quantity > 0)) { push({ id: uid(), from: "bot", note: t.needOne }); return; }
     setListDone(true); setEditing(null);
   };
 
@@ -506,6 +506,7 @@ export default function Commander() {
         </div>
       );
     }
+    if ("note" in m) return <BotBubble key={m.id}>{m.note}</BotBubble>;
     if ("suggestionAdded" in m) return <BotBubble key={m.id}>{lang === "fr" ? "C’est ajouté : " : "Added: "}{m.suggestionAdded.map((s) => `+${s.quantity} ${s.title}`).join(", ")}.</BotBubble>;
     if ("suggestionAdjustment" in m) return <BotBubble key={m.id}>
       {m.suggestionAdjustment.map((a) => <p key={a.variantId}>{a.title} : {a.before} → {a.after} · {a.reason}.</p>)}
