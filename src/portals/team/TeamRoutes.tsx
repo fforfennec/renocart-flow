@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { Database } from '@/integrations/supabase/types';
 import NotFound from '@/pages/NotFound';
 import { TeamAuthProvider, useAuth } from './TeamAuthContext';
@@ -18,9 +18,11 @@ const TeamGuard = ({ roles, children }: { roles: UserRole[]; children: React.Rea
   return <>{children}</>;
 };
 
-const TeamRoutes = () => (
+const TeamRoutes = () => {
+  const location = useLocation();
+  return (
   <TeamAuthProvider>
-    <Routes>
+    <Routes location={{ ...location, pathname: location.pathname }}>
       <Route path="/equipe" element={<TeamLogin />} />
       <Route path="/equipe/reset-password" element={<TeamResetPassword />} />
       <Route path="/admin/*" element={<TeamGuard roles={['admin']}><AdminDashboard /></TeamGuard>} />
@@ -29,6 +31,7 @@ const TeamRoutes = () => (
       <Route path="*" element={<NotFound />} />
     </Routes>
   </TeamAuthProvider>
-);
+  );
+};
 
 export default TeamRoutes;

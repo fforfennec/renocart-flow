@@ -29,9 +29,7 @@ const App = () => (
             <Route path="/commander" element={<Commander />} />
             <Route path="/projets" element={<Projets />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/equipe/*" element={team} />
-            <Route path="/admin/*" element={team} />
-            <Route path="/supplier/*" element={team} />
+            {["/equipe/*", "/admin/*", "/supplier/*"].map((p) => <Route key={p} path={p} element={team} />)}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
