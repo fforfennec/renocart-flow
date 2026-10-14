@@ -779,7 +779,11 @@ export default function Commander() {
       </header>
 
       {deliveryOpen && deliveryDraft ? <CommanderDelivery initial={deliveryDraft} lang={lang} busy={checkingOut}
-        onBack={(values) => { setDeliveryDraft(values); setDeliveryOpen(false); }} onSubmit={checkout} /> : <main className="flex-1 min-h-0 min-w-0 w-full max-w-6xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6">
+        onBack={(values) => {
+          setDeliveryDraft(values);
+          setD({ delivery_date: values.delivery_date || null, time_window: values.time_window || null, truck_type: values.truck_type || null, note: values.note || null });
+          setDeliveryOpen(false);
+        }} onSubmit={checkout} /> : <main className="flex-1 min-h-0 min-w-0 w-full max-w-6xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6">
         <section className="gradient-navy text-secondary-foreground lg:rounded-2xl flex flex-col min-h-0 min-w-0">
           {/* tablet cart bar (desktop layout, unchanged) */}
           {started && !isMobile && (

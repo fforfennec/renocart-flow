@@ -1,6 +1,6 @@
 # Commander purchase list
-- [ ] Show complete product names with an adaptive layout; move price notice below “Ta liste d'achat”.
-- [ ] Add “Compléter la commande” and a delivery-details screen before Shopify checkout; verify the flow.
+- [x] Show complete product names with an adaptive layout; move price notice below “Ta liste d'achat”.
+- [x] Add “Compléter la commande” and a delivery-details screen before Shopify checkout; verify the flow.
 
 # Admin navigation and client profiles
 - [x] Add persistent unread supplier/client message counts and Overview conversation windows; verify authenticated flows.
