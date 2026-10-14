@@ -1,4 +1,5 @@
 # Admin navigation and client profiles
+- [x] Add persistent unread supplier/client message counts and Overview conversation windows; verify authenticated flows.
 - [x] Group and rename the admin menu links; keep FAQ separate.
 - [x] Add admin-only client profiles with projects, invoices, totals and project management.
 - [x] Verify authenticated navigation, client detail, project editing and PDF/ZIP downloads.

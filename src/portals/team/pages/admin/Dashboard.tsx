@@ -18,8 +18,13 @@ import SuggestionRules from './SuggestionRules';
 import Utilisateurs from './Utilisateurs';
 import Clients from './Clients';
 import Commander from '@/portals/client/pages/Commander';
+import { AdminMessagingProvider, unreadMessages, useAdminMessaging } from '@/portals/team/components/messages/AdminMessagingContext';
+import OverviewMessageDock from '@/portals/team/components/messages/OverviewMessageDock';
 
-const AdminDashboard = () => {
+const AdminDashboardLayout = () => {
+  const { messages, reads } = useAdminMessaging();
+  const unread = unreadMessages(messages, reads);
+  const counts = { '/admin/messages': unread.filter(m => m.type === 'supplier').length, '/admin/messages-clients': unread.filter(m => m.type === 'client').length };
   const { signOut, profile } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -78,8 +83,9 @@ const AdminDashboard = () => {
                 <ChevronDown size={14} className={`h-5 w-5 shrink-0 transition-transform duration-200 motion-reduce:transition-none ${open ? '' : '-rotate-90'}`} />
                 <span>{group.label}</span>
               </button>}
-              <div className={`space-y-0.5 ${open || collapsed ? '' : 'hidden'}`}>{group.items.map((item) => <NavLink key={item.to} to={item.to} end={'end' in item && item.end} title={item.label} aria-label={item.label} className={linkClass} activeClassName="bg-sidebar-accent !text-sidebar-accent-foreground">
-                <item.icon size={20} className="shrink-0" />{!collapsed && <span className="leading-snug">{item.label}</span>}
+              <div className={`space-y-0.5 ${open || collapsed ? '' : 'hidden'}`}>{group.items.map((item) => <NavLink key={item.to} to={item.to} end={'end' in item && item.end} title={item.label} aria-label={item.label} className={`${linkClass} relative`} activeClassName="bg-sidebar-accent !text-sidebar-accent-foreground">
+                <item.icon size={20} className="shrink-0" />{!collapsed && <span className="leading-snug flex-1">{item.label}</span>}
+                 {counts[item.to as keyof typeof counts] > 0 && <span aria-label={`${counts[item.to as keyof typeof counts]} messages non lus`} className={`min-w-5 h-5 rounded-full bg-destructive text-destructive-foreground px-1 text-xs font-bold flex items-center justify-center ${collapsed ? 'absolute right-0 top-0' : 'shrink-0'}`}>{counts[item.to as keyof typeof counts] > 99 ? '99+' : counts[item.to as keyof typeof counts]}</span>}
               </NavLink>)}</div>
             </section>;
           })}
@@ -115,8 +121,10 @@ const AdminDashboard = () => {
           <Route path="/faq" element={<AdminFAQ />} />
         </Routes>
       </main>
+      <OverviewMessageDock />
     </div>
   );
 };
 
+const AdminDashboard = () => <AdminMessagingProvider><AdminDashboardLayout /></AdminMessagingProvider>;
 export default AdminDashboard;
