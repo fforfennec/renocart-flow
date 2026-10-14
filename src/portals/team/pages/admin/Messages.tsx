@@ -1,6 +1,7 @@
 import ProposalCard from '@/portals/team/components/admin/ProposalCard';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useAdminMessaging } from '@/portals/team/components/messages/AdminMessagingContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -34,8 +35,6 @@ type Msg = {
 type OrderLite = { id: string; order_number: string; client_name: string; status: string; delivery_date: string | null };
 type Conversation = { key: string; orderId: string; supplierId: string; messages: Msg[]; last: Msg };
 
-const READ_KEY = 'rc-messages-read';
-const readMap = (): Record<string, string> => { try { return JSON.parse(localStorage.getItem(READ_KEY) || '{}'); } catch { return {}; } };
 
 const initials = (n: string) => n.split(/\s+/).map(p => p[0]).join('').slice(0, 2).toUpperCase();
 const timeLabel = (iso: string) => {
@@ -43,7 +42,7 @@ const timeLabel = (iso: string) => {
   const today = new Date().toDateString() === d.toDateString();
   return today ? d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('fr-CA', { month: 'short', day: 'numeric' });
 };
-const isFromSupplier = (m: Msg) => m.source === 'email' || m.source === 'action';
+const isFromSupplier = (m: Msg) => m.source === 'email' || m.source === 'action' || m.user_id === m.supplier_id;
 
 function Avatar({ name, logo, className }: { name: string; logo?: string | null; className?: string }) {
   return logo ? (
@@ -53,7 +52,9 @@ function Avatar({ name, logo, className }: { name: string; logo?: string | null;
   );
 }
 
-export default function Messages() {
+export default function Messages({ compact = false, initialConversation }: { compact?: boolean; initialConversation?: string } = {}) {
+  const [params] = useSearchParams();
+  const { reads, markRead } = useAdminMessaging();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [orders, setOrders] = useState<Record<string, OrderLite>>({});
   const [supplierNames, setSupplierNames] = useState<Record<string, string>>({});
@@ -61,10 +62,9 @@ export default function Messages() {
   const [loading, setLoading] = useState(true);
   const [supplierFilter, setSupplierFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
-  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [activeKey, setActiveKey] = useState<string | null>(initialConversation || params.get('conversation'));
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const [reads, setReads] = useState(readMap());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
@@ -77,7 +77,7 @@ export default function Messages() {
     setMessages(list);
 
     const orderIds = [...new Set(list.map(m => m.order_id))];
-    const supplierIds = [...new Set(list.map(m => m.supplier_id!))];
+    const supplierIds = [...new Set(list.flatMap(m => m.supplier_id ? [m.supplier_id] : []))];
     const [{ data: ords }, { data: profs }, { data: sups }] = await Promise.all([
       orderIds.length ? supabase.from('orders').select('id, order_number, client_name, status, delivery_date').in('id', orderIds) : Promise.resolve({ data: [] as OrderLite[] }),
       supplierIds.length ? supabase.from('profiles').select('user_id, full_name, company_name').in('user_id', supplierIds) : Promise.resolve({ data: [] as any[] }),
@@ -118,8 +118,9 @@ export default function Messages() {
   const conversations = useMemo(() => {
     const map: Record<string, Conversation> = {};
     messages.forEach(m => {
+      if (!m.supplier_id) return;
       const key = `${m.order_id}:${m.supplier_id}`;
-      if (!map[key]) map[key] = { key, orderId: m.order_id, supplierId: m.supplier_id!, messages: [], last: m };
+      if (!map[key]) map[key] = { key, orderId: m.order_id, supplierId: m.supplier_id, messages: [], last: m };
       map[key].messages.push(m);
       map[key].last = m;
     });
@@ -127,7 +128,7 @@ export default function Messages() {
   }, [messages]);
 
   const nameOf = (id: string, fallback?: string) => supplierNames[id] || fallback || 'Fournisseur';
-  const isUnread = (c: Conversation) => isFromSupplier(c.last) && (!reads[c.key] || reads[c.key] < c.last.created_at);
+  const isUnread = (c: Conversation) => c.messages.some(m => isFromSupplier(m) && (!reads[`supplier:${c.key}`] || reads[`supplier:${c.key}`] < m.created_at));
 
   const suppliers = useMemo(() => {
     const m: Record<string, { id: string; name: string; count: number; unread: number }> = {};
@@ -150,11 +151,9 @@ export default function Messages() {
 
   useEffect(() => {
     if (!active) return;
-    const next = { ...readMap(), [active.key]: active.last.created_at };
-    localStorage.setItem(READ_KEY, JSON.stringify(next));
-    setReads(next);
+    if (document.visibilityState === 'visible') void markRead(`supplier:${active.key}`, active.last.created_at);
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-  }, [active?.key, active?.last.id]);
+  }, [active?.key, active?.last.id, markRead]);
 
   const send = async () => {
     if (!active || !text.trim()) return;
@@ -178,9 +177,9 @@ export default function Messages() {
   const activeName = active ? nameOf(active.supplierId, active.messages.find(isFromSupplier)?.sender_name) : '';
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex bg-card">
+    <div className={compact ? "h-full flex bg-card" : "h-[calc(100vh-4rem)] flex bg-card"}>
       {/* Suppliers filter */}
-      <div className="w-56 border-r flex flex-col bg-muted/30">
+      <div className={compact ? "hidden" : "w-56 border-r flex flex-col bg-muted/30"}>
         <div className="p-4 border-b"><h1 className="font-bold text-lg">Messages</h1></div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           <button onClick={() => setSupplierFilter('all')} className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-left', supplierFilter === 'all' ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted')}>
@@ -197,7 +196,7 @@ export default function Messages() {
       </div>
 
       {/* Conversation list */}
-      <div className="w-80 border-r flex flex-col">
+      <div className={compact ? "hidden" : "w-80 border-r flex flex-col"}>
         <div className="p-3 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -241,7 +240,7 @@ export default function Messages() {
           </div>
         ) : (
           <>
-            <div className="h-16 border-b px-4 flex items-center gap-3">
+            <div className="min-h-16 border-b px-3 py-2 flex items-center gap-2 flex-wrap">
               <Avatar name={activeName} logo={logos[active.supplierId]} className="h-10 w-10" />
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate">{activeName}</p>
@@ -250,7 +249,7 @@ export default function Messages() {
                 </p>
               </div>
               {activeOrder && <Badge variant="outline">{activeOrder.status}</Badge>}
-              <Button asChild variant="ghost" size="sm"><Link to={`/admin/orders/${active.orderId}`}><ExternalLink className="h-4 w-4" />Ouvrir la commande</Link></Button>
+              <Button asChild variant="ghost" size="sm" className={compact ? "hidden" : ""}><Link to={`/admin/orders/${active.orderId}`}><ExternalLink className="h-4 w-4" />Ouvrir la commande</Link></Button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-muted/20">
@@ -296,10 +295,10 @@ export default function Messages() {
               <Textarea
                 value={text} onChange={e => setText(e.target.value)} rows={1}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-                placeholder={`Écrire à ${activeName} — envoyé dans son fil de courriels`}
+                placeholder={compact ? "Répondre…" : `Écrire à ${activeName} — envoyé dans son fil de courriels`}
                 className="resize-none rounded-2xl min-h-[42px] max-h-32"
               />
-              <Button onClick={send} disabled={sending || !text.trim()} size="icon" className="rounded-full h-[42px] w-[42px] shrink-0">
+              <Button aria-label="Envoyer le message" onClick={send} disabled={sending || !text.trim()} size="icon" className="rounded-full h-[42px] w-[42px] shrink-0">
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>

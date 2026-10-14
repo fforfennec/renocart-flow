@@ -45,7 +45,7 @@ export function AdminMessagingProvider({ children }: { children: React.ReactNode
         const { data, error } = await supabase.from('admin_message_reads').select('conversation_key, read_at').eq('user_id', user.id);
         if (error) throw error;
         if (stopped) return;
-        const next = Object.fromEntries((data || []).map(r => [r.conversation_key, r.read_at]));
+        const next = Object.fromEntries((data || []).map(r => [r.conversation_key, new Date(r.read_at).toISOString()]));
         Object.entries(receiptRef.current).forEach(([key, at]) => { if (!next[key] || next[key] < at) next[key] = at; });
         receiptRef.current = next;
         setReads(next); setMessages(list); setReady(true);

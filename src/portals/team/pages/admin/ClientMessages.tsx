@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useAdminMessaging } from '@/portals/team/components/messages/AdminMessagingContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,8 +16,6 @@ type Thread = { id: string; owner_id: string | null; customer_email: string | nu
 type Msg = { id: string; thread_id: string; sender_name: string; sender_role: string; source: string; content: string; attachments: Att[]; created_at: string };
 type OrderLite = { id: string; order_number: string; client_name: string; status: string; customer_email: string | null; project_name: string | null; delivery_date: string | null };
 
-const READ_KEY = 'rc-client-messages-read';
-const readMap = (): Record<string, string> => { try { return JSON.parse(localStorage.getItem(READ_KEY) || '{}'); } catch { return {}; } };
 const initials = (n: string) => n.split(/[\s@.]+/).map(p => p[0]).join('').slice(0, 2).toUpperCase();
 const timeLabel = (iso: string) => {
   const d = new Date(iso);
@@ -30,7 +29,9 @@ function AttachmentItem({ a }: { a: Att }) {
   return <a href={url ?? undefined} target="_blank" rel="noreferrer" className="flex items-center gap-2 mt-2 rounded-lg border bg-muted/50 px-3 py-2 text-xs"><Paperclip className="h-3.5 w-3.5" />{a.name}</a>;
 }
 
-export default function ClientMessages() {
+export default function ClientMessages({ compact = false, initialConversation }: { compact?: boolean; initialConversation?: string } = {}) {
+  const [params] = useSearchParams();
+  const { reads, markRead } = useAdminMessaging();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [orders, setOrders] = useState<Record<string, OrderLite>>({});
@@ -38,10 +39,9 @@ export default function ClientMessages() {
   const [loading, setLoading] = useState(true);
   const [clientFilter, setClientFilter] = useState('all');
   const [search, setSearch] = useState('');
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(initialConversation || params.get('conversation'));
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const [reads, setReads] = useState(readMap());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
@@ -68,7 +68,7 @@ export default function ClientMessages() {
   const msgsOf = (id: string) => messages.filter(m => m.thread_id === id);
   const lastOf = (id: string) => { const l = msgsOf(id); return l[l.length - 1]; };
   const clientName = (t: Thread) => msgsOf(t.id).find(m => m.sender_role === 'client')?.sender_name || (t.order_id && orders[t.order_id]?.client_name) || t.customer_email || 'Client';
-  const isUnread = (t: Thread) => { const l = lastOf(t.id); return !!l && l.sender_role === 'client' && (!reads[t.id] || reads[t.id] < l.created_at); };
+  const isUnread = (t: Thread) => msgsOf(t.id).some(m => m.sender_role === 'client' && (!reads[`client:${t.id}`] || reads[`client:${t.id}`] < m.created_at));
 
   const clients = useMemo(() => {
     const m: Record<string, { key: string; name: string; count: number; unread: number }> = {};
@@ -90,12 +90,12 @@ export default function ClientMessages() {
   useEffect(() => {
     if (!active) return;
     const l = lastOf(active.id);
-    if (l) { const next = { ...readMap(), [active.id]: l.created_at }; localStorage.setItem(READ_KEY, JSON.stringify(next)); setReads(next); }
+    if (l && document.visibilityState === 'visible') void markRead(`client:${active.id}`, l.created_at);
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     // Orders of this client, for linking the conversation to an order.
     if (active.customer_email) supabase.from('orders').select('id, order_number, client_name, status, customer_email, project_name, delivery_date').ilike('customer_email', active.customer_email).order('created_at', { ascending: false }).limit(100).then(({ data }) => setClientOrders((data || []) as OrderLite[]));
     else setClientOrders([]);
-  }, [active?.id, activeMsgs.length]);
+  }, [active?.id, activeMsgs.length, markRead]);
 
   const assign = async (orderId: string) => {
     if (!active) return;
@@ -123,8 +123,8 @@ export default function ClientMessages() {
   const activeName = active ? clientName(active) : '';
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex bg-card">
-      <div className="w-56 border-r flex flex-col bg-muted/30">
+    <div className={compact ? "h-full flex bg-card" : "h-[calc(100vh-4rem)] flex bg-card"}>
+      <div className={compact ? "hidden" : "w-56 border-r flex flex-col bg-muted/30"}>
         <div className="p-4 border-b"><h1 className="font-bold text-lg">Messages clients</h1></div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           <button onClick={() => setClientFilter('all')} className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-left', clientFilter === 'all' ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted')}>
@@ -140,7 +140,7 @@ export default function ClientMessages() {
         </div>
       </div>
 
-      <div className="w-80 border-r flex flex-col">
+      <div className={compact ? "hidden" : "w-80 border-r flex flex-col"}>
         <div className="p-3 border-b"><div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher client ou commande…" className="pl-9 rounded-full bg-muted/50 border-0" />
@@ -180,14 +180,14 @@ export default function ClientMessages() {
               <p className="text-xs text-muted-foreground truncate">{active.customer_email}{activeOrder ? ` · ${activeOrder.order_number}${activeOrder.project_name ? ` · ${activeOrder.project_name}` : ''}` : ' · Aucune commande liée'}</p>
             </div>
             {activeOrder && <Badge variant="outline">{activeOrder.status}</Badge>}
-            <Select value={active.order_id ?? 'none'} onValueChange={assign}>
+            {!compact && <Select value={active.order_id ?? 'none'} onValueChange={assign}>
               <SelectTrigger className="w-56 h-9"><Link2 className="h-4 w-4 mr-1" /><SelectValue placeholder="Assigner une commande" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Aucune commande</SelectItem>
                 {active.order_id && !clientOrders.some(o => o.id === active.order_id) && activeOrder && <SelectItem value={activeOrder.id}>{activeOrder.order_number}</SelectItem>}
                 {clientOrders.map(o => <SelectItem key={o.id} value={o.id}>{o.order_number}{o.project_name ? ` · ${o.project_name}` : ''}</SelectItem>)}
               </SelectContent>
-            </Select>
+            </Select>}
             {activeOrder && <Button asChild variant="ghost" size="sm"><Link to={`/admin/orders/${activeOrder.id}`}><ExternalLink className="h-4 w-4" />Ouvrir</Link></Button>}
           </div>
 
@@ -216,8 +216,8 @@ export default function ClientMessages() {
           <div className="border-t p-3 flex gap-2 items-end">
             <Textarea value={text} onChange={e => setText(e.target.value)} rows={1}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder={`Répondre à ${activeName} — visible sur le site et envoyé par courriel`} className="resize-none rounded-2xl min-h-[42px] max-h-32" />
-            <Button onClick={send} disabled={sending || !text.trim()} size="icon" className="rounded-full h-[42px] w-[42px] shrink-0">
+              placeholder={compact ? "Répondre…" : `Répondre à ${activeName} — visible sur le site et envoyé par courriel`} className="resize-none rounded-2xl min-h-[42px] max-h-32" />
+            <Button aria-label="Envoyer le message" onClick={send} disabled={sending || !text.trim()} size="icon" className="rounded-full h-[42px] w-[42px] shrink-0">
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
