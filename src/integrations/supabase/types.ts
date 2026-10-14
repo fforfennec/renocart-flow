@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_message_reads: {
+        Row: {
+          conversation_key: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_key: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_key?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           key: string

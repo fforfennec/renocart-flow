@@ -120,6 +120,13 @@
       "when": 1791837314031,
       "tag": "0016_fix_start_support_thread",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791991930651,
+      "tag": "0017_admin_message_read_receipts",
+      "breakpoints": true
     }
   ]
 }
