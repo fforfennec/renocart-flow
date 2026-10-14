@@ -198,3 +198,13 @@ export function trackStage(status: string): TrackStage {
   return "upcoming";
 }
 export const fmtDay = (d?: string | null) => d ? new Date(d.length === 10 ? d + "T12:00:00" : d).toLocaleDateString("fr-CA", { weekday: "short", day: "numeric", month: "long" }) : "À planifier";
+
+/** Project of the client's most recent order that had one (visible orders only). */
+export async function lastOrderProjectId(): Promise<string | null> {
+  const { data: ids } = await supabase.rpc("my_client_order_ids");
+  const list = ((ids ?? []) as unknown as (string | { my_client_order_ids: string })[]).map((r) => typeof r === "string" ? r : r.my_client_order_ids);
+  if (!list.length) return null;
+  const { data } = await supabase.from("orders").select("project_id").in("id", list)
+    .not("project_id", "is", null).order("created_at", { ascending: false }).limit(1);
+  return (data?.[0]?.project_id as string | undefined) ?? null;
+}
