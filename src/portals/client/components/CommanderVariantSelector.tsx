@@ -61,23 +61,23 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
 
   const hasVariants = Boolean(product && product.variants.length > 1);
   const compactRow = row && (
-    <div className="flex items-center gap-2 min-w-0" data-cart-row>
-      <div className="h-12 w-12 rounded-md bg-muted overflow-hidden shrink-0">
+    <div className="grid grid-cols-[48px_minmax(0,1fr)] items-start gap-x-3 gap-y-2 min-w-0" data-cart-row>
+      <div className="h-12 w-12 rounded-md bg-muted overflow-hidden shrink-0 row-span-2">
         {row.image && <img src={row.image} alt={row.title} className="h-full w-full object-cover" />}
       </div>
       <Button variant="ghost" disabled={disabled || loading || saving || !hasVariants} onClick={expand}
         aria-label={hasVariants ? `${label} : ${row.title}` : undefined} aria-expanded={hasVariants ? open : undefined} aria-controls={hasVariants ? id : undefined}
         title={`${row.title} — ${row.detail}`}
-        className="flex-1 min-w-0 h-12 p-0 justify-start text-left hover:bg-transparent disabled:opacity-100 whitespace-normal">
+        className="min-w-0 h-auto min-h-12 p-0 justify-start text-left hover:bg-transparent disabled:opacity-100 whitespace-normal">
         <span className="min-w-0 w-full">
-          <span className="block text-sm font-bold truncate">{row.title}</span>
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <span className="truncate">{row.detail}</span>
+          <span className="block text-sm font-bold break-words [overflow-wrap:anywhere]">{row.title}</span>
+          <span className="flex items-start gap-1 text-xs text-muted-foreground">
+            <span className="min-w-0 break-words [overflow-wrap:anywhere]">{row.detail}</span>
             {hasVariants && (loading ? <Loader2 className="shrink-0 animate-spin" /> : <ChevronDown data-format-arrow className={cn("shrink-0 transition-transform duration-200", open && "rotate-180")} />)}
           </span>
         </span>
       </Button>
-      <div className="flex items-center h-11 shrink-0 border rounded-md">
+      <div className="col-start-2 justify-self-end flex items-center h-11 shrink-0 border rounded-md">
         <Button variant="ghost" size="icon" className="h-11 w-11" onClick={row.onDecrease}
           aria-label={row.quantity === 1 ? (fr ? "Supprimer" : "Remove") : (fr ? "Diminuer la quantité" : "Decrease quantity")}>
           {row.quantity === 1 ? <Trash2 /> : <Minus />}
