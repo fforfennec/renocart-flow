@@ -1,5 +1,5 @@
 # Commander purchase list
-- [ ] Restyle order completion with an Amazon-inspired layout and verify delivery validation and product review.
+- [x] Restyle order completion with an Amazon-inspired layout and verify delivery validation and product review.
 - [x] Show complete product names with an adaptive layout; move price notice below “Ta liste d'achat”.
 - [x] Add “Compléter la commande” and a delivery-details screen before Shopify checkout; verify the flow.
 
