@@ -776,6 +776,7 @@ export default function Commander() {
             </ul>
           </div>
         )}
+        {items.length > 0 && mayOrder && <CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} />}
       </div>
       {removalNotice}
       <div className="shrink-0 px-5 py-3 border-t">
@@ -943,6 +944,7 @@ export default function Commander() {
                   </ul>
                 </div>
               )}
+              {items.length > 0 && mayOrder && <div className="my-4"><CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} /></div>}
             </CommanderMobileScroll>
             {removalNotice}
             <div className="border-t px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
