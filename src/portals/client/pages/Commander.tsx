@@ -6,6 +6,7 @@ import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { CommanderMobileScroll } from "@/portals/client/components/CommanderMobileScroll";
 import { CommanderDelivery, type DeliveryFormValues } from "@/portals/client/components/CommanderDelivery";
 import { CommanderVariantSelector } from "@/portals/client/components/CommanderVariantSelector";
+import { CommanderDeliveryHints } from "@/portals/client/components/CommanderDeliveryHints";
 import { CommanderSuggestions, CommanderSuggestionReminder } from "@/portals/client/components/CommanderSuggestions";
 import { evaluateSuggestions, newSuggestionState, suggestionsRequest, type Suggestion, type SuggestionState } from "@/lib/commanderSuggestions";
 import type { CatalogVariant, VariantProduct } from "@/lib/shopifyVariants";
@@ -464,16 +465,40 @@ export default function Commander() {
       : f === "truck" ? (v ? t.trucks[v as keyof typeof t.trucks] ?? v : "—")
       : v || t.noNote;
 
+  const deliveryBase = (): DeliveryFormValues => {
+    const p = project && project !== "none" ? project : null;
+    return {
+      address1: p?.address1 ?? "", city: p?.city ?? "", province: p?.province ?? "QC", postal_code: p?.postal_code ?? "",
+      contact_name: p?.contact_name ?? "", contact_phone: p?.contact_phone ?? "",
+      delivery_date: d.delivery_date ?? "", time_window: d.time_window ?? "", truck_type: d.truck_type ?? "", note: d.note ?? "",
+    };
+  };
+  /** Answers typed in the cart win over the project defaults; blank answers fall back to them. */
+  const mergeDelivery = (prev: DeliveryFormValues | null, base: DeliveryFormValues): DeliveryFormValues => ({
+    address1: prev?.address1 || base.address1, city: prev?.city || base.city, province: prev?.province || base.province,
+    postal_code: prev?.postal_code || base.postal_code, contact_name: prev?.contact_name || base.contact_name,
+    contact_phone: prev?.contact_phone || base.contact_phone, delivery_date: prev?.delivery_date || base.delivery_date,
+    time_window: prev?.time_window || base.time_window, truck_type: prev?.truck_type || base.truck_type, note: prev?.note || base.note,
+  });
+  const patchDelivery = (p: Partial<DeliveryFormValues>) => {
+    setDeliveryDraft((prev) => ({ ...deliveryBase(), ...(prev ?? {}), ...p }));
+    setD((s) => ({
+      delivery_date: "delivery_date" in p ? p.delivery_date || null : s.delivery_date,
+      time_window: "time_window" in p ? p.time_window || null : s.time_window,
+      truck_type: "truck_type" in p ? p.truck_type || null : s.truck_type,
+      note: "note" in p ? p.note || null : s.note,
+    }));
+  };
+  const hintValues: DeliveryFormValues = deliveryDraft ?? {
+    ...deliveryBase(), address1: "", city: "", province: "QC", postal_code: "", contact_name: "", contact_phone: "",
+  };
+  const savedAddress = project && project !== "none" && project.address1
+    ? { label: [project.address1, project.city].filter(Boolean).join(", "),
+        values: { address1: project.address1, city: project.city, province: project.province, postal_code: project.postal_code } }
+    : null;
   const openDelivery = () => {
     if (!mayOrder || !items.length || busy || micOn) return;
-    const p = project && project !== "none" ? project : null;
-    setDeliveryDraft((prev) => ({
-      address1: prev?.address1 ?? p?.address1 ?? "", city: prev?.city ?? p?.city ?? "",
-      province: prev?.province ?? p?.province ?? "QC", postal_code: prev?.postal_code ?? p?.postal_code ?? "",
-      contact_name: prev?.contact_name ?? p?.contact_name ?? "", contact_phone: prev?.contact_phone ?? p?.contact_phone ?? "",
-      delivery_date: d.delivery_date ?? prev?.delivery_date ?? "", time_window: d.time_window ?? prev?.time_window ?? "",
-      truck_type: d.truck_type ?? prev?.truck_type ?? "", note: d.note ?? prev?.note ?? "",
-    }));
+    setDeliveryDraft((prev) => mergeDelivery(prev, deliveryBase()));
     setCartOpen(false); setDeliveryOpen(true);
   };
 
