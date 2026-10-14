@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { createCheckout } from "@/lib/shopifyStorefront";
 import { useAuth } from "@/contexts/AuthContext";
-import { canManageAccount, canOrder, getClientContext, listProjects, projectAddress, type AccountRole, type ClientProject } from "@/lib/clientProjects";
+import { canManageAccount, canOrder, getClientContext, listProjects, lastOrderProjectId, projectAddress, type AccountRole, type ClientProject } from "@/lib/clientProjects";
 import { NewProjectDialog, ProjectPicker, type ProjectChoice } from "@/portals/client/components/CommanderProjectPicker";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -212,9 +212,10 @@ export default function Commander() {
   useEffect(() => {
     if (!user) { setProjects([]); setAccountRole(undefined); return; }
     getClientContext().then((c) => setAccountRole(c?.role)).catch(() => {});
-    listProjects().then((list) => {
+    Promise.all([listProjects(), lastOrderProjectId().catch(() => null)]).then(([list, lastId]) => {
       setProjects(list);
-      setProject((cur) => cur && cur !== "none" ? list.find((p) => p.id === cur.id) ?? null : cur);
+      const last = lastId ? list.find((p) => p.id === lastId) ?? null : null;
+      setProject((cur) => cur === "none" ? cur : cur ? list.find((p) => p.id === cur.id) ?? last : last);
     }).catch(() => setProjects([]));
   }, [user]);
   const projectCreated = (p: ClientProject) => { setProjects((l) => [p, ...l]); setProject(p); setNewProject(false); };
