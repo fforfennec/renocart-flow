@@ -780,6 +780,7 @@ export default function Commander() {
       </header>
 
       {deliveryOpen && deliveryDraft ? <CommanderDelivery initial={deliveryDraft} lang={lang} busy={checkingOut}
+        items={items} projectName={project && project !== "none" ? project.name : undefined}
         onBack={(values) => {
           setDeliveryDraft(values);
           setD({ delivery_date: values.delivery_date || null, time_window: values.time_window || null, truck_type: values.truck_type || null, note: values.note || null });
