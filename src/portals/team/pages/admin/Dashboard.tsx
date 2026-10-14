@@ -45,20 +45,20 @@ const AdminDashboard = () => {
       { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
       { to: '/admin/messages', label: 'Messages suppliers', icon: MessageCircle },
       { to: '/admin/historique', label: 'Historique', icon: Package },
-      { to: '/admin/stats', label: 'Stats', icon: BarChart3 },
       { to: '/admin/suppliers', label: 'Fournisseurs & SP', icon: Truck },
-      { to: '/admin/automations', label: 'Automations', icon: Bot },
     ] },
     { label: 'Gestion Clients', items: [
       { to: '/admin/commander', label: 'Page de commande', icon: ShoppingCart },
       { to: '/admin/clients', label: 'Profils clients', icon: Users },
       { to: '/admin/messages-clients', label: 'Messages clients', icon: MessageCircle },
     ] },
-    { label: 'Base de données', items: [
-      { to: '/admin/suggestions', label: 'Règles de suggestions', icon: Package },
-    ] },
     { label: 'Paramètres', items: [
       { to: '/admin/utilisateurs', label: 'Utilisateurs', icon: UserCog },
+    ] },
+    { label: 'Divers', items: [
+      { to: '/admin/stats', label: 'Stats', icon: BarChart3 },
+      { to: '/admin/automations', label: 'Automations', icon: Bot },
+      { to: '/admin/suggestions', label: 'Règles de suggestions', icon: Package },
     ] },
   ];
   const linkClass = 'flex min-h-11 items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors';
