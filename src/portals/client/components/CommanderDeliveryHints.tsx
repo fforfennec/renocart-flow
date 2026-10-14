@@ -127,7 +127,7 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress }: 
         ) : (
           <div className="grid gap-2">
             <input className={FIELD} placeholder={t.street} value={values.address1} onChange={(e) => onPatch({ address1: e.target.value })} />
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1.1fr)] gap-2">
               <input className={FIELD} placeholder={t.city} value={values.city} onChange={(e) => onPatch({ city: e.target.value })} />
               <input className={FIELD} placeholder={t.province} value={values.province} onChange={(e) => onPatch({ province: e.target.value })} />
               <input className={FIELD} placeholder={t.postal} value={values.postal_code} onChange={(e) => onPatch({ postal_code: e.target.value })} />
