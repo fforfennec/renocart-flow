@@ -4,6 +4,7 @@ import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, C
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { CommanderMobileScroll } from "@/portals/client/components/CommanderMobileScroll";
+import { CommanderDelivery, type DeliveryFormValues } from "@/portals/client/components/CommanderDelivery";
 import { CommanderVariantSelector } from "@/portals/client/components/CommanderVariantSelector";
 import { CommanderSuggestions, CommanderSuggestionReminder } from "@/portals/client/components/CommanderSuggestions";
 import { evaluateSuggestions, newSuggestionState, suggestionsRequest, type Suggestion, type SuggestionState } from "@/lib/commanderSuggestions";
@@ -49,9 +50,9 @@ const T = {
     sub: "Appuie sur le micro et nomme tes matériaux et les quantités. On monte ton panier pour toi.",
     example: "Ex. : « 20 feuilles de gypse 1/2 pouce, 10 deux par quatre de 8 pieds et 3 chaudières de composé »",
     tap: "Appuie pour parler", listening: "Je t'écoute… touche pour arrêter", working: "Je regarde ça…",
-    type: "Écris ici…", cart: "Ton panier", empty: "Ton panier est vide. Parle ou écris ta liste pour commencer.",
+    type: "Écris ici…", cart: "Ta liste d'achat", empty: "Ton panier est vide. Parle ou écris ta liste pour commencer.",
     missing: "Pas disponible chez nous", missingSub: "On n'a pas trouvé ces articles dans notre catalogue.",
-    priceNote: "Les prix et les taxes s'affichent au paiement.",
+    priceNote: "Les prix et les taxes s'affichent au paiement.", complete: "Compléter la commande",
     myProjects: "Mes projets",
     products: (n: number) => `${n} produit${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unité${n > 1 ? "s" : ""}`,
     added: "J'ai ajouté", removed: "J'ai enlevé", and: "et", notFound: "Je n'ai pas trouvé", nothing: "Je n'ai pas compris un des articles. Tu peux le répéter ?", repeat: "Répéter", ignore: "Ignorer", voice: "Message vocal",
@@ -72,9 +73,9 @@ const T = {
     sub: "Tap the mic and list your materials and quantities. We'll build your cart for you.",
     example: "E.g. “20 sheets of 1/2 inch drywall, ten 2x4 8 feet and 3 buckets of joint compound”",
     tap: "Tap to speak", listening: "Listening… tap to stop", working: "Looking into it…",
-    type: "Type here…", cart: "Your cart", empty: "Your cart is empty. Speak or type your list to start.",
+    type: "Type here…", cart: "Your shopping list", empty: "Your cart is empty. Speak or type your list to start.",
     missing: "Not available from us", missingSub: "We couldn't find these items in our catalogue.",
-    priceNote: "Prices and taxes are shown at checkout.",
+    priceNote: "Prices and taxes are shown at checkout.", complete: "Complete order",
     myProjects: "My projects",
     products: (n: number) => `${n} product${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unit${n > 1 ? "s" : ""}`,
     added: "I added", removed: "I removed", and: "and", notFound: "I couldn't find", nothing: "I didn't understand one of the items. Can you repeat it?", repeat: "Repeat", ignore: "Ignore", voice: "Voice message",
@@ -190,6 +191,8 @@ export default function Commander() {
   const [typed, setTyped] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [deliveryDraft, setDeliveryDraft] = useState<DeliveryFormValues | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const { recording: micOn, start: micStart, stop: micStop } = useVoiceRecorder();
   const recStart = useRef(0);
@@ -460,26 +463,42 @@ export default function Commander() {
       : f === "truck" ? (v ? t.trucks[v as keyof typeof t.trucks] ?? v : "—")
       : v || t.noNote;
 
-  const checkout = async () => {
-    if (!mayOrder) return;
+  const openDelivery = () => {
+    if (!mayOrder || !items.length || busy || micOn) return;
+    const p = project && project !== "none" ? project : null;
+    setDeliveryDraft((prev) => ({
+      address1: prev?.address1 ?? p?.address1 ?? "", city: prev?.city ?? p?.city ?? "",
+      province: prev?.province ?? p?.province ?? "QC", postal_code: prev?.postal_code ?? p?.postal_code ?? "",
+      contact_name: prev?.contact_name ?? p?.contact_name ?? "", contact_phone: prev?.contact_phone ?? p?.contact_phone ?? "",
+      delivery_date: d.delivery_date ?? prev?.delivery_date ?? "", time_window: d.time_window ?? prev?.time_window ?? "",
+      truck_type: d.truck_type ?? prev?.truck_type ?? "", note: d.note ?? prev?.note ?? "",
+    }));
+    setCartOpen(false); setDeliveryOpen(true);
+  };
+
+  const checkout = async (delivery: DeliveryFormValues) => {
+    if (!mayOrder || !items.length) return;
+    setDeliveryDraft(delivery);
+    setD({ delivery_date: delivery.delivery_date, time_window: delivery.time_window, truck_type: delivery.truck_type, note: delivery.note || null });
     setCheckingOut(true);
     try {
       const attributes = [
-        d.delivery_date && { key: "delivery_date", value: d.delivery_date },
-        d.time_window && { key: "delivery_time_window", value: d.time_window },
-        d.truck_type && d.truck_type !== "unknown" && { key: "truck_type", value: d.truck_type },
+        { key: "delivery_date", value: delivery.delivery_date },
+        { key: "delivery_time_window", value: delivery.time_window },
+        { key: "truck_type", value: delivery.truck_type },
         project && project !== "none" && { key: "project_id", value: project.id },
         project && project !== "none" && { key: "project_name", value: project.name },
         project && project !== "none" && { key: "project_code", value: project.code },
       ].filter(Boolean) as { key: string; value: string }[];
-      const noteParts = [d.note, missing.length ? `${t.missingNote}: ${missing.map((m) => `${m.quantity} × ${m.name}`).join(", ")}` : ""].filter(Boolean);
-      const p = project && project !== "none" ? project : null;
-      const [firstName, ...rest] = (p?.contact_name ?? "").split(" ");
-      const buyer = user?.email || p?.address1 ? {
+      const noteParts = [delivery.note, missing.length ? `${t.missingNote}: ${missing.map((m) => `${m.quantity} × ${m.name}`).join(", ")}` : ""].filter(Boolean);
+      const [firstName, ...rest] = delivery.contact_name.split(" ");
+      const buyer = {
         ...(user?.email ? { email: user.email } : {}),
-        ...(p?.address1 ? { deliveryAddressPreferences: [{ deliveryAddress: { address1: p.address1, city: p.city ?? undefined, province: p.province ?? undefined, zip: p.postal_code ?? undefined, country: "CA",
-          ...(p.contact_name ? { firstName, lastName: rest.join(" ") || undefined } : {}), ...(p.contact_phone ? { phone: p.contact_phone } : {}) } }] } : {}),
-      } : undefined;
+        deliveryAddressPreferences: [{ deliveryAddress: { address1: delivery.address1, city: delivery.city,
+          province: delivery.province, zip: delivery.postal_code, country: "CA",
+          ...(delivery.contact_name ? { firstName, lastName: rest.join(" ") || undefined } : {}),
+          ...(delivery.contact_phone ? { phone: delivery.contact_phone } : {}) } }],
+      };
       const url = await createCheckout(items.map((i) => ({ merchandiseId: i.variantId, quantity: i.quantity })), attributes, noteParts.join("\n"), buyer);
       window.location.href = url;
     } catch (e) { toast.error((e as Error).message); setCheckingOut(false); }
@@ -492,7 +511,7 @@ export default function Commander() {
     setRemovedProduct(null);
     setItems([]); setMissing([]); setMsgs([]); setListDone(false); setAnswered([]); setEditing(null);
     setD({ delivery_date: null, time_window: null, truck_type: null, note: null });
-    setProject(null);
+    setProject(null); setDeliveryOpen(false); setDeliveryDraft(null);
   };
 
   const joinList = (a: string[]) => a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} ${t.and} ${a[a.length - 1]}`;
@@ -697,8 +716,8 @@ export default function Commander() {
               <Row f="truck" label={t.truck} value={fmt("truck", d.truck_type)} />
               <Row f="note" label={t.notes} value={d.note || t.none} />
             </dl>
-            <Button size="lg" className="w-full mt-4 h-14 text-base font-bold" onClick={checkout} disabled={checkingOut || !items.length || !mayOrder}>
-              {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.checkout}
+            <Button size="lg" className="w-full mt-4 h-14 text-base font-bold" onClick={openDelivery} disabled={checkingOut || !items.length || !mayOrder}>
+              {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.complete}
             </Button>
             {!mayOrder && <p className="mt-2 text-center text-sm">{lang === "fr" ? "Ton accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>}
           </div>
@@ -709,7 +728,7 @@ export default function Commander() {
 
   const cartBody = (
     <>
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">
         {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
         {items.map((i) => (
           <div key={i.variantId}>
@@ -733,7 +752,9 @@ export default function Commander() {
         )}
       </div>
       {removalNotice}
-      <p className="px-5 py-3 border-t text-xs text-muted-foreground">{t.priceNote}</p>
+      <div className="shrink-0 px-5 py-3 border-t">
+        <Button size="lg" className="w-full min-h-12 h-auto whitespace-normal py-3 font-bold" onClick={openDelivery} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
+      </div>
     </>
   );
 
@@ -757,8 +778,13 @@ export default function Commander() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 w-full max-w-6xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[1fr_380px] gap-6">
-        <section className="gradient-navy text-secondary-foreground lg:rounded-2xl flex flex-col min-h-0">
+      {deliveryOpen && deliveryDraft ? <CommanderDelivery initial={deliveryDraft} lang={lang} busy={checkingOut}
+        onBack={(values) => {
+          setDeliveryDraft(values);
+          setD({ delivery_date: values.delivery_date || null, time_window: values.time_window || null, truck_type: values.truck_type || null, note: values.note || null });
+          setDeliveryOpen(false);
+        }} onSubmit={checkout} /> : <main className="flex-1 min-h-0 min-w-0 w-full max-w-6xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6">
+        <section className="gradient-navy text-secondary-foreground lg:rounded-2xl flex flex-col min-h-0 min-w-0">
           {/* tablet cart bar (desktop layout, unchanged) */}
           {started && !isMobile && (
             <div className="lg:hidden shrink-0 bg-card text-card-foreground border-b">
@@ -766,7 +792,7 @@ export default function Commander() {
                 <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />{t.cart} · {cartLabel}</span>
                 <ChevronUp className={cn("h-4 w-4 transition-transform", !cartOpen && "rotate-180")} />
               </button>
-              {cartOpen && <div className="max-h-[50dvh] flex flex-col border-t">{cartBody}</div>}
+              {cartOpen && <div className="max-h-[50dvh] flex flex-col border-t"><p className="px-4 pt-3 text-xs text-muted-foreground">{t.priceNote}</p>{cartBody}</div>}
             </div>
           )}
 
@@ -807,13 +833,13 @@ export default function Commander() {
                   <ShoppingCart className="h-6 w-6" />
                   {items.length > 0 && <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center">{items.length}</span>}
                 </span>
-                <span className="flex-1 min-w-0 truncate"><b>{t.cart}</b> <span className="text-muted-foreground text-sm">{cartLabel}</span></span>
+                <span className="flex-1 min-w-0 whitespace-normal"><b className="block">{t.cart}</b><span className="block text-muted-foreground text-xs">{cartLabel}</span></span>
                 <ChevronUp className="h-5 w-5 shrink-0" />
               </Button>
               {mobileSummary ? (
               <div>
-                <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={checkout} disabled={checkingOut || !items.length || !mayOrder}>
-                  {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.checkout}
+                <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={openDelivery} disabled={checkingOut || !items.length || !mayOrder}>
+                  {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.complete}
                 </Button>
                 <p className="mt-2 text-center text-xs opacity-70">{mayOrder ? t.totalNote : lang === "fr" ? "Ton accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>
               </div>
@@ -847,14 +873,15 @@ export default function Commander() {
           )}
         </section>
 
-        <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0">
-          <div className="p-5 border-b flex items-baseline justify-between">
+        <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0 min-w-0">
+          <div className="p-5 border-b">
             <h2 className="text-lg font-bold">{t.cart}</h2>
-            <span className="text-sm text-muted-foreground">{cartLabel}</span>
+            <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>
           </div>
           {cartBody}
         </aside>
-      </main>
+      </main>}
 
       <NewProjectDialog open={newProject} onOpenChange={setNewProject} signedIn={!!user} onCreated={projectCreated} lang={lang} />
       {isMobile && (
@@ -863,7 +890,8 @@ export default function Commander() {
             <div className="px-5 pt-2 pb-3 border-b flex items-start justify-between">
               <div>
                 <DrawerTitle className="text-2xl font-black">{t.cart}</DrawerTitle>
-                <p className="text-sm text-muted-foreground">{cartLabel}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>
               </div>
               <button onClick={() => setCartOpen(false)} aria-label={t.close} className="h-11 w-11 rounded-full bg-muted flex items-center justify-center"><X className="h-5 w-5" /></button>
             </div>
@@ -891,8 +919,7 @@ export default function Commander() {
             </CommanderMobileScroll>
             {removalNotice}
             <div className="border-t px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
-              <p className="text-sm text-muted-foreground flex items-center gap-2"><Info className="h-4 w-4" />{t.priceNote}</p>
-              <Button size="lg" variant="secondary" className="w-full h-14 rounded-2xl text-base font-bold" onClick={() => setCartOpen(false)}>{t.backChat}</Button>
+              <Button size="lg" className="w-full min-h-14 h-auto whitespace-normal py-3 text-base font-bold" onClick={openDelivery} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
             </div>
           </DrawerContent>
         </Drawer>
