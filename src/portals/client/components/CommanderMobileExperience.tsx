@@ -35,31 +35,30 @@ export function CommanderMobileExperience(p: Props) {
     <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {!p.started ? (
         <section className="relative flex min-h-0 flex-1 flex-col bg-secondary px-5 text-secondary-foreground">
-          <div className="shrink-0 pt-6 pb-3 text-center">
+          <div className="flex min-h-0 flex-1 flex-col justify-center pt-4 text-center">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">RenoCart</p>
-            <p className="mx-auto mt-2 max-w-[20rem] text-sm font-semibold leading-snug text-secondary-foreground">
+            <p className="mx-auto mt-3 max-w-[21rem] text-xl font-bold leading-snug text-secondary-foreground">
               {fr
                 ? "Commandez et recevez vos matériaux sur votre chantier le jour même ! Dites-nous ce qu’il vous faut, et nous nous occuperons du reste."
                 : "Order your materials and get them on your jobsite the same day! Tell us what you need, and we’ll handle the rest."}
             </p>
-            <p className="mx-auto mt-2 max-w-[20rem] text-xs leading-relaxed text-secondary-foreground/70">
+            <p className="mx-auto mt-3 max-w-[21rem] text-sm leading-relaxed text-secondary-foreground/70">
               {fr
                 ? "Notre solution est utilisée par plus de 200 entrepreneurs chaque mois pour optimiser leurs achats de chantier."
                 : "Our solution is used by more than 200 entrepreneurs every month to streamline their jobsite purchases."}
             </p>
           </div>
-
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
             <h1 className="text-center text-3xl font-black leading-tight">{fr ? "Dis-nous ce dont tu as besoin" : "Tell us what you need"}</h1>
-            <ArrowDown aria-hidden="true" className="h-16 w-9 text-primary" strokeWidth={1.5} />
+            <ArrowDown aria-hidden="true" className="mt-3 h-12 w-8 shrink-0 text-primary" strokeWidth={1.5} />
+            <div className="mt-1 flex shrink-0 justify-center">{p.welcomeMic}</div>
           </div>
-
-          <div className="flex shrink-0 justify-center">{p.welcomeMic}</div>
-          <div className="mx-auto w-full max-w-sm shrink-0 pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto w-full max-w-sm shrink-0 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <p className="mb-2 text-center text-xs text-secondary-foreground/70">{fr ? "Ou écris-nous" : "Or write to us"}</p>
             {composer(true)}
           </div>
         </section>
+
       ) : (
         <>
           <div className="shrink-0 border-b bg-card px-4 py-4">
