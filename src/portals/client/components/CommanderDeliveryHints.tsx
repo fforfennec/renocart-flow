@@ -63,8 +63,7 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
   const t = T[lang];
   const [cal, setCal] = useState(false);
   const [manualAddr, setManualAddr] = useState(false);
-  const [editing, setEditing] = useState<"date" | "window" | "truck" | null>(null);
-  const patch = (p: Partial<DeliveryHintValues>) => { onPatch(p); setEditing(null); };
+  const patch = (p: Partial<DeliveryHintValues>) => onPatch(p);
 
   const shift = (n: number) => { const day = new Date(); day.setDate(day.getDate() + n); return ymd(day); };
   const dayLabel = (s: string) => new Date(`${s}T12:00:00`).toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", { weekday: "short", day: "numeric", month: "short" });
@@ -74,107 +73,120 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
   const hasAddr = [values.address1, values.city, values.province, values.postal_code].every((v) => v.trim());
   const missing = [hasDate, hasWindow, hasTruck, hasAddr].filter((ok) => !ok).length;
 
-  const band = (label: string, body: ReactNode) => (
-    <div className="min-w-0">
-      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      {body}
-    </div>
-  );
-
+  type Key = "project" | "date" | "window" | "truck" | "address";
+  const [open, setOpen] = useState<Key | "none" | null>(null);
   const showProject = projects.length > 0 || !!onNewProject;
-  const projectBand = showProject && onProject ? band(t.project, (
-    <div className={BAND}>
-      {projects.map((p) => (
-        <button key={p.id} type="button" onClick={() => onProject(p)} className={cn(CHIP, project && project !== "none" && project.id === p.id ? ACTIVE : IDLE)}>
-          {p.name}<span className="ml-1.5 opacity-60">{p.code}</span>
-        </button>
-      ))}
-      <button type="button" onClick={() => onProject("none")} className={cn(CHIP, project === "none" ? ACTIVE : IDLE)}>{t.noProject}</button>
-      {onNewProject && <button type="button" onClick={onNewProject} className={cn(CHIP, "border-dashed border-border bg-card text-muted-foreground hover:border-primary")}>{t.newProject}</button>}
-    </div>
-  )) : null;
+  const projectName = project === "none" ? t.noProject : project ? project.name : "";
+  const hasProject = !!project;
+  const steps: { key: Key; label: string; ok: boolean; value: string }[] = [
+    ...(showProject && onProject ? [{ key: "project" as Key, label: t.project, ok: hasProject, value: projectName }] : []),
+    { key: "date", label: t.date, ok: hasDate, value: hasDate ? dayLabel(values.delivery_date) : "" },
+    { key: "window", label: t.window, ok: hasWindow, value: t.windows[values.time_window] ?? values.time_window },
+    { key: "truck", label: t.truck, ok: hasTruck, value: values.truck_type === "none" ? t.truckNone : t.trucks[values.truck_type] ?? values.truck_type },
+    { key: "address", label: t.address, ok: hasAddr, value: [values.address1, values.city].filter(Boolean).join(", ") },
+  ];
+  // Only one section expanded: the one being changed, otherwise the first missing one.
+  const current: Key | null = open === "none" ? null : open ?? steps.find((s) => !s.ok)?.key ?? null;
+  const done = (p: Partial<DeliveryHintValues>) => { patch(p); setOpen(null); };
 
-  const tag = (key: "date" | "window" | "truck", label: string, children: ReactNode) => (
-    <Button key={key} type="button" variant="ghost" size="sm" aria-label={`${t.change} : ${label}`} aria-expanded={editing === key}
-      onClick={() => setEditing((current) => current === key ? null : key)}
-      className="h-auto min-h-9 max-w-full whitespace-normal rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-      <Check className="h-3 w-3 shrink-0 text-primary" /><span className="min-w-0 break-words">{children}</span><Pencil className="h-3 w-3 shrink-0" />
-    </Button>
-  );
-
-  return (
-    <div className="rounded-xl border bg-muted/40 p-3">
-      <div className="mb-2.5 flex items-baseline justify-between gap-2">
-        {!hideTitle && <p className="text-xs font-bold uppercase tracking-wide lg:hidden">{t.title}</p>}
-        <p className="text-[11px] text-muted-foreground">{missing ? t.toAdd(missing) : t.done}</p>
+  const bodies: Record<Key, ReactNode> = {
+    project: onProject ? (
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+        {projects.map((p) => (
+          <button key={p.id} type="button" onClick={() => { onProject(p); setOpen(null); }} className={cn(CHIP, "shrink-0 whitespace-nowrap", project && project !== "none" && project.id === p.id ? ACTIVE : IDLE)}>
+            {p.name}<span className="ml-1.5 opacity-60">{p.code}</span>
+          </button>
+        ))}
+        <button type="button" onClick={() => { onProject("none"); setOpen(null); }} className={cn(CHIP, "shrink-0 whitespace-nowrap", project === "none" ? ACTIVE : IDLE)}>{t.noProject}</button>
+        {onNewProject && <button type="button" onClick={onNewProject} className={cn(CHIP, "shrink-0 whitespace-nowrap border-dashed border-border bg-card text-muted-foreground hover:border-primary")}>{t.newProject}</button>}
       </div>
-      <div className="space-y-3">
-        {projectBand}
-        {(!hasDate || editing === "date") && band(t.date, <>
-          <div className={BAND}>
-            <Button variant="outline" type="button" onClick={() => patch({ delivery_date: shift(1) })} className={cn(CHIP, values.delivery_date === shift(1) ? ACTIVE : IDLE)}>{t.tomorrow}</Button>
-            <Button variant="outline" type="button" onClick={() => patch({ delivery_date: shift(2) })} className={cn(CHIP, values.delivery_date === shift(2) ? ACTIVE : IDLE)}>{t.after}</Button>
-            <button type="button" aria-expanded={cal} onClick={() => setCal((c) => !c)} className={cn(CHIP, cal ? ACTIVE : IDLE)}>{t.pick}</button>
-          </div>
-          {cal && (
-            <div className="mt-2 w-fit max-w-full overflow-x-auto rounded-xl border bg-card p-1">
-              <Calendar mode="single" locale={lang === "fr" ? frLocale : enCA}
-                selected={values.delivery_date ? new Date(`${values.delivery_date}T12:00:00`) : undefined}
-                disabled={{ before: new Date(Date.now() + 864e5) }}
-                onSelect={(day) => { if (day) { patch({ delivery_date: ymd(day) }); setCal(false); } }} />
-            </div>
-          )}
-        </>)}
-        {(!hasWindow || editing === "window") && band(t.window, (
-          <div className={BAND}>
-            {Object.entries(t.windows).map(([key, label]) => (
-              <Button variant="outline" key={key} type="button" onClick={() => patch({ time_window: key })} className={cn(CHIP, values.time_window === key ? ACTIVE : IDLE)}>{label}</Button>
-            ))}
-          </div>
-        ))}
-        {(!hasTruck || editing === "truck") && band(t.truck, (
-          <div className={BAND}>
-            <Button variant="outline" type="button" onClick={() => patch({ truck_type: "none" })} className={cn(CHIP, values.truck_type === "none" ? ACTIVE : IDLE)}>{t.truckNone}</Button>
-            {Object.entries(t.trucks).map(([key, label]) => (
-              <Button variant="outline" key={key} type="button" onClick={() => patch({ truck_type: key })} className={cn(CHIP, values.truck_type === key ? ACTIVE : IDLE)}>{label}</Button>
-            ))}
-          </div>
-        ))}
-        {!hasAddr && band(t.address, savedAddress && !manualAddr ? (
-          <div className={BAND}>
-            <button type="button" onClick={() => onPatch(savedAddress.values)} className={cn(CHIP, "flex items-center gap-1.5", IDLE)}>
-              <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" />{savedAddress.label}
-            </button>
-            <button type="button" onClick={() => setManualAddr(true)} className={cn(CHIP, "border-dashed border-border bg-card text-muted-foreground hover:border-primary")}>{t.other}</button>
-          </div>
-        ) : (
-          <div className="grid gap-2">
-            <input className={FIELD} placeholder={t.street} value={values.address1} onChange={(e) => onPatch({ address1: e.target.value })} />
-            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1.1fr)] gap-2">
-              <input className={FIELD} placeholder={t.city} value={values.city} onChange={(e) => onPatch({ city: e.target.value })} />
-              <input className={FIELD} placeholder={t.province} value={values.province} onChange={(e) => onPatch({ province: e.target.value })} />
-              <input className={FIELD} placeholder={t.postal} value={values.postal_code} onChange={(e) => onPatch({ postal_code: e.target.value })} />
-            </div>
-          </div>
-        ))}
+    ) : null,
+    date: <>
+      <div className={BAND}>
+        <Button variant="outline" type="button" onClick={() => done({ delivery_date: shift(1) })} className={cn(CHIP, values.delivery_date === shift(1) ? ACTIVE : IDLE)}>{t.tomorrow}</Button>
+        <Button variant="outline" type="button" onClick={() => done({ delivery_date: shift(2) })} className={cn(CHIP, values.delivery_date === shift(2) ? ACTIVE : IDLE)}>{t.after}</Button>
+        <button type="button" aria-expanded={cal} onClick={() => setCal((c) => !c)} className={cn(CHIP, cal ? ACTIVE : IDLE)}>{t.pick}</button>
       </div>
-      {(hasDate || hasWindow || hasTruck || hasAddr) && (
-        <div className="flex flex-wrap items-center gap-1.5 pt-2.5">
-          {hasDate && tag("date", t.date, dayLabel(values.delivery_date))}
-          {hasWindow && tag("window", t.window, t.windows[values.time_window] ?? values.time_window)}
-          {hasTruck && tag("truck", t.truck, values.truck_type === "none" ? t.truckNone : t.trucks[values.truck_type] ?? values.truck_type)}
-          {hasAddr && (
-            <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-muted py-1 pl-2.5 pr-1 text-xs text-muted-foreground">
-              <Check className="h-3 w-3 shrink-0 text-primary" />
-              <span className="min-w-0 break-words">{[values.address1, values.city].filter(Boolean).join(", ")}</span>
-              <button type="button" onClick={() => { setManualAddr(true); onPatch({ address1: "", city: "", postal_code: "" }); }}
-                className="ml-1 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-semibold hover:bg-background">
-                <Pencil className="h-3 w-3" />{t.change}
-              </button>
-            </span>
-          )}
+      {cal && (
+        <div className="mt-2 w-fit max-w-full overflow-x-auto rounded-xl border bg-card p-1">
+          <Calendar mode="single" locale={lang === "fr" ? frLocale : enCA}
+            selected={values.delivery_date ? new Date(`${values.delivery_date}T12:00:00`) : undefined}
+            disabled={{ before: new Date(Date.now() + 864e5) }}
+            onSelect={(day) => { if (day) { done({ delivery_date: ymd(day) }); setCal(false); } }} />
         </div>
       )}
+    </>,
+    window: (
+      <div className={BAND}>
+        {Object.entries(t.windows).map(([key, label]) => (
+          <Button variant="outline" key={key} type="button" onClick={() => done({ time_window: key })} className={cn(CHIP, values.time_window === key ? ACTIVE : IDLE)}>{label}</Button>
+        ))}
+      </div>
+    ),
+    truck: (
+      <div className={BAND}>
+        <Button variant="outline" type="button" onClick={() => done({ truck_type: "none" })} className={cn(CHIP, values.truck_type === "none" ? ACTIVE : IDLE)}>{t.truckNone}</Button>
+        {Object.entries(t.trucks).map(([key, label]) => (
+          <Button variant="outline" key={key} type="button" onClick={() => done({ truck_type: key })} className={cn(CHIP, values.truck_type === key ? ACTIVE : IDLE)}>{label}</Button>
+        ))}
+      </div>
+    ),
+    address: savedAddress && !manualAddr ? (
+      <div className={BAND}>
+        <button type="button" onClick={() => { onPatch(savedAddress.values); setOpen(null); }} className={cn(CHIP, "flex items-center gap-1.5", IDLE)}>
+          <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" />{savedAddress.label}
+        </button>
+        <button type="button" onClick={() => setManualAddr(true)} className={cn(CHIP, "border-dashed border-border bg-card text-muted-foreground hover:border-primary")}>{t.other}</button>
+      </div>
+    ) : (
+      <div className="grid gap-2">
+        <input className={FIELD} placeholder={t.street} value={values.address1} onChange={(e) => onPatch({ address1: e.target.value })} />
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1.1fr)] gap-2">
+          <input className={FIELD} placeholder={t.city} value={values.city} onChange={(e) => onPatch({ city: e.target.value })} />
+          <input className={FIELD} placeholder={t.province} value={values.province} onChange={(e) => onPatch({ province: e.target.value })} />
+          <input className={FIELD} placeholder={t.postal} value={values.postal_code} onChange={(e) => onPatch({ postal_code: e.target.value })} />
+        </div>
+        {hasAddr && <Button type="button" size="sm" className="justify-self-end" onClick={() => setOpen(null)}>OK</Button>}
+      </div>
+    ),
+  };
+
+  const toggle = (key: Key) => {
+    if (key === "address" && hasAddr) setManualAddr(true);
+    setOpen(current === key ? "none" : key);
+  };
+
+  return (
+    <div className="min-w-0">
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        {!hideTitle && <p className="text-xs font-bold uppercase tracking-wide lg:hidden">{t.title}</p>}
+        <p className={cn("text-xs font-medium", missing ? "text-primary" : "text-muted-foreground")}>{missing ? t.toAdd(missing) : t.done}</p>
+      </div>
+      <ol className="space-y-2">
+        {steps.map((s, i) => {
+          const isOpen = current === s.key;
+          return (
+            <li key={s.key} className={cn("rounded-xl border bg-card transition-colors", isOpen ? "border-primary shadow-sm" : s.ok ? "border-border" : "border-dashed border-primary/60")}>
+              <button type="button" onClick={() => toggle(s.key)} aria-expanded={isOpen}
+                aria-label={s.ok ? `${t.change} : ${s.label}` : s.label}
+                className="flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left">
+                <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                  s.ok ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
+                  {s.ok ? <Check className="h-4 w-4" /> : i + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{s.label}</span>
+                  <span className={cn("block truncate text-sm font-semibold", !s.ok && "font-normal text-muted-foreground")}>
+                    {s.ok ? s.value : (lang === "fr" ? "À choisir" : "To choose")}
+                  </span>
+                </span>
+                {s.ok && !isOpen && <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold"><Pencil className="h-3 w-3" />{t.change}</span>}
+              </button>
+              {isOpen && <div className="border-t px-3 pb-3 pt-2.5">{bodies[s.key]}</div>}
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
