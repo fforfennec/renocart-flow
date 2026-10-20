@@ -3,17 +3,22 @@ import { Check, MapPin, Pencil } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { fr as frLocale, enCA } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import type { ClientProject } from "@/lib/clientProjects";
+import type { ProjectChoice } from "@/portals/client/components/CommanderProjectPicker";
 
 type Lang = "fr" | "en";
 type Dict = Record<string, string>;
-export type DeliveryHintValues = {
-  delivery_date: string; time_window: string; truck_type: string;
+export type DeliveryFormValues = {
+  delivery_date: string; time_window: string; truck_type: string; note: string;
   address1: string; city: string; province: string; postal_code: string;
+  contact_name: string; contact_phone: string;
 };
+export type DeliveryHintValues = Pick<DeliveryFormValues, "delivery_date" | "time_window" | "truck_type" | "address1" | "city" | "province" | "postal_code">;
 export type SavedAddress = { label: string; values: Pick<DeliveryHintValues, "address1" | "city" | "province" | "postal_code"> };
 
 type Shape = {
   title: string; toAdd: (n: number) => string; done: string;
+  project: string; noProject: string; newProject: string;
   date: string; window: string; truck: string; address: string;
   tomorrow: string; after: string; pick: string; truckNone: string; other: string; change: string;
   windows: Dict; trucks: Dict;
@@ -23,6 +28,7 @@ type Shape = {
 const T: Record<Lang, Shape> = {
   fr: {
     title: "Livraison", toAdd: (n) => `${n} info${n > 1 ? "s" : ""} à ajouter`, done: "Tout est prêt pour la livraison",
+    project: "Projet", noProject: "Aucun projet", newProject: "Nouveau projet",
     date: "Journée de livraison", window: "Moment de la journée", truck: "Camion", address: "Adresse de livraison",
     tomorrow: "Demain", after: "Après-demain", pick: "Autre date", truckNone: "Non, standard", other: "Autre adresse", change: "Changer",
     windows: { Early: "Tôt (avant 10 h)", AM: "Avant-midi", PM: "Après-midi", Day: "N'importe quand" },
@@ -31,6 +37,7 @@ const T: Record<Lang, Shape> = {
   },
   en: {
     title: "Delivery", toAdd: (n) => `${n} more to add`, done: "Delivery details are ready",
+    project: "Project", noProject: "No project", newProject: "New project",
     date: "Delivery day", window: "Time of day", truck: "Truck", address: "Delivery address",
     tomorrow: "Tomorrow", after: "Day after", pick: "Other date", truckNone: "No, standard", other: "Another address", change: "Change",
     windows: { Early: "Early (before 10am)", AM: "Morning", PM: "Afternoon", Day: "Anytime" },
@@ -47,8 +54,9 @@ const FIELD = "h-9 min-w-0 rounded-lg border border-input bg-card px-3 text-sm o
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /** Display-only shortcuts for the delivery details still missing. Never touches the voice pipeline. */
-export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress }: {
+export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, projects = [], project, onProject, onNewProject }: {
   values: DeliveryHintValues; lang: Lang; onPatch: (p: Partial<DeliveryHintValues>) => void; savedAddress?: SavedAddress | null;
+  projects?: ClientProject[]; project?: ProjectChoice; onProject?: (p: ProjectChoice) => void; onNewProject?: () => void;
 }) {
   const t = T[lang];
   const [cal, setCal] = useState(false);
@@ -62,18 +70,35 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress }: 
   const hasAddr = [values.address1, values.city, values.province, values.postal_code].every((v) => v.trim());
   const missing = [hasDate, hasWindow, hasTruck, hasAddr].filter((ok) => !ok).length;
 
-  if (!missing) return (
-    <div className="flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-medium">
-      <Check className="h-4 w-4 shrink-0 text-primary" /><span className="min-w-0">{t.done}</span>
-    </div>
-  );
-
   const band = (label: string, body: ReactNode) => (
     <div className="min-w-0">
       <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       {body}
     </div>
   );
+
+  const showProject = projects.length > 0 || !!onNewProject;
+  const projectBand = showProject && onProject ? band(t.project, (
+    <div className={BAND}>
+      {projects.map((p) => (
+        <button key={p.id} type="button" onClick={() => onProject(p)} className={cn(CHIP, project && project !== "none" && project.id === p.id ? ACTIVE : IDLE)}>
+          {p.name}<span className="ml-1.5 opacity-60">{p.code}</span>
+        </button>
+      ))}
+      <button type="button" onClick={() => onProject("none")} className={cn(CHIP, project === "none" ? ACTIVE : IDLE)}>{t.noProject}</button>
+      {onNewProject && <button type="button" onClick={onNewProject} className={cn(CHIP, "border-dashed border-border bg-card text-muted-foreground hover:border-primary")}>{t.newProject}</button>}
+    </div>
+  )) : null;
+
+  if (!missing) return (
+    <div className="rounded-xl border bg-muted/40 p-3">
+      {projectBand && <div className="mb-3">{projectBand}</div>}
+      <div className="flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-medium">
+        <Check className="h-4 w-4 shrink-0 text-primary" /><span className="min-w-0">{t.done}</span>
+      </div>
+    </div>
+  );
+
   const tag = (key: string, children: ReactNode) => (
     <span key={key} className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
       <Check className="h-3 w-3 shrink-0 text-primary" />{children}
@@ -87,6 +112,7 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress }: 
         <p className="text-[11px] text-muted-foreground">{t.toAdd(missing)}</p>
       </div>
       <div className="space-y-3">
+        {projectBand}
         {!hasDate && band(t.date, <>
           <div className={BAND}>
             <button type="button" onClick={() => onPatch({ delivery_date: shift(1) })} className={cn(CHIP, IDLE)}>{t.tomorrow}</button>
