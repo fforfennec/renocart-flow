@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { CommanderMobileScroll } from "@/portals/client/components/CommanderMobileScroll";
 import { CommanderDeliveryHints, type DeliveryFormValues } from "@/portals/client/components/CommanderDeliveryHints";
+import { CommanderVariantSelector } from "@/portals/client/components/CommanderVariantSelector";
 import { CommanderSuggestions, CommanderSuggestionReminder } from "@/portals/client/components/CommanderSuggestions";
 import { evaluateSuggestions, newSuggestionState, suggestionsRequest, type Suggestion, type SuggestionState } from "@/lib/commanderSuggestions";
 import type { CatalogVariant, VariantProduct } from "@/lib/shopifyVariants";
