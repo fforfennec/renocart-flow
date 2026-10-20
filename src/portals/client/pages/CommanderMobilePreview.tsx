@@ -16,8 +16,6 @@ export const CommanderMobilePreview = () => (
         title="Aperçu mobile de la page de commande"
         className="block h-[844px] w-[390px] border-0 bg-background"
       />
-      {/* status-bar-free frame: small notch pill to make the phone feel real */}
-      <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-2 h-1.5 w-24 -translate-x-1/2 rounded-full bg-black/40" />
     </div>
     <p className="text-center text-xs text-white/60">
       Vue exacte sur un téléphone (390 × 844). La page de commande réelle reste sur /commander.
