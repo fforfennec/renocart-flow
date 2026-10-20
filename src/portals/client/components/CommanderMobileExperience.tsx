@@ -35,8 +35,19 @@ export function CommanderMobileExperience(p: Props) {
     <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {!p.started ? (
         <section className="relative flex min-h-0 flex-1 flex-col bg-secondary px-5 text-secondary-foreground">
-          <h1 className="mt-12 text-center text-3xl font-black leading-tight">{fr ? "Dis-nous ce dont tu as besoin" : "Tell us what you need"}</h1>
-          <div className="flex min-h-4 flex-1 items-end justify-center pb-5"><ArrowDown aria-hidden="true" className="h-20 w-10 text-primary" strokeWidth={1.5} /></div>
+          <div className="shrink-0 pt-6 pb-3 text-center">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">RenoCart</p>
+            <p className="mx-auto mt-2 max-w-[19rem] text-sm leading-relaxed text-secondary-foreground/80">
+              {fr
+                ? "Le moyen le plus rapide de commander tes matériaux de chantier. Parle ou écris — on prépare la liste, la livraison et le suivi."
+                : "The fastest way to order your jobsite materials. Speak or type — we build the list, the delivery and the tracking."}
+            </p>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
+            <h1 className="text-center text-3xl font-black leading-tight">{fr ? "Dis-nous ce dont tu as besoin" : "Tell us what you need"}</h1>
+            <ArrowDown aria-hidden="true" className="h-16 w-9 text-primary" strokeWidth={1.5} />
+          </div>
+
           <div className="flex shrink-0 justify-center">{p.welcomeMic}</div>
           <div className="mx-auto w-full max-w-sm shrink-0 pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <p className="mb-2 text-center text-xs text-secondary-foreground/70">{fr ? "Ou écris-nous" : "Or write to us"}</p>
