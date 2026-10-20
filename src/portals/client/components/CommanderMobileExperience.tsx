@@ -65,7 +65,7 @@ export function CommanderMobileExperience(p: Props) {
           <div className="shrink-0 border-b bg-card px-4 py-4">
             <h1 className="text-2xl font-black">{fr ? "Votre liste d’achat" : "Your shopping list"}</h1>
             <p className="mt-1 text-xs text-muted-foreground">{fr ? "Les prix et les taxes s’affichent au paiement." : "Prices and taxes are shown at checkout."}</p>
-            <p className="mt-2 text-xs text-muted-foreground">{p.cartLabel}</p>
+            {p.cartLabel && <p className="mt-2 text-xs text-muted-foreground">{p.cartLabel}</p>}
           </div>
           <CommanderMobileScroll enabled className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-3">
             <div className="space-y-3">{p.items}</div>
