@@ -31,13 +31,13 @@ describe("Editing preselected delivery details", () => {
   it("replaces a preselected morning time with afternoon", () => {
     const onPatch = setup();
     fireEvent.click(screen.getByRole("button", { name: "Changer : Moment de la journée" }));
-    fireEvent.click(screen.getByRole("button", { name: "Après-midi", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Après-midi" }));
     expect(onPatch).toHaveBeenCalledWith({ time_window: "PM" });
   });
   it("replaces a preselected boom truck with a cube truck", () => {
     const onPatch = setup();
     fireEvent.click(screen.getByRole("button", { name: "Changer : Camion" }));
-    fireEvent.click(screen.getByRole("button", { name: "Camion cube", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Camion cube" }));
     expect(onPatch).toHaveBeenCalledWith({ truck_type: "Van/Cube" });
   });
 });
