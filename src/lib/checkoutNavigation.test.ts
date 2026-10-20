@@ -1,20 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { navigateToCheckout } from "./checkoutNavigation";
+import { CheckoutNavigationError, navigateToCheckout } from "./checkoutNavigation";
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("checkout navigation", () => {
-  it("reserves an external tab before creating checkout in an embedded preview", async () => {
-    const tab = { opener: {}, location: { replace: vi.fn() }, close: vi.fn() };
-    const open = vi.fn(() => tab);
+  it("replaces the top-level page without opening another tab in an embedded preview", async () => {
+    const top = { location: { href: "" } };
+    const open = vi.fn();
     const assign = vi.fn();
-    vi.stubGlobal("window", { self: {}, top: {}, open, location: { assign } });
-    await navigateToCheckout(async () => {
-      expect(open).toHaveBeenCalledWith("about:blank", "_blank");
-      return "https://renocart.ca/cart/c/test";
-    });
-    expect(tab.location.replace).toHaveBeenCalledWith("https://renocart.ca/cart/c/test");
-    expect(tab.opener).toBeNull();
+    vi.stubGlobal("window", { self: {}, top, open, location: { assign } });
+    await navigateToCheckout(async () => "https://renocart.ca/cart/c/test");
+    expect(top.location.href).toBe("https://renocart.ca/cart/c/test");
+    expect(open).not.toHaveBeenCalled();
     expect(assign).not.toHaveBeenCalled();
   });
 
@@ -28,17 +25,23 @@ describe("checkout navigation", () => {
     expect(open).not.toHaveBeenCalled();
   });
 
-  it("does not create a cart or navigate inside the frame if popups are blocked", async () => {
-    const createUrl = vi.fn();
-    vi.stubGlobal("window", { self: {}, top: {}, open: () => null });
-    await expect(navigateToCheckout(createUrl)).rejects.toThrow("nouvel onglet");
-    expect(createUrl).not.toHaveBeenCalled();
+  it("preserves the API checkout URL for a user-clicked link when top navigation is blocked", async () => {
+    const location = {};
+    Object.defineProperty(location, "href", { set: () => { throw new Error("Sandbox blocked"); } });
+    const assign = vi.fn();
+    vi.stubGlobal("window", { self: {}, top: { location }, location: { assign } });
+    const error = await navigateToCheckout(async () => "https://renocart.ca/cart/c/test").catch((e) => e);
+    expect(error).toBeInstanceOf(CheckoutNavigationError);
+    expect(error.checkoutUrl).toBe("https://renocart.ca/cart/c/test");
+    expect(assign).not.toHaveBeenCalled();
   });
 
-  it("closes the reserved tab if checkout creation fails", async () => {
-    const tab = { opener: null, close: vi.fn() };
-    vi.stubGlobal("window", { self: {}, top: {}, open: () => tab });
+  it("does not open any page if checkout creation fails", async () => {
+    const open = vi.fn();
+    const assign = vi.fn();
+    vi.stubGlobal("window", { self: {}, top: {}, open, location: { assign } });
     await expect(navigateToCheckout(async () => { throw new Error("Shopify unavailable"); })).rejects.toThrow("Shopify unavailable");
-    expect(tab.close).toHaveBeenCalledOnce();
+    expect(open).not.toHaveBeenCalled();
+    expect(assign).not.toHaveBeenCalled();
   });
 });

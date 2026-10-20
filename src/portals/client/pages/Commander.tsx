@@ -13,7 +13,7 @@ import { fr as frLocale, enCA } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { createCheckout } from "@/lib/shopifyStorefront";
-import { navigateToCheckout } from "@/lib/checkoutNavigation";
+import { CheckoutNavigationError, navigateToCheckout } from "@/lib/checkoutNavigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { canManageAccount, canOrder, getClientContext, listProjects, lastOrderProjectId, projectAddress, type AccountRole, type ClientProject } from "@/lib/clientProjects";
 import { NewProjectDialog, ProjectPicker, type ProjectChoice } from "@/portals/client/components/CommanderProjectPicker";
@@ -201,6 +201,7 @@ export default function Commander() {
   const [checkingOut, setCheckingOut] = useState(false);
   const [deliveryDraft, setDeliveryDraft] = useState<DeliveryFormValues | null>(null);
   const [showMissing, setShowMissing] = useState(false);
+  const [checkoutLink, setCheckoutLink] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const { recording: micOn, start: micStart, stop: micStop } = useVoiceRecorder();
   const recStart = useRef(0);
@@ -518,13 +519,6 @@ export default function Commander() {
   const finish = () => {
     if (!mayOrder || !items.length || busy || micOn || checkingOut) return;
     const delivery = mergeDelivery(deliveryDraft, deliveryBase());
-    if (deliveryGaps(delivery).length) {
-      setShowMissing(true);
-      toast.error(lang === "fr"
-        ? "Il manque des infos de livraison — ajoute-les sous ta liste d'achat, ou continue quand même au paiement."
-        : "Delivery details are missing — add them under your shopping list, or continue to payment anyway.");
-      return;
-    }
     checkout(delivery);
   };
 
@@ -533,6 +527,7 @@ export default function Commander() {
     setDeliveryDraft(delivery);
     setD({ delivery_date: delivery.delivery_date, time_window: delivery.time_window, truck_type: delivery.truck_type, note: delivery.note || null });
     setCheckingOut(true);
+    setCheckoutLink(null);
     try {
       const attributes = [
         { key: "delivery_date", value: delivery.delivery_date },
@@ -553,7 +548,10 @@ export default function Commander() {
           ...(delivery.contact_phone ? { phone: delivery.contact_phone } : {}) } }] } : {}),
       };
       await navigateToCheckout(() => createCheckout(items.map((i) => ({ merchandiseId: i.variantId, quantity: i.quantity })), attributes, noteParts.join("\n"), buyer));
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) {
+      if (e instanceof CheckoutNavigationError) setCheckoutLink(e.checkoutUrl);
+      else toast.error((e as Error).message);
+    }
     finally { setCheckingOut(false); }
   };
 
@@ -784,7 +782,12 @@ export default function Commander() {
   ) : null;
 
   const gaps = deliveryGaps(mergeDelivery(deliveryDraft, deliveryBase()));
-  const missingPanel = showMissing && gaps.length > 0 ? (
+  const missingPanel = checkoutLink ? (
+    <div className="rounded-xl border bg-muted/40 p-3 space-y-2">
+      <p className="text-sm text-muted-foreground">{lang === "fr" ? "L’aperçu bloque la redirection automatique." : "The preview blocks automatic navigation."}</p>
+      <Button asChild className="w-full"><a href={checkoutLink} target="_top">{lang === "fr" ? "Accéder au paiement" : "Go to payment"}</a></Button>
+    </div>
+  ) : showMissing && gaps.length > 0 ? (
     <div className="rounded-xl border border-warning/60 bg-warning/10 p-3 space-y-2.5">
       <p className="text-sm font-bold">{t.stillMissing}</p>
       <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">

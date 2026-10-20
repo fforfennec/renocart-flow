@@ -1,4 +1,5 @@
 # Commander purchase list
+- [ ] Replace blank/new-tab checkout with same-tab payment and allow missing details; verify native payment fields and custom-logistics limitations.
 - [x] Keep preselected delivery day, time and truck editable; remove repeated desktop titles and Restart; verified real catalog order on desktop/mobile, persisted selections and tests.
 - [x] Remove the “Compléter la commande” screen; validate delivery info from the cart and check out directly; move the project scrolling band into the Livraison card under the shopping list.
 - [x] Show missing delivery details under the shopping list as light scrolling chip bands (day, moment, truck, address); verify desktop/mobile, project-address shortcut and checkout prefill.
