@@ -4,9 +4,7 @@ import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, C
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { CommanderMobileScroll } from "@/portals/client/components/CommanderMobileScroll";
-import { CommanderDelivery, type DeliveryFormValues } from "@/portals/client/components/CommanderDelivery";
-import { CommanderVariantSelector } from "@/portals/client/components/CommanderVariantSelector";
-import { CommanderDeliveryHints } from "@/portals/client/components/CommanderDeliveryHints";
+import { CommanderDeliveryHints, type DeliveryFormValues } from "@/portals/client/components/CommanderDeliveryHints";
 import { CommanderSuggestions, CommanderSuggestionReminder } from "@/portals/client/components/CommanderSuggestions";
 import { evaluateSuggestions, newSuggestionState, suggestionsRequest, type Suggestion, type SuggestionState } from "@/lib/commanderSuggestions";
 import type { CatalogVariant, VariantProduct } from "@/lib/shopifyVariants";
@@ -192,7 +190,6 @@ export default function Commander() {
   const [typed, setTyped] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
-  const [deliveryOpen, setDeliveryOpen] = useState(false);
   const [deliveryDraft, setDeliveryDraft] = useState<DeliveryFormValues | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const { recording: micOn, start: micStart, stop: micStop } = useVoiceRecorder();
@@ -496,10 +493,17 @@ export default function Commander() {
     ? { label: [project.address1, project.city].filter(Boolean).join(", "),
         values: { address1: project.address1, city: project.city, province: project.province, postal_code: project.postal_code } }
     : null;
-  const openDelivery = () => {
-    if (!mayOrder || !items.length || busy || micOn) return;
-    setDeliveryDraft((prev) => mergeDelivery(prev, deliveryBase()));
-    setCartOpen(false); setDeliveryOpen(true);
+  const finish = () => {
+    if (!mayOrder || !items.length || busy || micOn || checkingOut) return;
+    const delivery = mergeDelivery(deliveryDraft, deliveryBase());
+    const missingInfo = [delivery.address1, delivery.city, delivery.province, delivery.postal_code, delivery.delivery_date, delivery.time_window, delivery.truck_type].some((v) => !v.trim());
+    if (missingInfo) {
+      toast.error(lang === "fr"
+        ? "Il manque des infos de livraison — ajoute la journée, le moment, le camion et l'adresse dans ta liste d'achat."
+        : "Delivery details are missing — add the day, time of day, truck and address in your shopping list.");
+      return;
+    }
+    checkout(delivery);
   };
 
   const checkout = async (delivery: DeliveryFormValues) => {
@@ -537,7 +541,7 @@ export default function Commander() {
     setRemovedProduct(null);
     setItems([]); setMissing([]); setMsgs([]); setListDone(false); setAnswered([]); setEditing(null);
     setD({ delivery_date: null, time_window: null, truck_type: null, note: null });
-    setProject(null); setDeliveryOpen(false); setDeliveryDraft(null);
+    setProject(null); setDeliveryDraft(null);
   };
 
   const joinList = (a: string[]) => a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} ${t.and} ${a[a.length - 1]}`;
