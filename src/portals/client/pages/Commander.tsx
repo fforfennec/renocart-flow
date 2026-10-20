@@ -902,7 +902,7 @@ export default function Commander() {
           </div>
           {cartBody}
         </aside>
-      </main>}
+      </main>
 
       <NewProjectDialog open={newProject} onOpenChange={setNewProject} signedIn={!!user} onCreated={projectCreated} lang={lang} />
       {isMobile && (
