@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ChevronRight, ShoppingCart, Pencil, X, Info } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { CommanderMobileScroll } from "@/portals/client/components/CommanderMobileScroll";
+import { CommanderMobileExperience } from "@/portals/client/components/CommanderMobileExperience";
 import { CommanderDeliveryHints, type DeliveryFormValues } from "@/portals/client/components/CommanderDeliveryHints";
 import { CommanderVariantSelector } from "@/portals/client/components/CommanderVariantSelector";
 import { CommanderSuggestions, CommanderSuggestionReminder } from "@/portals/client/components/CommanderSuggestions";
@@ -126,8 +126,8 @@ async function callVoice(fd: FormData) {
   return data;
 }
 
-function MicButton({ onAudio, busy, big, mobile, accent, t, recording, start, stop }: {
-  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; mobile?: boolean; accent?: boolean; t: typeof T.fr;
+function MicButton({ onAudio, busy, big, mobile, accent, welcome, t, recording, start, stop }: {
+  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; mobile?: boolean; accent?: boolean; welcome?: boolean; t: typeof T.fr;
   recording: boolean; start: () => Promise<void>; stop: () => Promise<Blob>;
 }) {
   const click = async () => {
@@ -142,17 +142,17 @@ function MicButton({ onAudio, busy, big, mobile, accent, t, recording, start, st
   const label = busy ? t.working : recording ? t.listening : t.tap;
   return (
     <div className={cn("flex items-center gap-3", big && "flex-col")}>
-      <button type="button" onClick={click} disabled={busy} aria-label={label} title={label}
+      <Button type="button" onClick={click} disabled={busy} aria-label={label} title={label}
         className={cn("relative shrink-0 rounded-full flex items-center justify-center transition-all shadow-gold",
-          big ? "h-28 w-28" : accent ? "h-16 w-16 ring-4 ring-primary/40" : mobile ? "h-14 w-14 ring-4 ring-primary/25" : "h-12 w-12",
+          welcome ? "h-36 w-36 ring-8 ring-primary/20 [&_svg]:size-12" : big ? "h-28 w-28 [&_svg]:size-12" : accent ? "h-16 w-16 ring-4 ring-primary/40 [&_svg]:size-7" : mobile ? "h-14 w-14 ring-4 ring-primary/25 [&_svg]:size-6" : "h-12 w-12",
           recording ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground hover:scale-105",
           busy && "opacity-70")}>
         {recording && <span className="absolute inset-0 rounded-full bg-destructive/40 motion-safe:animate-ping" />}
         {accent && !recording && !busy && <span aria-hidden="true" className="absolute -inset-1.5 rounded-full border-2 border-primary/60 motion-safe:animate-pulse" />}
         {busy ? <Loader2 className={cn("animate-spin", big ? "h-10 w-10" : "h-5 w-5")} />
           : recording ? <Square className={big ? "h-10 w-10" : "h-5 w-5"} /> : <Mic className={big ? "h-12 w-12" : accent ? "h-7 w-7" : "h-5 w-5"} />}
-      </button>
-      {(big || (recording && !mobile)) && <span className={cn("font-medium", big ? "text-sm" : "text-xs")}>{label}</span>}
+      </Button>
+      {(!welcome && (big || (recording && !mobile)) || welcome && (recording || busy)) && <span className={cn("font-medium", big ? "text-sm" : "text-xs")}>{label}</span>}
     </div>
   );
 }
@@ -194,6 +194,7 @@ export default function Commander() {
   const [busy, setBusy] = useState(false);
   const [typed, setTyped] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
+  const [mobileSubmitted, setMobileSubmitted] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [deliveryDraft, setDeliveryDraft] = useState<DeliveryFormValues | null>(null);
   const [checkoutLink, setCheckoutLink] = useState<string | null>(null);
@@ -461,7 +462,6 @@ export default function Commander() {
       onSet: (q) => setQty(item.variantId, q), onDelete: () => deleteProduct(item) }}
     onConfirm={(product, variant, previous, mode) => changeVariant(item.variantId, product, variant, previous, mode)} />;
 
-  const mobileSummary = isMobile && question === "summary" && project !== null && !confirmRestart && !busy && !suggestionsLoading && suggestions.status !== "pending";
   const units = items.reduce((s, i) => s + i.quantity, 0);
   const cartLabel = `${t.products(items.length)} · ${t.units(units)}`;
 
@@ -616,7 +616,7 @@ export default function Commander() {
             <p className="mt-2 flex gap-2 text-sm opacity-90"><PackageX className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
               <span>{t.notFound} {joinList(m.missing.map((x) => `${x.quantity} ${clean(x.name)}`))}.</span></p>
           )}
-          <button onClick={() => setCartOpen(true)} className="mt-2 min-h-11 flex items-center gap-1 font-semibold text-primary">{t.seeCart}<ChevronRight className="h-4 w-4" /></button>
+          
         </BotBubble>
       );
     }
@@ -765,7 +765,7 @@ export default function Commander() {
   };
 
   const deliveryHints = items.length > 0 && mayOrder ? (
-    <CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
+    <CommanderDeliveryHints hideTitle={isMobile} values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
   ) : null;
 
   const missingPanel = checkoutLink ? (
@@ -815,6 +815,9 @@ export default function Commander() {
     </>
   );
 
+  const mobileAudio = (audio: Blob) => { setMobileSubmitted(true); micHandler(audio); };
+  const mobileSend = () => { setMobileSubmitted(true); send({ text: typed.trim() }); };
+
   return (
     <div className="h-[100dvh] flex flex-col bg-background text-foreground">
       <div className="hidden sm:block bg-secondary text-secondary-foreground text-xs text-center py-2 px-4">{t.bar}</div>
@@ -833,6 +836,12 @@ export default function Commander() {
         </div>
       </header>
 
+      {isMobile ? <CommanderMobileExperience lang={lang} started={started || items.length > 0 || mobileSubmitted} busy={busy} recording={micOn} checkingOut={checkingOut}
+        mayOrder={mayOrder} hasItems={items.length > 0} cartLabel={cartLabel} typed={typed} onTyped={setTyped} onSend={mobileSend} onPayment={finish}
+        welcomeMic={<MicButton big welcome busy={busy} onAudio={mobileAudio} t={t} recording={micOn} start={startRec} stop={micStop} />}
+        composerMic={<MicButton mobile busy={busy} onAudio={mobileAudio} t={t} recording={micOn} start={startRec} stop={micStop} />}
+        items={cartItems} history={<>{msgs.map(renderMsg)}{busy ? <BotBubble><Loader2 className="h-5 w-5 animate-spin" /></BotBubble> : prompt()}<div ref={endRef} /></>}
+        delivery={deliveryHints} paymentFallback={missingPanel} removalNotice={removalNotice} /> : (
       <main className="flex-1 min-h-0 min-w-0 w-full max-w-7xl mx-auto lg:px-4 lg:py-6 flex flex-col lg:gap-2">
         {started && (
           <div className="hidden lg:grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4 items-center shrink-0">
@@ -881,40 +890,6 @@ export default function Commander() {
             )}
           </CommanderMobileScroll>
 
-          {isMobile ? (
-            <div className="shrink-0 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-2">
-              <Button key={bump} variant="ghost" onClick={() => setCartOpen(true)}
-                className={cn("w-full rounded-2xl bg-card text-card-foreground hover:bg-card px-4 h-14 flex items-center gap-3 text-left shadow-soft", bump > 0 && "animate-cart-bump")}>
-                <span className="relative shrink-0">
-                  <ShoppingCart className="h-6 w-6" />
-                  {items.length > 0 && <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center">{items.length}</span>}
-                </span>
-                <span className="flex-1 min-w-0 whitespace-normal"><b className="block">{t.cart}</b><span className="block text-muted-foreground text-xs">{cartLabel}</span></span>
-                <ChevronUp className="h-5 w-5 shrink-0" />
-              </Button>
-              {mobileSummary ? (
-              <div className="space-y-3">
-                {missingPanel}
-                <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={finish} disabled={checkingOut || !items.length || !mayOrder}>
-                  {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.complete}
-                </Button>
-                <p className="mt-2 text-center text-xs opacity-70">{mayOrder ? t.totalNote : lang === "fr" ? "Ton accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>
-              </div>
-            ) : (
-                <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
-                  <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
-                    className="flex-1 min-w-0 h-14 rounded-full bg-card text-card-foreground px-5 text-base outline-none focus:ring-2 focus:ring-primary" />
-                  {typed.trim() ? (
-                    <Button type="submit" size="icon" aria-label="Envoyer" className="h-14 w-14 rounded-full shrink-0" disabled={busy}>
-                      {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                    </Button>
-                  ) : (
-                    <MicButton mobile busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />
-                  )}
-                </form>
-            )}
-            </div>
-          ) : (
             <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
               onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
               {started && <MicButton accent busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />}
@@ -922,7 +897,6 @@ export default function Commander() {
                 className="flex-1 min-w-0 h-12 rounded-full bg-card text-card-foreground px-4 text-base outline-none focus:ring-2 focus:ring-primary" />
               <Button type="submit" size="icon" className="h-12 w-12 rounded-full shrink-0" disabled={busy || !typed.trim()}><Send className="h-4 w-4" /></Button>
             </form>
-          )}
         </section>
 
         {started && (
@@ -952,50 +926,10 @@ export default function Commander() {
         )}
         </div>
       </main>
+      )}
 
       <NewProjectDialog open={newProject} onOpenChange={setNewProject} signedIn={!!user} onCreated={projectCreated} lang={lang} />
-      {isMobile && (
-        <Drawer open={cartOpen} onOpenChange={setCartOpen}>
-          <DrawerContent className="h-[75dvh] flex flex-col">
-            <div className="px-5 pt-2 pb-3 border-b flex items-start justify-between">
-              <div>
-                <DrawerTitle className="text-2xl font-black">{t.cart}</DrawerTitle>
-                <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>
-              </div>
-              <button onClick={() => setCartOpen(false)} aria-label={t.close} className="h-11 w-11 rounded-full bg-muted flex items-center justify-center"><X className="h-5 w-5" /></button>
-            </div>
-            <CommanderMobileScroll enabled className="flex-1 min-h-0 overflow-y-auto px-5">
-              {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
-              {items.map((i) => (
-                <div key={i.variantId} className="py-3 border-b">
-                  {variantSelector(i)}
-                </div>
-              ))}
-              {suggestionReminder}
-              {missing.length > 0 && (
-                <div className="my-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/5 p-3">
-                  <p className="text-sm font-semibold flex items-center gap-2 text-destructive"><PackageX className="h-4 w-4" />{t.missing}</p>
-                  <ul className="space-y-1 mt-1">
-                    {missing.map((m, idx) => (
-                      <li key={idx} className="text-sm flex justify-between items-center gap-2">
-                        <span>{m.quantity} × {m.name}</span>
-                        <button onClick={() => setMissing((p) => p.filter((_, j) => j !== idx))} className="text-muted-foreground hover:text-destructive p-2"><Trash2 className="h-3.5 w-3.5" /></button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {items.length > 0 && mayOrder && <div className="my-4"><CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} /></div>}
-            </CommanderMobileScroll>
-            {removalNotice}
-            <div className="border-t px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
-              {missingPanel}
-              <Button size="lg" className="w-full min-h-14 h-auto whitespace-normal py-3 text-base font-bold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
+
     </div>
   );
 }

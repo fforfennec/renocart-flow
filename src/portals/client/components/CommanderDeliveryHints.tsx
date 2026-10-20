@@ -55,9 +55,10 @@ const FIELD = "h-9 min-w-0 rounded-lg border border-input bg-card px-3 text-sm o
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /** Editable delivery shortcuts, independent of the voice pipeline. */
-export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, projects = [], project, onProject, onNewProject }: {
+export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, projects = [], project, onProject, onNewProject, hideTitle = false }: {
   values: DeliveryHintValues; lang: Lang; onPatch: (p: Partial<DeliveryHintValues>) => void; savedAddress?: SavedAddress | null;
   projects?: ClientProject[]; project?: ProjectChoice; onProject?: (p: ProjectChoice) => void; onNewProject?: () => void;
+  hideTitle?: boolean;
 }) {
   const t = T[lang];
   const [cal, setCal] = useState(false);
@@ -104,7 +105,7 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
   return (
     <div className="rounded-xl border bg-muted/40 p-3">
       <div className="mb-2.5 flex items-baseline justify-between gap-2">
-        <p className="text-xs font-bold uppercase tracking-wide lg:hidden">{t.title}</p>
+        {!hideTitle && <p className="text-xs font-bold uppercase tracking-wide lg:hidden">{t.title}</p>}
         <p className="text-[11px] text-muted-foreground">{missing ? t.toAdd(missing) : t.done}</p>
       </div>
       <div className="space-y-3">
