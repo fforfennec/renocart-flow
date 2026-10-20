@@ -63,8 +63,7 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
   const t = T[lang];
   const [cal, setCal] = useState(false);
   const [manualAddr, setManualAddr] = useState(false);
-  const [editing, setEditing] = useState<"date" | "window" | "truck" | null>(null);
-  const patch = (p: Partial<DeliveryHintValues>) => { onPatch(p); setEditing(null); };
+  const patch = (p: Partial<DeliveryHintValues>) => onPatch(p);
 
   const shift = (n: number) => { const day = new Date(); day.setDate(day.getDate() + n); return ymd(day); };
   const dayLabel = (s: string) => new Date(`${s}T12:00:00`).toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", { weekday: "short", day: "numeric", month: "short" });
@@ -75,7 +74,7 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
   const missing = [hasDate, hasWindow, hasTruck, hasAddr].filter((ok) => !ok).length;
 
   type Key = "project" | "date" | "window" | "truck" | "address";
-  const [open, setOpen] = useState<Key | null>(null);
+  const [open, setOpen] = useState<Key | "none" | null>(null);
   const showProject = projects.length > 0 || !!onNewProject;
   const projectName = project === "none" ? t.noProject : project ? project.name : "";
   const hasProject = !!project;
@@ -87,7 +86,7 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
     { key: "address", label: t.address, ok: hasAddr, value: [values.address1, values.city].filter(Boolean).join(", ") },
   ];
   // Only one section expanded: the one being changed, otherwise the first missing one.
-  const current: Key | null = open ?? (editing as Key | null) ?? steps.find((s) => !s.ok)?.key ?? null;
+  const current: Key | null = open === "none" ? null : open ?? steps.find((s) => !s.ok)?.key ?? null;
   const done = (p: Partial<DeliveryHintValues>) => { patch(p); setOpen(null); };
 
   const bodies: Record<Key, ReactNode> = {
@@ -147,15 +146,14 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
           <input className={FIELD} placeholder={t.province} value={values.province} onChange={(e) => onPatch({ province: e.target.value })} />
           <input className={FIELD} placeholder={t.postal} value={values.postal_code} onChange={(e) => onPatch({ postal_code: e.target.value })} />
         </div>
-        {hasAddr && <Button type="button" size="sm" className="justify-self-end" onClick={() => setOpen("project" === current ? null : null)}>OK</Button>}
+        {hasAddr && <Button type="button" size="sm" className="justify-self-end" onClick={() => setOpen(null)}>OK</Button>}
       </div>
     ),
   };
 
   const toggle = (key: Key) => {
-    setEditing(null);
     if (key === "address" && hasAddr) setManualAddr(true);
-    setOpen((o) => (o === key || current === key ? (o === key ? null : "__none" as Key) : key));
+    setOpen(current === key ? "none" : key);
   };
 
   return (

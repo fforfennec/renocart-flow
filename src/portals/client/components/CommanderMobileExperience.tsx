@@ -98,12 +98,12 @@ export function CommanderMobileExperience(p: Props) {
         </DrawerContent>
       </Drawer>
       <Drawer open={deliveryOpen} onOpenChange={setDeliveryOpen}>
-        <DrawerContent aria-describedby={undefined} className="flex h-[85dvh] max-h-[90dvh] flex-col">
+        <DrawerContent aria-describedby={undefined} className="flex h-[94dvh] max-h-[94dvh] flex-col">
           <div className="flex shrink-0 items-center justify-between border-b px-4 pb-3 pt-2">
             <DrawerTitle className="text-xl font-black uppercase">{fr ? "Livraison" : "Delivery"}</DrawerTitle>
             <Button variant="ghost" size="icon" aria-label={close} onClick={() => setDeliveryOpen(false)}><X /></Button>
           </div>
-          <CommanderMobileScroll enabled className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4">{p.delivery}</CommanderMobileScroll>
+          <CommanderMobileScroll enabled className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-3">{p.delivery}</CommanderMobileScroll>
           <div className="shrink-0 space-y-3 border-t px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {p.paymentFallback}
             <Button className="min-h-14 w-full whitespace-normal py-3 text-base font-bold" onClick={p.onPayment} disabled={!p.hasItems || !p.mayOrder || p.busy || p.recording || p.checkingOut}>
