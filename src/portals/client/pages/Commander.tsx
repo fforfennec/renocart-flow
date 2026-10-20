@@ -463,7 +463,7 @@ export default function Commander() {
     onConfirm={(product, variant, previous, mode) => changeVariant(item.variantId, product, variant, previous, mode)} />;
 
   const units = items.reduce((s, i) => s + i.quantity, 0);
-  const cartLabel = `${t.products(items.length)} · ${t.units(units)}`;
+  const cartLabel = formatCartLabel(items.length, units, lang);
 
   const fmtDate = (s: string | null) => s ? new Date(`${s}T12:00:00`).toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", { weekday: "long", day: "numeric", month: "long" }) : "—";
   const fmt = (f: Field, v: string | null) =>
@@ -860,7 +860,7 @@ export default function Commander() {
           {started && !isMobile && (
             <div className="lg:hidden shrink-0 bg-card text-card-foreground border-b">
               <button onClick={() => setCartOpen((o) => !o)} className="w-full min-h-11 px-4 py-2 flex items-center justify-between text-sm font-semibold">
-                <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />{t.cart} · {cartLabel}</span>
+                <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />{t.cart}{cartLabel ? ` · ${cartLabel}` : ""}</span>
                 <ChevronUp className={cn("h-4 w-4 transition-transform", !cartOpen && "rotate-180")} />
               </button>
               {cartOpen && <div className="max-h-[50dvh] flex flex-col border-t"><p className="px-4 pt-3 text-xs text-muted-foreground">{t.priceNote}</p>{cartBody}</div>}
@@ -904,7 +904,7 @@ export default function Commander() {
             <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0 min-w-0">
               <div className="p-5 border-b">
                 <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>
+                {cartLabel && <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>}
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">{cartItems}</div>
               {removalNotice}
