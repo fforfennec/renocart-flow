@@ -563,7 +563,7 @@ export default function Commander() {
     setRemovedProduct(null);
     setItems([]); setMissing([]); setMsgs([]); setListDone(false); setAnswered([]); setEditing(null);
     setD({ delivery_date: null, time_window: null, truck_type: null, note: null });
-    setProject(null); setDeliveryDraft(null);
+    setProject(null); setDeliveryDraft(null); setShowMissing(false);
   };
 
   const joinList = (a: string[]) => a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} ${t.and} ${a[a.length - 1]}`;
@@ -780,6 +780,22 @@ export default function Commander() {
 
   const deliveryHints = items.length > 0 && mayOrder ? (
     <CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
+  ) : null;
+
+  const gaps = deliveryGaps(mergeDelivery(deliveryDraft, deliveryBase()));
+  const missingPanel = showMissing && gaps.length > 0 ? (
+    <div className="rounded-xl border border-warning/60 bg-warning/10 p-3 space-y-2.5">
+      <p className="text-sm font-bold">{t.stillMissing}</p>
+      <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
+        {gaps.map((g) => <li key={g}>{g}</li>)}
+      </ul>
+      <div className="flex flex-col gap-2">
+        <Button variant="outline" size="sm" className="w-full" onClick={() => setShowMissing(false)}>{t.addThem}</Button>
+        <Button size="sm" className="w-full font-bold" onClick={() => checkout(mergeDelivery(deliveryDraft, deliveryBase()))} disabled={checkingOut}>
+          {checkingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : t.payAnyway}
+        </Button>
+      </div>
+    </div>
   ) : null;
 
   const cartItems = (
