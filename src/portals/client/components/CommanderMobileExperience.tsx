@@ -69,7 +69,19 @@ export function CommanderMobileExperience(p: Props) {
           </div>
           <CommanderMobileScroll enabled className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-3">
             <div className="space-y-3">{p.items}</div>
-            {p.busy && <div role="status" className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />{fr ? "Je regarde ça…" : "Looking into it…"}</div>}
+            {p.busy && (
+              <div role="status" className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-5">
+                <div className="flex items-center justify-center gap-3">
+                  <Loader2 className="h-6 w-6 shrink-0 animate-spin text-primary" />
+                  <p className="text-lg font-bold leading-snug text-primary">{fr ? "Je regarde ça…" : "Looking into it…"}</p>
+                </div>
+                <div aria-hidden="true" className="mt-4 flex items-end justify-center gap-2">
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} className="h-9 w-11 rounded-lg border border-primary/40 bg-primary/15 motion-safe:animate-item-appear" style={{ animationDelay: `${-i * 300}ms` }} />
+                  ))}
+                </div>
+              </div>
+            )}
           </CommanderMobileScroll>
           {p.removalNotice}
           <div className="shrink-0 space-y-3 border-t bg-card px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
