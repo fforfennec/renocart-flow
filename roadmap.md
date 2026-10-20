@@ -1,5 +1,5 @@
 # Commander purchase list
-- [x] Replace blank/new-tab checkout with same-tab payment and allow missing details; verified real catalog checkout standalone/embedded, no second tab, native address/contact fields.
+- [x] Replace blank checkout with same-tab payment on standalone pages and allow missing details; sandboxed preview uses a clicked link to ready checkout in a new tab; verified real catalog payment and native address/contact fields.
 - [ ] Add missing date/time/truck fields on Shopify payment — needs Shopify checkout customization and compatible plan/app, unavailable through the current store connection.
 - [x] Keep preselected delivery day, time and truck editable; remove repeated desktop titles and Restart; verified real catalog order on desktop/mobile, persisted selections and tests.
 - [x] Remove the “Compléter la commande” screen; validate delivery info from the cart and check out directly; move the project scrolling band into the Livraison card under the shopping list.
