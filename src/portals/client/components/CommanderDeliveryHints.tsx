@@ -46,8 +46,8 @@ const T: Record<Lang, Shape> = {
   },
 };
 
-const BAND = "flex gap-2 overflow-x-auto pb-1 commander-mobile-scroll";
-const CHIP = "min-h-9 shrink-0 whitespace-nowrap rounded-full border px-3.5 text-sm font-medium transition-colors";
+const BAND = "flex flex-wrap gap-2 pb-1";
+const CHIP = "min-h-9 rounded-full border px-3.5 text-sm font-medium transition-colors";
 const IDLE = "border-border bg-card hover:border-primary";
 const ACTIVE = "border-primary bg-primary/15 text-foreground";
 const FIELD = "h-9 min-w-0 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring";
