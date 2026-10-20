@@ -144,7 +144,7 @@ function MicButton({ onAudio, busy, big, mobile, accent, welcome, t, recording, 
     <div className={cn("flex items-center gap-3", big && "flex-col")}>
       <Button type="button" onClick={click} disabled={busy} aria-label={label} title={label}
         className={cn("relative shrink-0 rounded-full flex items-center justify-center transition-all shadow-gold",
-          welcome ? "h-36 w-36 ring-8 ring-primary/20" : big ? "h-28 w-28" : accent ? "h-16 w-16 ring-4 ring-primary/40" : mobile ? "h-14 w-14 ring-4 ring-primary/25" : "h-12 w-12",
+          welcome ? "h-36 w-36 ring-8 ring-primary/20 [&_svg]:size-12" : big ? "h-28 w-28 [&_svg]:size-12" : accent ? "h-16 w-16 ring-4 ring-primary/40 [&_svg]:size-7" : mobile ? "h-14 w-14 ring-4 ring-primary/25 [&_svg]:size-6" : "h-12 w-12",
           recording ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground hover:scale-105",
           busy && "opacity-70")}>
         {recording && <span className="absolute inset-0 rounded-full bg-destructive/40 motion-safe:animate-ping" />}
@@ -765,7 +765,7 @@ export default function Commander() {
   };
 
   const deliveryHints = items.length > 0 && mayOrder ? (
-    <CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
+    <CommanderDeliveryHints hideTitle={isMobile} values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
   ) : null;
 
   const missingPanel = checkoutLink ? (

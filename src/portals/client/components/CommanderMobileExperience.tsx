@@ -81,7 +81,7 @@ export function CommanderMobileExperience(p: Props) {
         </DrawerContent>
       </Drawer>
       <Drawer open={deliveryOpen} onOpenChange={setDeliveryOpen}>
-        <DrawerContent className="flex max-h-[90dvh] flex-col">
+        <DrawerContent className="flex h-[85dvh] max-h-[90dvh] flex-col">
           <div className="flex shrink-0 items-center justify-between border-b px-4 pb-3 pt-2">
             <DrawerTitle className="text-xl font-black uppercase">{fr ? "Livraison" : "Delivery"}</DrawerTitle>
             <Button variant="ghost" size="icon" aria-label={close} onClick={() => setDeliveryOpen(false)}><X /></Button>
