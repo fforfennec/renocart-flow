@@ -908,14 +908,31 @@ export default function Commander() {
           )}
         </section>
 
-        <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0 min-w-0">
-          <div className="p-5 border-b">
-            <h2 className="text-lg font-bold">{t.cart}</h2>
-            <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
-            <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>
-          </div>
-          {cartBody}
-        </aside>
+        {started && (
+          <>
+            <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0 min-w-0">
+              <div className="p-5 border-b">
+                <h2 className="text-lg font-bold">{t.cart}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">{cartItems}</div>
+              {removalNotice}
+              <div className="shrink-0 px-5 py-3 border-t">
+                <Button size="lg" className="w-full min-h-12 h-auto whitespace-normal py-3 font-bold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
+              </div>
+            </aside>
+            <aside className="hidden lg:flex flex-col min-h-0 min-w-0">
+              {deliveryHints ? (
+                <div className="flex-1 min-h-0 overflow-y-auto">{deliveryHints}</div>
+              ) : (
+                <div className="flex-1 rounded-2xl border border-dashed bg-muted/30 p-5 flex items-center justify-center text-center text-sm text-muted-foreground">
+                  {lang === "fr" ? "La livraison se prépare ici dès que ta liste contient des articles." : "Delivery details appear here once your list has items."}
+                </div>
+              )}
+            </aside>
+          </>
+        )}
       </main>
 
       <NewProjectDialog open={newProject} onOpenChange={setNewProject} signedIn={!!user} onCreated={projectCreated} lang={lang} />
