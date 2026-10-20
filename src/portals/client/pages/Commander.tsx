@@ -123,8 +123,8 @@ async function callVoice(fd: FormData) {
   return data;
 }
 
-function MicButton({ onAudio, busy, big, mobile, t, recording, start, stop }: {
-  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; mobile?: boolean; t: typeof T.fr;
+function MicButton({ onAudio, busy, big, mobile, accent, t, recording, start, stop }: {
+  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; mobile?: boolean; accent?: boolean; t: typeof T.fr;
   recording: boolean; start: () => Promise<void>; stop: () => Promise<Blob>;
 }) {
   const click = async () => {
@@ -139,14 +139,14 @@ function MicButton({ onAudio, busy, big, mobile, t, recording, start, stop }: {
   const label = busy ? t.working : recording ? t.listening : t.tap;
   return (
     <div className={cn("flex items-center gap-3", big && "flex-col")}>
-      <button type="button" onClick={click} disabled={busy} aria-label={label}
+      <button type="button" onClick={click} disabled={busy} aria-label={label} title={label}
         className={cn("relative shrink-0 rounded-full flex items-center justify-center transition-all shadow-gold",
-          big ? "h-28 w-28" : mobile ? "h-14 w-14 ring-4 ring-primary/25" : "h-12 w-12",
+          big ? "h-28 w-28" : accent ? "h-14 w-14 ring-4 ring-primary/30" : mobile ? "h-14 w-14 ring-4 ring-primary/25" : "h-12 w-12",
           recording ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground hover:scale-105",
           busy && "opacity-70")}>
         {recording && <span className="absolute inset-0 rounded-full bg-destructive/40 motion-safe:animate-ping" />}
         {busy ? <Loader2 className={cn("animate-spin", big ? "h-10 w-10" : "h-5 w-5")} />
-          : recording ? <Square className={big ? "h-10 w-10" : "h-5 w-5"} /> : <Mic className={big ? "h-12 w-12" : "h-5 w-5"} />}
+          : recording ? <Square className={big ? "h-10 w-10" : "h-5 w-5"} /> : <Mic className={big ? "h-12 w-12" : accent ? "h-6 w-6" : "h-5 w-5"} />}
       </button>
       {(big || (recording && !mobile)) && <span className={cn("font-medium", big ? "text-sm" : "text-xs")}>{label}</span>}
     </div>
@@ -761,31 +761,41 @@ export default function Commander() {
     }
   };
 
+  const deliveryHints = items.length > 0 && mayOrder ? (
+    <CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
+  ) : null;
+
+  const cartItems = (
+    <>
+      {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
+      {items.map((i) => (
+        <div key={i.variantId}>
+          {variantSelector(i)}
+        </div>
+      ))}
+      {suggestionReminder}
+      {missing.length > 0 && (
+        <div className="mt-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/5 p-3">
+          <p className="text-sm font-semibold flex items-center gap-2 text-destructive"><PackageX className="h-4 w-4" />{t.missing}</p>
+          <p className="text-xs text-muted-foreground mb-2">{t.missingSub}</p>
+          <ul className="space-y-1">
+            {missing.map((m, idx) => (
+              <li key={idx} className="text-sm flex justify-between items-center gap-2">
+                <span>{m.quantity} × {m.name}</span>
+                <button onClick={() => setMissing((p) => p.filter((_, j) => j !== idx))} className="text-muted-foreground hover:text-destructive p-2"><Trash2 className="h-3.5 w-3.5" /></button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+
   const cartBody = (
     <>
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">
-        {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
-        {items.map((i) => (
-          <div key={i.variantId}>
-          {variantSelector(i)}
-          </div>
-        ))}
-        {suggestionReminder}
-        {missing.length > 0 && (
-          <div className="mt-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/5 p-3">
-            <p className="text-sm font-semibold flex items-center gap-2 text-destructive"><PackageX className="h-4 w-4" />{t.missing}</p>
-            <p className="text-xs text-muted-foreground mb-2">{t.missingSub}</p>
-            <ul className="space-y-1">
-              {missing.map((m, idx) => (
-                <li key={idx} className="text-sm flex justify-between items-center gap-2">
-                  <span>{m.quantity} × {m.name}</span>
-                  <button onClick={() => setMissing((p) => p.filter((_, j) => j !== idx))} className="text-muted-foreground hover:text-destructive p-2"><Trash2 className="h-3.5 w-3.5" /></button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {items.length > 0 && mayOrder && <CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />}
+        {cartItems}
+        {deliveryHints}
       </div>
       {removalNotice}
       <div className="shrink-0 px-5 py-3 border-t">
@@ -814,8 +824,8 @@ export default function Commander() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 min-w-0 w-full max-w-6xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6">
-        <section className="gradient-navy text-secondary-foreground lg:rounded-2xl flex flex-col min-h-0 min-w-0">
+      <main className="flex-1 min-h-0 min-w-0 w-full max-w-7xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4">
+        <section className={cn("gradient-navy text-secondary-foreground lg:rounded-2xl flex flex-col min-h-0 min-w-0", !started && "lg:col-span-3")}>
           {/* tablet cart bar (desktop layout, unchanged) */}
           {started && !isMobile && (
             <div className="lg:hidden shrink-0 bg-card text-card-foreground border-b">
@@ -885,12 +895,7 @@ export default function Commander() {
           ) : (
             <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
               onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
-              <button type="button" aria-label={t.restart} title={t.restart} onClick={() => setConfirmRestart(true)}
-                className="h-12 w-12 shrink-0 rounded-full border border-secondary-foreground/30 flex items-center justify-center text-secondary-foreground hover:bg-secondary-foreground/10 disabled:opacity-50"
-                disabled={busy}>
-                <RotateCcw className="h-5 w-5" />
-              </button>
-              {started && <MicButton busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />}
+              {started && <MicButton accent busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />}
               <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
                 className="flex-1 min-w-0 h-12 rounded-full bg-card text-card-foreground px-4 text-base outline-none focus:ring-2 focus:ring-primary" />
               <Button type="submit" size="icon" className="h-12 w-12 rounded-full shrink-0" disabled={busy || !typed.trim()}><Send className="h-4 w-4" /></Button>
@@ -898,14 +903,31 @@ export default function Commander() {
           )}
         </section>
 
-        <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0 min-w-0">
-          <div className="p-5 border-b">
-            <h2 className="text-lg font-bold">{t.cart}</h2>
-            <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
-            <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>
-          </div>
-          {cartBody}
-        </aside>
+        {started && (
+          <>
+            <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0 min-w-0">
+              <div className="p-5 border-b">
+                <h2 className="text-lg font-bold">{t.cart}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">{cartItems}</div>
+              {removalNotice}
+              <div className="shrink-0 px-5 py-3 border-t">
+                <Button size="lg" className="w-full min-h-12 h-auto whitespace-normal py-3 font-bold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
+              </div>
+            </aside>
+            <aside className="hidden lg:flex flex-col min-h-0 min-w-0">
+              {deliveryHints ? (
+                <div className="flex-1 min-h-0 overflow-y-auto">{deliveryHints}</div>
+              ) : (
+                <div className="flex-1 rounded-2xl border border-dashed bg-muted/30 p-5 flex items-center justify-center text-center text-sm text-muted-foreground">
+                  {lang === "fr" ? "La livraison se prépare ici dès que ta liste contient des articles." : "Delivery details appear here once your list has items."}
+                </div>
+              )}
+            </aside>
+          </>
+        )}
       </main>
 
       <NewProjectDialog open={newProject} onOpenChange={setNewProject} signedIn={!!user} onCreated={projectCreated} lang={lang} />
