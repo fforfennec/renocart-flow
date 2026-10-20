@@ -4,9 +4,8 @@ import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, C
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { CommanderMobileScroll } from "@/portals/client/components/CommanderMobileScroll";
-import { CommanderDelivery, type DeliveryFormValues } from "@/portals/client/components/CommanderDelivery";
+import { CommanderDeliveryHints, type DeliveryFormValues } from "@/portals/client/components/CommanderDeliveryHints";
 import { CommanderVariantSelector } from "@/portals/client/components/CommanderVariantSelector";
-import { CommanderDeliveryHints } from "@/portals/client/components/CommanderDeliveryHints";
 import { CommanderSuggestions, CommanderSuggestionReminder } from "@/portals/client/components/CommanderSuggestions";
 import { evaluateSuggestions, newSuggestionState, suggestionsRequest, type Suggestion, type SuggestionState } from "@/lib/commanderSuggestions";
 import type { CatalogVariant, VariantProduct } from "@/lib/shopifyVariants";
@@ -192,7 +191,6 @@ export default function Commander() {
   const [typed, setTyped] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
-  const [deliveryOpen, setDeliveryOpen] = useState(false);
   const [deliveryDraft, setDeliveryDraft] = useState<DeliveryFormValues | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const { recording: micOn, start: micStart, stop: micStop } = useVoiceRecorder();
@@ -496,10 +494,17 @@ export default function Commander() {
     ? { label: [project.address1, project.city].filter(Boolean).join(", "),
         values: { address1: project.address1, city: project.city, province: project.province, postal_code: project.postal_code } }
     : null;
-  const openDelivery = () => {
-    if (!mayOrder || !items.length || busy || micOn) return;
-    setDeliveryDraft((prev) => mergeDelivery(prev, deliveryBase()));
-    setCartOpen(false); setDeliveryOpen(true);
+  const finish = () => {
+    if (!mayOrder || !items.length || busy || micOn || checkingOut) return;
+    const delivery = mergeDelivery(deliveryDraft, deliveryBase());
+    const missingInfo = [delivery.address1, delivery.city, delivery.province, delivery.postal_code, delivery.delivery_date, delivery.time_window, delivery.truck_type].some((v) => !v.trim());
+    if (missingInfo) {
+      toast.error(lang === "fr"
+        ? "Il manque des infos de livraison — ajoute la journée, le moment, le camion et l'adresse dans ta liste d'achat."
+        : "Delivery details are missing — add the day, time of day, truck and address in your shopping list.");
+      return;
+    }
+    checkout(delivery);
   };
 
   const checkout = async (delivery: DeliveryFormValues) => {
@@ -537,7 +542,7 @@ export default function Commander() {
     setRemovedProduct(null);
     setItems([]); setMissing([]); setMsgs([]); setListDone(false); setAnswered([]); setEditing(null);
     setD({ delivery_date: null, time_window: null, truck_type: null, note: null });
-    setProject(null); setDeliveryOpen(false); setDeliveryDraft(null);
+    setProject(null); setDeliveryDraft(null);
   };
 
   const joinList = (a: string[]) => a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} ${t.and} ${a[a.length - 1]}`;
@@ -742,7 +747,7 @@ export default function Commander() {
               <Row f="truck" label={t.truck} value={fmt("truck", d.truck_type)} />
               <Row f="note" label={t.notes} value={d.note || t.none} />
             </dl>
-            <Button size="lg" className="w-full mt-4 h-14 text-base font-bold" onClick={openDelivery} disabled={checkingOut || !items.length || !mayOrder}>
+            <Button size="lg" className="w-full mt-4 h-14 text-base font-bold" onClick={finish} disabled={checkingOut || !items.length || !mayOrder}>
               {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.complete}
             </Button>
             {!mayOrder && <p className="mt-2 text-center text-sm">{lang === "fr" ? "Ton accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>}
@@ -776,11 +781,11 @@ export default function Commander() {
             </ul>
           </div>
         )}
-        {items.length > 0 && mayOrder && <CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} />}
+        {items.length > 0 && mayOrder && <CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />}
       </div>
       {removalNotice}
       <div className="shrink-0 px-5 py-3 border-t">
-        <Button size="lg" className="w-full min-h-12 h-auto whitespace-normal py-3 font-bold" onClick={openDelivery} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
+        <Button size="lg" className="w-full min-h-12 h-auto whitespace-normal py-3 font-bold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
       </div>
     </>
   );
@@ -805,13 +810,7 @@ export default function Commander() {
         </div>
       </header>
 
-      {deliveryOpen && deliveryDraft ? <CommanderDelivery initial={deliveryDraft} lang={lang} busy={checkingOut}
-        items={items} projectName={project && project !== "none" ? project.name : undefined}
-        onBack={(values) => {
-          setDeliveryDraft(values);
-          setD({ delivery_date: values.delivery_date || null, time_window: values.time_window || null, truck_type: values.truck_type || null, note: values.note || null });
-          setDeliveryOpen(false);
-        }} onSubmit={checkout} /> : <main className="flex-1 min-h-0 min-w-0 w-full max-w-6xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6">
+      <main className="flex-1 min-h-0 min-w-0 w-full max-w-6xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6">
         <section className="gradient-navy text-secondary-foreground lg:rounded-2xl flex flex-col min-h-0 min-w-0">
           {/* tablet cart bar (desktop layout, unchanged) */}
           {started && !isMobile && (
@@ -824,12 +823,6 @@ export default function Commander() {
             </div>
           )}
 
-          {projects.length > 0 && !listDone && (
-            <div className="shrink-0 px-4 md:px-8 pt-3">
-              <p className="text-xs font-semibold uppercase tracking-widest opacity-70 mb-1.5">{lang === "fr" ? "Pour quel projet ?" : "Which project?"}</p>
-              <ProjectPicker dark projects={projects} value={project} onPick={setProject} onNew={mayCreateProject ? () => setNewProject(true) : undefined} lang={lang} />
-            </div>
-          )}
           <CommanderMobileScroll enabled={isMobile} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
             {!started && !confirmRestart ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-6">
@@ -866,7 +859,7 @@ export default function Commander() {
               </Button>
               {mobileSummary ? (
               <div>
-                <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={openDelivery} disabled={checkingOut || !items.length || !mayOrder}>
+                <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={finish} disabled={checkingOut || !items.length || !mayOrder}>
                   {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.complete}
                 </Button>
                 <p className="mt-2 text-center text-xs opacity-70">{mayOrder ? t.totalNote : lang === "fr" ? "Ton accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>
@@ -909,7 +902,7 @@ export default function Commander() {
           </div>
           {cartBody}
         </aside>
-      </main>}
+      </main>
 
       <NewProjectDialog open={newProject} onOpenChange={setNewProject} signedIn={!!user} onCreated={projectCreated} lang={lang} />
       {isMobile && (
@@ -944,11 +937,11 @@ export default function Commander() {
                   </ul>
                 </div>
               )}
-              {items.length > 0 && mayOrder && <div className="my-4"><CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} /></div>}
+              {items.length > 0 && mayOrder && <div className="my-4"><CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} /></div>}
             </CommanderMobileScroll>
             {removalNotice}
             <div className="border-t px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
-              <Button size="lg" className="w-full min-h-14 h-auto whitespace-normal py-3 text-base font-bold" onClick={openDelivery} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
+              <Button size="lg" className="w-full min-h-14 h-auto whitespace-normal py-3 text-base font-bold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
             </div>
           </DrawerContent>
         </Drawer>
