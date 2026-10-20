@@ -67,6 +67,8 @@ const T = {
     summary: "Voici ta commande", materials: "Matériaux", date: "Date", when: "Moment", truck: "Camion", notes: "Notes", none: "Aucune",
     edit: "Modifier", checkout: "Placer ma commande", missingNote: "Articles non disponibles demandés", restart: "Recommencer", inCart: "C'est dans ton panier :", seeCart: "Voir le panier", close: "Fermer", changeFormat: "Changer de format", backChat: "Retour à la conversation", totalNote: "Tu verras le total et les taxes avant de payer.", delivery: "Livraison", add: "Ajouter",
     stepChat: "Dis-nous ce dont tu as besoin", stepCart: "Liste d'achat", stepDelivery: "Informations de livraison",
+    gapDate: "Journée de livraison", gapWindow: "Moment de la journée", gapTruck: "Camion", gapAddress: "Adresse de livraison",
+    stillMissing: "Il reste des infos à ajouter :", addThem: "Je les ajoute", payAnyway: "Continuer quand même au paiement",
   },
   en: {
     bar: "Construction materials delivered across Greater Montréal",
@@ -91,6 +93,8 @@ const T = {
     summary: "Here's your order", materials: "Materials", date: "Date", when: "Time", truck: "Truck", notes: "Notes", none: "None",
     edit: "Edit", checkout: "Place my order", missingNote: "Unavailable items requested", restart: "Start over", inCart: "It's in your cart:", seeCart: "See cart", close: "Close", changeFormat: "Change size", backChat: "Back to the conversation", totalNote: "You'll see the total and taxes before paying.", delivery: "Delivery", add: "Add",
     stepChat: "Tell us what you need", stepCart: "Shopping list", stepDelivery: "Delivery information",
+    gapDate: "Delivery day", gapWindow: "Time of day", gapTruck: "Truck", gapAddress: "Delivery address",
+    stillMissing: "Still to add:", addThem: "I'll add them", payAnyway: "Continue to payment anyway",
   },
 };
 
@@ -195,6 +199,7 @@ export default function Commander() {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [deliveryDraft, setDeliveryDraft] = useState<DeliveryFormValues | null>(null);
+  const [showMissing, setShowMissing] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const { recording: micOn, start: micStart, stop: micStop } = useVoiceRecorder();
   const recStart = useRef(0);
