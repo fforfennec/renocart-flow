@@ -506,14 +506,22 @@ export default function Commander() {
     ? { label: [project.address1, project.city].filter(Boolean).join(", "),
         values: { address1: project.address1, city: project.city, province: project.province, postal_code: project.postal_code } }
     : null;
+  const deliveryGaps = (delivery: DeliveryFormValues) => {
+    const gaps: string[] = [];
+    if (!delivery.delivery_date?.trim()) gaps.push(t.gapDate);
+    if (!delivery.time_window?.trim()) gaps.push(t.gapWindow);
+    if (!delivery.truck_type?.trim()) gaps.push(t.gapTruck);
+    if (![delivery.address1, delivery.city, delivery.province, delivery.postal_code].every((v) => v.trim())) gaps.push(t.gapAddress);
+    return gaps;
+  };
   const finish = () => {
     if (!mayOrder || !items.length || busy || micOn || checkingOut) return;
     const delivery = mergeDelivery(deliveryDraft, deliveryBase());
-    const missingInfo = [delivery.address1, delivery.city, delivery.province, delivery.postal_code, delivery.delivery_date, delivery.time_window, delivery.truck_type].some((v) => !v.trim());
-    if (missingInfo) {
+    if (deliveryGaps(delivery).length) {
+      setShowMissing(true);
       toast.error(lang === "fr"
-        ? "Il manque des infos de livraison — ajoute la journée, le moment, le camion et l'adresse dans ta liste d'achat."
-        : "Delivery details are missing — add the day, time of day, truck and address in your shopping list.");
+        ? "Il manque des infos de livraison — ajoute-les sous ta liste d'achat, ou continue quand même au paiement."
+        : "Delivery details are missing — add them under your shopping list, or continue to payment anyway.");
       return;
     }
     checkout(delivery);
@@ -532,15 +540,16 @@ export default function Commander() {
         project && project !== "none" && { key: "project_id", value: project.id },
         project && project !== "none" && { key: "project_name", value: project.name },
         project && project !== "none" && { key: "project_code", value: project.code },
-      ].filter(Boolean) as { key: string; value: string }[];
+      ].filter((a): a is { key: string; value: string } => !!a && !!a.value);
       const noteParts = [delivery.note, missing.length ? `${t.missingNote}: ${missing.map((m) => `${m.quantity} × ${m.name}`).join(", ")}` : ""].filter(Boolean);
       const [firstName, ...rest] = delivery.contact_name.split(" ");
+      const hasAddr = [delivery.address1, delivery.city, delivery.province, delivery.postal_code].every((v) => v.trim());
       const buyer = {
         ...(user?.email ? { email: user.email } : {}),
-        deliveryAddressPreferences: [{ deliveryAddress: { address1: delivery.address1, city: delivery.city,
+        ...(hasAddr ? { deliveryAddressPreferences: [{ deliveryAddress: { address1: delivery.address1, city: delivery.city,
           province: delivery.province, zip: delivery.postal_code, country: "CA",
           ...(delivery.contact_name ? { firstName, lastName: rest.join(" ") || undefined } : {}),
-          ...(delivery.contact_phone ? { phone: delivery.contact_phone } : {}) } }],
+          ...(delivery.contact_phone ? { phone: delivery.contact_phone } : {}) } }] } : {}),
       };
       const url = await createCheckout(items.map((i) => ({ merchandiseId: i.variantId, quantity: i.quantity })), attributes, noteParts.join("\n"), buyer);
       window.location.href = url;
