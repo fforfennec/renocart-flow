@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import NotFound from "./pages/NotFound";
 import Index from "./portals/client/pages/Index";
 import Commander from "./portals/client/pages/Commander";
+import CommanderMobilePreview from "./portals/client/pages/CommanderMobilePreview";
 import Projets from "./portals/client/pages/Projets";
 import ResetPassword from "./portals/client/pages/ResetPassword";
 
