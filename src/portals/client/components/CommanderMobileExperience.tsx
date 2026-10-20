@@ -39,8 +39,8 @@ export function CommanderMobileExperience(p: Props) {
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">RenoCart</p>
             <p className="mx-auto mt-3 max-w-[20rem] text-2xl font-bold leading-snug text-secondary-foreground">
               {fr
-                ? "Commandez et recevez vos matériaux sur votre chantier le jour même ! Dites-nous ce qu’il vous faut, et nous nous occuperons du reste."
-                : "Order your materials and get them on your jobsite the same day! Tell us what you need, and we’ll handle the rest."}
+                ? "Commandez et recevez vos matériaux sur votre chantier le jour même !"
+                : "Order your materials and get them on your jobsite the same day!"}
             </p>
             <p className="mx-auto mt-4 max-w-[20rem] text-base leading-relaxed text-secondary-foreground/70">
               {fr
@@ -49,7 +49,7 @@ export function CommanderMobileExperience(p: Props) {
             </p>
           </div>
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
-            <h1 className="text-center text-3xl font-black leading-tight">{fr ? "Dis-nous ce dont vous avez besoin" : "Tell us what you need"}</h1>
+            <h1 className="text-center text-2xl font-black leading-tight">{fr ? "Dites-nous ce qu’il vous faut, et nous nous occuperons du reste." : "Tell us what you need, and we’ll handle the rest."}</h1>
             <ArrowDown aria-hidden="true" className="mt-4 h-14 w-9 shrink-0 text-primary" strokeWidth={1.5} />
             <div className="mt-2 flex shrink-0 justify-center">{p.welcomeMic}</div>
           </div>
