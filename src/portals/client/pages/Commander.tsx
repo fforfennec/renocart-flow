@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ChevronRight, ShoppingCart, Pencil, X, Info } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { CommanderMobileScroll } from "@/portals/client/components/CommanderMobileScroll";
 import { CommanderMobileExperience } from "@/portals/client/components/CommanderMobileExperience";
 import { CommanderDeliveryHints, type DeliveryFormValues } from "@/portals/client/components/CommanderDeliveryHints";
@@ -463,7 +462,6 @@ export default function Commander() {
       onSet: (q) => setQty(item.variantId, q), onDelete: () => deleteProduct(item) }}
     onConfirm={(product, variant, previous, mode) => changeVariant(item.variantId, product, variant, previous, mode)} />;
 
-  const mobileSummary = isMobile && question === "summary" && project !== null && !confirmRestart && !busy && !suggestionsLoading && suggestions.status !== "pending";
   const units = items.reduce((s, i) => s + i.quantity, 0);
   const cartLabel = `${t.products(items.length)} · ${t.units(units)}`;
 
@@ -618,7 +616,7 @@ export default function Commander() {
             <p className="mt-2 flex gap-2 text-sm opacity-90"><PackageX className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
               <span>{t.notFound} {joinList(m.missing.map((x) => `${x.quantity} ${clean(x.name)}`))}.</span></p>
           )}
-          <button onClick={() => setCartOpen(true)} className="mt-2 min-h-11 flex items-center gap-1 font-semibold text-primary">{t.seeCart}<ChevronRight className="h-4 w-4" /></button>
+          
         </BotBubble>
       );
     }
@@ -892,40 +890,6 @@ export default function Commander() {
             )}
           </CommanderMobileScroll>
 
-          {isMobile ? (
-            <div className="shrink-0 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] space-y-2">
-              <Button key={bump} variant="ghost" onClick={() => setCartOpen(true)}
-                className={cn("w-full rounded-2xl bg-card text-card-foreground hover:bg-card px-4 h-14 flex items-center gap-3 text-left shadow-soft", bump > 0 && "animate-cart-bump")}>
-                <span className="relative shrink-0">
-                  <ShoppingCart className="h-6 w-6" />
-                  {items.length > 0 && <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center">{items.length}</span>}
-                </span>
-                <span className="flex-1 min-w-0 whitespace-normal"><b className="block">{t.cart}</b><span className="block text-muted-foreground text-xs">{cartLabel}</span></span>
-                <ChevronUp className="h-5 w-5 shrink-0" />
-              </Button>
-              {mobileSummary ? (
-              <div className="space-y-3">
-                {missingPanel}
-                <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={finish} disabled={checkingOut || !items.length || !mayOrder}>
-                  {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.complete}
-                </Button>
-                <p className="mt-2 text-center text-xs opacity-70">{mayOrder ? t.totalNote : lang === "fr" ? "Ton accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>
-              </div>
-            ) : (
-                <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
-                  <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
-                    className="flex-1 min-w-0 h-14 rounded-full bg-card text-card-foreground px-5 text-base outline-none focus:ring-2 focus:ring-primary" />
-                  {typed.trim() ? (
-                    <Button type="submit" size="icon" aria-label="Envoyer" className="h-14 w-14 rounded-full shrink-0" disabled={busy}>
-                      {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                    </Button>
-                  ) : (
-                    <MicButton mobile busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />
-                  )}
-                </form>
-            )}
-            </div>
-          ) : (
             <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
               onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
               {started && <MicButton accent busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />}
@@ -933,7 +897,6 @@ export default function Commander() {
                 className="flex-1 min-w-0 h-12 rounded-full bg-card text-card-foreground px-4 text-base outline-none focus:ring-2 focus:ring-primary" />
               <Button type="submit" size="icon" className="h-12 w-12 rounded-full shrink-0" disabled={busy || !typed.trim()}><Send className="h-4 w-4" /></Button>
             </form>
-          )}
         </section>
 
         {started && (
@@ -966,48 +929,7 @@ export default function Commander() {
       )}
 
       <NewProjectDialog open={newProject} onOpenChange={setNewProject} signedIn={!!user} onCreated={projectCreated} lang={lang} />
-      {false && isMobile && (
-        <Drawer open={cartOpen} onOpenChange={setCartOpen}>
-          <DrawerContent className="h-[75dvh] flex flex-col">
-            <div className="px-5 pt-2 pb-3 border-b flex items-start justify-between">
-              <div>
-                <DrawerTitle className="text-2xl font-black">{t.cart}</DrawerTitle>
-                <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>
-              </div>
-              <button onClick={() => setCartOpen(false)} aria-label={t.close} className="h-11 w-11 rounded-full bg-muted flex items-center justify-center"><X className="h-5 w-5" /></button>
-            </div>
-            <CommanderMobileScroll enabled className="flex-1 min-h-0 overflow-y-auto px-5">
-              {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
-              {items.map((i) => (
-                <div key={i.variantId} className="py-3 border-b">
-                  {variantSelector(i)}
-                </div>
-              ))}
-              {suggestionReminder}
-              {missing.length > 0 && (
-                <div className="my-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/5 p-3">
-                  <p className="text-sm font-semibold flex items-center gap-2 text-destructive"><PackageX className="h-4 w-4" />{t.missing}</p>
-                  <ul className="space-y-1 mt-1">
-                    {missing.map((m, idx) => (
-                      <li key={idx} className="text-sm flex justify-between items-center gap-2">
-                        <span>{m.quantity} × {m.name}</span>
-                        <button onClick={() => setMissing((p) => p.filter((_, j) => j !== idx))} className="text-muted-foreground hover:text-destructive p-2"><Trash2 className="h-3.5 w-3.5" /></button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {items.length > 0 && mayOrder && <div className="my-4"><CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} /></div>}
-            </CommanderMobileScroll>
-            {removalNotice}
-            <div className="border-t px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
-              {missingPanel}
-              <Button size="lg" className="w-full min-h-14 h-auto whitespace-normal py-3 text-base font-bold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
+
     </div>
   );
 }
