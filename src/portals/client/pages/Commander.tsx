@@ -13,6 +13,7 @@ import { fr as frLocale, enCA } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { createCheckout } from "@/lib/shopifyStorefront";
+import { navigateToCheckout } from "@/lib/checkoutNavigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { canManageAccount, canOrder, getClientContext, listProjects, lastOrderProjectId, projectAddress, type AccountRole, type ClientProject } from "@/lib/clientProjects";
 import { NewProjectDialog, ProjectPicker, type ProjectChoice } from "@/portals/client/components/CommanderProjectPicker";
@@ -551,9 +552,9 @@ export default function Commander() {
           ...(delivery.contact_name ? { firstName, lastName: rest.join(" ") || undefined } : {}),
           ...(delivery.contact_phone ? { phone: delivery.contact_phone } : {}) } }] } : {}),
       };
-      const url = await createCheckout(items.map((i) => ({ merchandiseId: i.variantId, quantity: i.quantity })), attributes, noteParts.join("\n"), buyer);
-      window.location.href = url;
-    } catch (e) { toast.error((e as Error).message); setCheckingOut(false); }
+      await navigateToCheckout(() => createCheckout(items.map((i) => ({ merchandiseId: i.variantId, quantity: i.quantity })), attributes, noteParts.join("\n"), buyer));
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setCheckingOut(false); }
   };
 
   const restart = () => {
