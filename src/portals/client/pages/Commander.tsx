@@ -831,7 +831,8 @@ export default function Commander() {
         {deliveryHints}
       </div>
       {removalNotice}
-      <div className="shrink-0 px-5 py-3 border-t">
+      <div className="shrink-0 px-5 py-3 border-t space-y-3">
+        {missingPanel}
         <Button size="lg" className="w-full min-h-12 h-auto whitespace-normal py-3 font-bold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
       </div>
     </>
@@ -917,7 +918,8 @@ export default function Commander() {
                 <ChevronUp className="h-5 w-5 shrink-0" />
               </Button>
               {mobileSummary ? (
-              <div>
+              <div className="space-y-3">
+                {missingPanel}
                 <Button size="lg" className="w-full h-14 rounded-2xl text-base font-bold" onClick={finish} disabled={checkingOut || !items.length || !mayOrder}>
                   {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.complete}
                 </Button>
@@ -967,7 +969,8 @@ export default function Commander() {
                   {lang === "fr" ? "La livraison se prépare ici dès que ta liste contient des articles." : "Delivery details appear here once your list has items."}
                 </div>
               )}
-              <div className="shrink-0 pt-3">
+              <div className="shrink-0 pt-3 space-y-3">
+                {missingPanel}
                 <Button size="lg" className="w-full min-h-14 h-auto whitespace-normal py-3 text-base font-bold shadow-gold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
               </div>
             </aside>
@@ -1013,6 +1016,7 @@ export default function Commander() {
             </CommanderMobileScroll>
             {removalNotice}
             <div className="border-t px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
+              {missingPanel}
               <Button size="lg" className="w-full min-h-14 h-auto whitespace-normal py-3 text-base font-bold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
             </div>
           </DrawerContent>
