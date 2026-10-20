@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatCartLabel } from "@/lib/commanderCartLabel";
 
 type Lang = "fr" | "en";
 type Item = {
@@ -55,7 +56,6 @@ const T = {
     missing: "Pas disponible chez nous", missingSub: "On n'a pas trouvé ces articles dans notre catalogue.",
     priceNote: "Les prix et les taxes s'affichent au paiement.", complete: "Compléter la commande",
     myProjects: "Mes projets",
-    products: (n: number) => `${n} produit${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unité${n > 1 ? "s" : ""}`,
     added: "J'ai ajouté", removed: "J'ai enlevé", and: "et", notFound: "Je n'ai pas trouvé", nothing: "Je n'ai pas compris un des articles. Vous pouvez le répéter ?", repeat: "Répéter", ignore: "Ignorer", voice: "Message vocal",
     confirmRestart: "Effacer votre panier et la conversation ?", yesRestart: "Oui, recommencer", cancel: "Annuler",
     qList: "Qu'est-ce qu'il vous faut ?", qMore: "Autre chose à ajouter ?", done: "C'est tout", addMore: "Ajouter autre chose", addMoreHint: "Allez-y, dites-nous ce que vous voulez ajouter.",
@@ -79,7 +79,6 @@ const T = {
     missing: "Not available from us", missingSub: "We couldn't find these items in our catalogue.",
     priceNote: "Prices and taxes are shown at checkout.", complete: "Complete order",
     myProjects: "My projects",
-    products: (n: number) => `${n} product${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unit${n > 1 ? "s" : ""}`,
     added: "I added", removed: "I removed", and: "and", notFound: "I couldn't find", nothing: "I didn't understand one of the items. Can you repeat it?", repeat: "Repeat", ignore: "Ignore", voice: "Voice message",
     confirmRestart: "Clear your cart and the conversation?", yesRestart: "Yes, start over", cancel: "Cancel",
     qList: "What do you need?", qMore: "Anything else to add?", done: "That's all", addMore: "Add something else", addMoreHint: "Go ahead, tell me what to add.",
@@ -463,7 +462,7 @@ export default function Commander() {
     onConfirm={(product, variant, previous, mode) => changeVariant(item.variantId, product, variant, previous, mode)} />;
 
   const units = items.reduce((s, i) => s + i.quantity, 0);
-  const cartLabel = `${t.products(items.length)} · ${t.units(units)}`;
+  const cartLabel = formatCartLabel(items.length, units, lang);
 
   const fmtDate = (s: string | null) => s ? new Date(`${s}T12:00:00`).toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", { weekday: "long", day: "numeric", month: "long" }) : "—";
   const fmt = (f: Field, v: string | null) =>
@@ -860,7 +859,7 @@ export default function Commander() {
           {started && !isMobile && (
             <div className="lg:hidden shrink-0 bg-card text-card-foreground border-b">
               <button onClick={() => setCartOpen((o) => !o)} className="w-full min-h-11 px-4 py-2 flex items-center justify-between text-sm font-semibold">
-                <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />{t.cart} · {cartLabel}</span>
+                <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />{t.cart}{cartLabel ? ` · ${cartLabel}` : ""}</span>
                 <ChevronUp className={cn("h-4 w-4 transition-transform", !cartOpen && "rotate-180")} />
               </button>
               {cartOpen && <div className="max-h-[50dvh] flex flex-col border-t"><p className="px-4 pt-3 text-xs text-muted-foreground">{t.priceNote}</p>{cartBody}</div>}
@@ -904,7 +903,7 @@ export default function Commander() {
             <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0 min-w-0">
               <div className="p-5 border-b">
                 <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>
+                {cartLabel && <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>}
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">{cartItems}</div>
               {removalNotice}

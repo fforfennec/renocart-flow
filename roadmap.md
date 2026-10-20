@@ -30,3 +30,4 @@
 - [x] Client accounts, projects, invoices (single + ZIP), totals and materials at /projets.
 - [x] Project choice in /commander (strip at start / question at end), address prefill, project sent to Shopify.
 - [ ] Shopify-store login reuse — needs Shopify customer accounts setup.
+- [x] Keep the /commander headers free of an empty-cart count while the assistant is still working.
