@@ -123,8 +123,8 @@ async function callVoice(fd: FormData) {
   return data;
 }
 
-function MicButton({ onAudio, busy, big, mobile, t, recording, start, stop }: {
-  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; mobile?: boolean; t: typeof T.fr;
+function MicButton({ onAudio, busy, big, mobile, accent, t, recording, start, stop }: {
+  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; mobile?: boolean; accent?: boolean; t: typeof T.fr;
   recording: boolean; start: () => Promise<void>; stop: () => Promise<Blob>;
 }) {
   const click = async () => {
@@ -139,14 +139,14 @@ function MicButton({ onAudio, busy, big, mobile, t, recording, start, stop }: {
   const label = busy ? t.working : recording ? t.listening : t.tap;
   return (
     <div className={cn("flex items-center gap-3", big && "flex-col")}>
-      <button type="button" onClick={click} disabled={busy} aria-label={label}
+      <button type="button" onClick={click} disabled={busy} aria-label={label} title={label}
         className={cn("relative shrink-0 rounded-full flex items-center justify-center transition-all shadow-gold",
-          big ? "h-28 w-28" : mobile ? "h-14 w-14 ring-4 ring-primary/25" : "h-12 w-12",
+          big ? "h-28 w-28" : accent ? "h-14 w-14 ring-4 ring-primary/30" : mobile ? "h-14 w-14 ring-4 ring-primary/25" : "h-12 w-12",
           recording ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground hover:scale-105",
           busy && "opacity-70")}>
         {recording && <span className="absolute inset-0 rounded-full bg-destructive/40 motion-safe:animate-ping" />}
         {busy ? <Loader2 className={cn("animate-spin", big ? "h-10 w-10" : "h-5 w-5")} />
-          : recording ? <Square className={big ? "h-10 w-10" : "h-5 w-5"} /> : <Mic className={big ? "h-12 w-12" : "h-5 w-5"} />}
+          : recording ? <Square className={big ? "h-10 w-10" : "h-5 w-5"} /> : <Mic className={big ? "h-12 w-12" : accent ? "h-6 w-6" : "h-5 w-5"} />}
       </button>
       {(big || (recording && !mobile)) && <span className={cn("font-medium", big ? "text-sm" : "text-xs")}>{label}</span>}
     </div>
