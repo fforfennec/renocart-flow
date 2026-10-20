@@ -928,9 +928,6 @@ export default function Commander() {
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">{cartItems}</div>
               {removalNotice}
-              <div className="shrink-0 px-5 py-3 border-t">
-                <Button size="lg" className="w-full min-h-12 h-auto whitespace-normal py-3 font-bold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
-              </div>
             </aside>
             <aside className="hidden lg:flex flex-col min-h-0 min-w-0">
               {deliveryHints ? (
@@ -940,9 +937,13 @@ export default function Commander() {
                   {lang === "fr" ? "La livraison se prépare ici dès que ta liste contient des articles." : "Delivery details appear here once your list has items."}
                 </div>
               )}
+              <div className="shrink-0 pt-3">
+                <Button size="lg" className="w-full min-h-14 h-auto whitespace-normal py-3 text-base font-bold shadow-gold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
+              </div>
             </aside>
           </>
         )}
+        </div>
       </main>
 
       <NewProjectDialog open={newProject} onOpenChange={setNewProject} signedIn={!!user} onCreated={projectCreated} lang={lang} />
