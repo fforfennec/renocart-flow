@@ -761,31 +761,41 @@ export default function Commander() {
     }
   };
 
+  const deliveryHints = items.length > 0 && mayOrder ? (
+    <CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
+  ) : null;
+
+  const cartItems = (
+    <>
+      {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
+      {items.map((i) => (
+        <div key={i.variantId}>
+          {variantSelector(i)}
+        </div>
+      ))}
+      {suggestionReminder}
+      {missing.length > 0 && (
+        <div className="mt-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/5 p-3">
+          <p className="text-sm font-semibold flex items-center gap-2 text-destructive"><PackageX className="h-4 w-4" />{t.missing}</p>
+          <p className="text-xs text-muted-foreground mb-2">{t.missingSub}</p>
+          <ul className="space-y-1">
+            {missing.map((m, idx) => (
+              <li key={idx} className="text-sm flex justify-between items-center gap-2">
+                <span>{m.quantity} × {m.name}</span>
+                <button onClick={() => setMissing((p) => p.filter((_, j) => j !== idx))} className="text-muted-foreground hover:text-destructive p-2"><Trash2 className="h-3.5 w-3.5" /></button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+
   const cartBody = (
     <>
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">
-        {!items.length && !missing.length && <p className="text-sm text-muted-foreground text-center py-10">{t.empty}</p>}
-        {items.map((i) => (
-          <div key={i.variantId}>
-          {variantSelector(i)}
-          </div>
-        ))}
-        {suggestionReminder}
-        {missing.length > 0 && (
-          <div className="mt-4 rounded-lg border border-dashed border-destructive/50 bg-destructive/5 p-3">
-            <p className="text-sm font-semibold flex items-center gap-2 text-destructive"><PackageX className="h-4 w-4" />{t.missing}</p>
-            <p className="text-xs text-muted-foreground mb-2">{t.missingSub}</p>
-            <ul className="space-y-1">
-              {missing.map((m, idx) => (
-                <li key={idx} className="text-sm flex justify-between items-center gap-2">
-                  <span>{m.quantity} × {m.name}</span>
-                  <button onClick={() => setMissing((p) => p.filter((_, j) => j !== idx))} className="text-muted-foreground hover:text-destructive p-2"><Trash2 className="h-3.5 w-3.5" /></button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {items.length > 0 && mayOrder && <CommanderDeliveryHints values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />}
+        {cartItems}
+        {deliveryHints}
       </div>
       {removalNotice}
       <div className="shrink-0 px-5 py-3 border-t">
