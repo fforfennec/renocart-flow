@@ -827,7 +827,19 @@ export default function Commander() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 min-w-0 w-full max-w-7xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4">
+      <main className="flex-1 min-h-0 min-w-0 w-full max-w-7xl mx-auto lg:px-4 lg:py-6 flex flex-col lg:gap-2">
+        {started && (
+          <div className="hidden lg:grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4 items-center shrink-0">
+            <p className="text-sm font-black uppercase tracking-wide text-secondary truncate">{t.stepChat}</p>
+            <div className="flex items-center gap-2 min-w-0">
+              <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+              <p className="text-sm font-black uppercase tracking-wide text-secondary truncate">{t.stepCart}</p>
+              <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+            </div>
+            <p className="text-sm font-black uppercase tracking-wide text-secondary truncate">{t.stepDelivery}</p>
+          </div>
+        )}
+        <div className="flex-1 min-h-0 grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4">
         <section className={cn("gradient-navy text-secondary-foreground lg:rounded-2xl flex flex-col min-h-0 min-w-0", !started && "lg:col-span-3")}>
           {/* tablet cart bar (desktop layout, unchanged) */}
           {started && !isMobile && (
