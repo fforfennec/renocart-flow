@@ -37,12 +37,18 @@ export function CommanderMobileExperience(p: Props) {
         <section className="relative flex min-h-0 flex-1 flex-col bg-secondary px-5 text-secondary-foreground">
           <div className="shrink-0 pt-6 pb-3 text-center">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">RenoCart</p>
-            <p className="mx-auto mt-2 max-w-[19rem] text-sm leading-relaxed text-secondary-foreground/80">
+            <p className="mx-auto mt-2 max-w-[20rem] text-sm font-semibold leading-snug text-secondary-foreground">
               {fr
-                ? "Le moyen le plus rapide de commander tes matériaux de chantier. Parle ou écris — on prépare la liste, la livraison et le suivi."
-                : "The fastest way to order your jobsite materials. Speak or type — we build the list, the delivery and the tracking."}
+                ? "Commandez et recevez vos matériaux sur votre chantier le jour même ! Dites-nous ce qu’il vous faut, et nous nous occuperons du reste."
+                : "Order your materials and get them on your jobsite the same day! Tell us what you need, and we’ll handle the rest."}
+            </p>
+            <p className="mx-auto mt-2 max-w-[20rem] text-xs leading-relaxed text-secondary-foreground/70">
+              {fr
+                ? "Notre solution est utilisée par plus de 200 entrepreneurs chaque mois pour optimiser leurs achats de chantier."
+                : "Our solution is used by more than 200 entrepreneurs every month to streamline their jobsite purchases."}
             </p>
           </div>
+
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
             <h1 className="text-center text-3xl font-black leading-tight">{fr ? "Dis-nous ce dont tu as besoin" : "Tell us what you need"}</h1>
             <ArrowDown aria-hidden="true" className="h-16 w-9 text-primary" strokeWidth={1.5} />
