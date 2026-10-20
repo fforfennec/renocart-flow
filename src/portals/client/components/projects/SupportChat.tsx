@@ -105,7 +105,7 @@ export function SupportChat({ orders, projects }: { orders: InvoiceOrder[]; proj
       <div className="flex gap-2 items-end">
         <input ref={fileRef} type="file" multiple hidden accept="image/*,application/pdf" onChange={(e) => { setFiles([...files, ...Array.from(e.target.files || [])]); e.target.value = ""; }} />
         <Button variant="outline" size="icon" className="h-11 w-11 shrink-0 rounded-full" onClick={() => fileRef.current?.click()} aria-label="Joindre un fichier"><Paperclip className="h-4 w-4" /></Button>
-        <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} placeholder="Écris ton message au support…" className="resize-none rounded-2xl min-h-[44px] max-h-32"
+        <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} placeholder="Écrivez votre message au support…" className="resize-none rounded-2xl min-h-[44px] max-h-32"
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
         <Button onClick={send} disabled={sending || (!text.trim() && !files.length)} size="icon" className="h-11 w-11 shrink-0 rounded-full" aria-label="Envoyer">
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -123,7 +123,7 @@ export function SupportChat({ orders, projects }: { orders: InvoiceOrder[]; proj
         <h2 className="font-bold">Nouvelle discussion</h2>
       </div>
       <div className="p-4 space-y-3">
-        <p className="text-sm font-semibold">À propos de quoi nous écris-tu ?</p>
+        <p className="text-sm font-semibold">À propos de quoi nous écrivez-vous ?</p>
         <div className="flex gap-2 overflow-x-auto pb-2 snap-x">
           <button onClick={() => setPickProject(null)} className={cn("snap-start shrink-0 rounded-full border px-4 py-2 text-sm", !pickProject ? "bg-secondary text-secondary-foreground" : "bg-card")}>Tous les projets</button>
           {projects.map((p) => <button key={p.id} onClick={() => { setPickProject(p.id); setPickOrder(null); }} className={cn("snap-start shrink-0 rounded-full border px-4 py-2 text-sm flex items-center gap-2", pickProject === p.id ? "bg-secondary text-secondary-foreground" : "bg-card")}><Folder className="h-3.5 w-3.5" />{p.name} · {p.code}</button>)}
@@ -179,7 +179,7 @@ export function SupportChat({ orders, projects }: { orders: InvoiceOrder[]; proj
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">Écris-nous ici, ou réponds au courriel de confirmation de ta commande.</p>
+        <p className="text-sm text-muted-foreground">Écrivez-nous ici, ou répondez au courriel de confirmation de votre commande.</p>
         <Button className="h-11 font-bold shrink-0" onClick={() => { setActive("new"); setPickOrder(null); setPickProject(null); }}><MessageSquarePlus className="h-4 w-4 mr-2" />Nouvelle discussion</Button>
       </div>
       {threads.length === 0 ? <p className="text-center text-muted-foreground py-12">Aucune discussion pour l'instant.</p> : (

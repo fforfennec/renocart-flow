@@ -58,7 +58,7 @@ export function AccountTeam({ selfMemberId }: { selfMemberId: string | null }) {
               <p className="font-semibold break-all">{m.email}</p>
               <p className="text-xs text-muted-foreground">{m.status === "invited" ? "Invitation envoyée" : "Actif"}</p>
             </div>
-            {m.id === selfMemberId ? <span className="text-sm font-semibold">{ROLE_LABEL[m.role]} (toi)</span> : <>
+            {m.id === selfMemberId ? <span className="text-sm font-semibold">{ROLE_LABEL[m.role]} (vous)</span> : <>
               <Select value={m.role} onValueChange={(v) => change(m, v as SubRole)}>
                 <SelectTrigger className="h-11 w-56" aria-label={`Rôle de ${m.email}`}><SelectValue /></SelectTrigger>
                 <SelectContent>{ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>)}</SelectContent>

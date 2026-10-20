@@ -14,7 +14,7 @@ export function CommanderSuggestions({ suggestions, lang, shortName, onAdd, onDe
   const fr = lang === "fr";
   return <div className="rounded-lg bg-card text-card-foreground p-4 md:p-5 motion-safe:animate-in motion-safe:fade-in duration-200">
     <h3 className="text-xl font-bold">{fr ? "Pour finir le travail" : "To finish the job"}</h3>
-    <p className="text-sm text-muted-foreground mt-1 mb-3">{fr ? "Évite un 2e voyage : voici ce qui va avec ton panier." : "Avoid a second trip: here’s what goes with your cart."}</p>
+    <p className="text-sm text-muted-foreground mt-1 mb-3">{fr ? "Évitez un 2e voyage : voici ce qui va avec votre panier." : "Avoid a second trip: here’s what goes with your cart."}</p>
     <div className="divide-y">
       {rows.map((row) => <div key={row.variantId} className="flex items-center gap-2 py-3">
         <label className="flex h-11 w-11 shrink-0 items-center justify-center cursor-pointer">
@@ -45,7 +45,7 @@ export function CommanderSuggestionReminder({ suggestions, lang, shortName, onAd
   const [busy, setBusy] = useState(false);
   if (!suggestions.length) return null;
   return <div className="border border-dashed rounded-lg p-3 mt-4">
-    <p className="font-semibold text-sm">{lang === "fr" ? "Souvent oublié avec ton panier" : "Often forgotten with your cart"}</p>
+    <p className="font-semibold text-sm">{lang === "fr" ? "Souvent oublié avec votre panier" : "Often forgotten with your cart"}</p>
     <div className="flex flex-wrap gap-2 mt-2">{suggestions.map((s) => <Button key={s.variantId} variant="outline" className="min-h-11 h-auto rounded-full text-xs whitespace-normal" disabled={busy}
       onClick={async () => { setBusy(true); try { await onAdd([s]); } finally { setBusy(false); } }}>+ {shortName(s.productTitle)} ({s.quantity})</Button>)}</div>
     <Button variant="ghost" className="h-11 text-xs text-muted-foreground" onClick={onHide}>{lang === "fr" ? "Masquer" : "Hide"}</Button>
