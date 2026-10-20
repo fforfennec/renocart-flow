@@ -41,6 +41,17 @@ describe("Commander inline Shopify variant selector", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "true");
   });
 
+  it("removes the whole item with the dedicated trash button at any quantity", async () => {
+    const onDelete = vi.fn();
+    const decrease = vi.fn();
+    render(<CommanderVariantSelector variantId="current" lang="fr" disabled={false} onConfirm={vi.fn()}
+      row={{ title: "Gypse", detail: "½ po / 4x8", image: null, quantity: 3, onDecrease: decrease, onIncrease: vi.fn(), onDelete }} />);
+    await screen.findByRole("button", { name: "Changer de format : Gypse" });
+    fireEvent.click(screen.getByRole("button", { name: "Retirer l'article" }));
+    expect(onDelete).toHaveBeenCalledOnce();
+    expect(decrease).not.toHaveBeenCalled();
+  });
+
   it("keeps a single-variant compact name inert without an arrow", async () => {
     vi.mocked(getVariantProduct).mockResolvedValue({ ...product, variants: [product.variants[0]] });
     const { container } = render(<CommanderVariantSelector variantId="current" lang="fr" disabled={false} onConfirm={vi.fn()}

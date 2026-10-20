@@ -431,6 +431,9 @@ export default function Commander() {
 
   const decreaseProduct = (item: Item) => {
     if (item.quantity > 1) { setQty(item.variantId, item.quantity - 1); return; }
+    deleteProduct(item);
+  };
+  const deleteProduct = (item: Item) => {
     setRemovedProduct({ item: { ...item }, index: items.findIndex((i) => i.variantId === item.variantId), key: uid() });
     setQty(item.variantId, 0);
   };
@@ -449,7 +452,8 @@ export default function Commander() {
   </div>;
   const variantSelector = (item: Item) => <CommanderVariantSelector variantId={item.variantId} lang={lang} disabled={busy || checkingOut}
     row={{ title: item.productTitle, detail: item.variantTitle !== "Default Title" ? item.variantTitle : "", image: item.image,
-      quantity: item.quantity, onDecrease: () => decreaseProduct(item), onIncrease: () => setQty(item.variantId, item.quantity + 1), onSet: (q) => setQty(item.variantId, q) }}
+      quantity: item.quantity, onDecrease: () => decreaseProduct(item), onIncrease: () => setQty(item.variantId, item.quantity + 1),
+      onSet: (q) => setQty(item.variantId, q), onDelete: () => deleteProduct(item) }}
     onConfirm={(product, variant, previous, mode) => changeVariant(item.variantId, product, variant, previous, mode)} />;
 
   const mobileSummary = isMobile && question === "summary" && project !== null && !confirmRestart && !busy && !suggestionsLoading && suggestions.status !== "pending";

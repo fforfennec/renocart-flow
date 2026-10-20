@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm, row }: {
   variantId: string; lang: "fr" | "en"; disabled: boolean;
-  row?: { title: string; detail: string; image: string | null; quantity: number; onDecrease: () => void; onIncrease: () => void; onSet?: (q: number) => void };
+  row?: { title: string; detail: string; image: string | null; quantity: number; onDecrease: () => void; onIncrease: () => void; onSet?: (q: number) => void; onDelete?: () => void };
   onConfirm: (product: VariantProduct, variant: CatalogVariant, previous: CatalogVariant, mode: "replace" | "add") => void;
 }) {
   const id = useId();
@@ -77,13 +77,22 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
           </span>
         </span>
       </Button>
-      <div className="col-start-2 justify-self-end flex items-center h-11 shrink-0 border rounded-md">
-        <Button variant="ghost" size="icon" className="h-11 w-11" onClick={row.onDecrease}
-          aria-label={row.quantity === 1 ? (fr ? "Supprimer" : "Remove") : (fr ? "Diminuer la quantité" : "Decrease quantity")}>
-          {row.quantity === 1 ? <Trash2 /> : <Minus />}
-        </Button>
-        <QtyInput value={row.quantity} onSet={row.onSet} label={fr ? "Quantité" : "Quantity"} />
-        <Button variant="ghost" size="icon" className="h-11 w-11" onClick={row.onIncrease} aria-label={fr ? "Augmenter la quantité" : "Increase quantity"}><Plus /></Button>
+      <div className="col-start-2 justify-self-end flex items-center gap-1 min-w-0">
+        <div className="flex items-center h-11 shrink-0 border rounded-md">
+          <Button variant="ghost" size="icon" className="h-11 w-11" onClick={row.onDecrease}
+            aria-label={row.quantity === 1 ? (fr ? "Supprimer" : "Remove") : (fr ? "Diminuer la quantité" : "Decrease quantity")}>
+            {row.quantity === 1 ? <Trash2 /> : <Minus />}
+          </Button>
+          <QtyInput value={row.quantity} onSet={row.onSet} label={fr ? "Quantité" : "Quantity"} />
+          <Button variant="ghost" size="icon" className="h-11 w-11" onClick={row.onIncrease} aria-label={fr ? "Augmenter la quantité" : "Increase quantity"}><Plus /></Button>
+        </div>
+        {row.onDelete && (
+          <Button variant="ghost" size="icon" disabled={disabled} onClick={row.onDelete}
+            aria-label={fr ? "Retirer l'article" : "Remove item"} title={fr ? "Retirer l'article" : "Remove item"}
+            className="h-11 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+            <Trash2 />
+          </Button>
+        )}
       </div>
     </div>
   );
