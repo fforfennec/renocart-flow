@@ -1,4 +1,5 @@
 # Commander purchase list
+- [ ] Keep preselected delivery day, time and truck editable; remove repeated desktop titles and Restart; verify choices.
 - [x] Remove the “Compléter la commande” screen; validate delivery info from the cart and check out directly; move the project scrolling band into the Livraison card under the shopping list.
 - [x] Show missing delivery details under the shopping list as light scrolling chip bands (day, moment, truck, address); verify desktop/mobile, project-address shortcut and checkout prefill.
 - [x] Restyle order completion with an Amazon-inspired layout and verify delivery validation and product review.

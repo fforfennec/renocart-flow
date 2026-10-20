@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Check, MapPin, Pencil } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
 import { fr as frLocale, enCA } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { ClientProject } from "@/lib/clientProjects";
@@ -53,7 +54,7 @@ const ACTIVE = "border-primary bg-primary/15 text-foreground";
 const FIELD = "h-9 min-w-0 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring";
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-/** Display-only shortcuts for the delivery details still missing. Never touches the voice pipeline. */
+/** Editable delivery shortcuts, independent of the voice pipeline. */
 export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, projects = [], project, onProject, onNewProject }: {
   values: DeliveryHintValues; lang: Lang; onPatch: (p: Partial<DeliveryHintValues>) => void; savedAddress?: SavedAddress | null;
   projects?: ClientProject[]; project?: ProjectChoice; onProject?: (p: ProjectChoice) => void; onNewProject?: () => void;
@@ -61,6 +62,8 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
   const t = T[lang];
   const [cal, setCal] = useState(false);
   const [manualAddr, setManualAddr] = useState(false);
+  const [editing, setEditing] = useState<"date" | "window" | "truck" | null>(null);
+  const patch = (p: Partial<DeliveryHintValues>) => { onPatch(p); setEditing(null); };
 
   const shift = (n: number) => { const day = new Date(); day.setDate(day.getDate() + n); return ymd(day); };
   const dayLabel = (s: string) => new Date(`${s}T12:00:00`).toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", { weekday: "short", day: "numeric", month: "short" });
@@ -90,33 +93,26 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
     </div>
   )) : null;
 
-  if (!missing) return (
-    <div className="rounded-xl border bg-muted/40 p-3">
-      {projectBand && <div className="mb-3">{projectBand}</div>}
-      <div className="flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-medium">
-        <Check className="h-4 w-4 shrink-0 text-primary" /><span className="min-w-0">{t.done}</span>
-      </div>
-    </div>
-  );
-
-  const tag = (key: string, children: ReactNode) => (
-    <span key={key} className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-      <Check className="h-3 w-3 shrink-0 text-primary" />{children}
-    </span>
+  const tag = (key: "date" | "window" | "truck", label: string, children: ReactNode) => (
+    <Button key={key} type="button" variant="ghost" size="sm" aria-label={`${t.change} : ${label}`} aria-expanded={editing === key}
+      onClick={() => setEditing((current) => current === key ? null : key)}
+      className="h-auto min-h-9 max-w-full whitespace-normal rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+      <Check className="h-3 w-3 shrink-0 text-primary" /><span className="min-w-0 break-words">{children}</span><Pencil className="h-3 w-3 shrink-0" />
+    </Button>
   );
 
   return (
     <div className="rounded-xl border bg-muted/40 p-3">
       <div className="mb-2.5 flex items-baseline justify-between gap-2">
-        <p className="text-xs font-bold uppercase tracking-wide">{t.title}</p>
-        <p className="text-[11px] text-muted-foreground">{t.toAdd(missing)}</p>
+        <p className="text-xs font-bold uppercase tracking-wide lg:hidden">{t.title}</p>
+        <p className="text-[11px] text-muted-foreground">{missing ? t.toAdd(missing) : t.done}</p>
       </div>
       <div className="space-y-3">
         {projectBand}
-        {!hasDate && band(t.date, <>
+        {(!hasDate || editing === "date") && band(t.date, <>
           <div className={BAND}>
-            <button type="button" onClick={() => onPatch({ delivery_date: shift(1) })} className={cn(CHIP, IDLE)}>{t.tomorrow}</button>
-            <button type="button" onClick={() => onPatch({ delivery_date: shift(2) })} className={cn(CHIP, IDLE)}>{t.after}</button>
+            <Button variant="outline" type="button" onClick={() => patch({ delivery_date: shift(1) })} className={cn(CHIP, values.delivery_date === shift(1) ? ACTIVE : IDLE)}>{t.tomorrow}</Button>
+            <Button variant="outline" type="button" onClick={() => patch({ delivery_date: shift(2) })} className={cn(CHIP, values.delivery_date === shift(2) ? ACTIVE : IDLE)}>{t.after}</Button>
             <button type="button" aria-expanded={cal} onClick={() => setCal((c) => !c)} className={cn(CHIP, cal ? ACTIVE : IDLE)}>{t.pick}</button>
           </div>
           {cal && (
@@ -124,22 +120,22 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
               <Calendar mode="single" locale={lang === "fr" ? frLocale : enCA}
                 selected={values.delivery_date ? new Date(`${values.delivery_date}T12:00:00`) : undefined}
                 disabled={{ before: new Date(Date.now() + 864e5) }}
-                onSelect={(day) => { if (day) { onPatch({ delivery_date: ymd(day) }); setCal(false); } }} />
+                onSelect={(day) => { if (day) { patch({ delivery_date: ymd(day) }); setCal(false); } }} />
             </div>
           )}
         </>)}
-        {!hasWindow && band(t.window, (
+        {(!hasWindow || editing === "window") && band(t.window, (
           <div className={BAND}>
             {Object.entries(t.windows).map(([key, label]) => (
-              <button key={key} type="button" onClick={() => onPatch({ time_window: key })} className={cn(CHIP, values.time_window === key ? ACTIVE : IDLE)}>{label}</button>
+              <Button variant="outline" key={key} type="button" onClick={() => patch({ time_window: key })} className={cn(CHIP, values.time_window === key ? ACTIVE : IDLE)}>{label}</Button>
             ))}
           </div>
         ))}
-        {!hasTruck && band(t.truck, (
+        {(!hasTruck || editing === "truck") && band(t.truck, (
           <div className={BAND}>
-            <button type="button" onClick={() => onPatch({ truck_type: "none" })} className={cn(CHIP, values.truck_type === "none" ? ACTIVE : IDLE)}>{t.truckNone}</button>
+            <Button variant="outline" type="button" onClick={() => patch({ truck_type: "none" })} className={cn(CHIP, values.truck_type === "none" ? ACTIVE : IDLE)}>{t.truckNone}</Button>
             {Object.entries(t.trucks).map(([key, label]) => (
-              <button key={key} type="button" onClick={() => onPatch({ truck_type: key })} className={cn(CHIP, values.truck_type === key ? ACTIVE : IDLE)}>{label}</button>
+              <Button variant="outline" key={key} type="button" onClick={() => patch({ truck_type: key })} className={cn(CHIP, values.truck_type === key ? ACTIVE : IDLE)}>{label}</Button>
             ))}
           </div>
         ))}
@@ -163,9 +159,9 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
       </div>
       {(hasDate || hasWindow || hasTruck || hasAddr) && (
         <div className="flex flex-wrap items-center gap-1.5 pt-2.5">
-          {hasDate && tag("date", dayLabel(values.delivery_date))}
-          {hasWindow && tag("window", t.windows[values.time_window] ?? values.time_window)}
-          {hasTruck && tag("truck", values.truck_type === "none" ? t.truckNone : t.trucks[values.truck_type] ?? values.truck_type)}
+          {hasDate && tag("date", t.date, dayLabel(values.delivery_date))}
+          {hasWindow && tag("window", t.window, t.windows[values.time_window] ?? values.time_window)}
+          {hasTruck && tag("truck", t.truck, values.truck_type === "none" ? t.truckNone : t.trucks[values.truck_type] ?? values.truck_type)}
           {hasAddr && (
             <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-muted py-1 pl-2.5 pr-1 text-xs text-muted-foreground">
               <Check className="h-3 w-3 shrink-0 text-primary" />

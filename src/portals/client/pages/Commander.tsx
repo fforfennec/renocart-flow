@@ -847,8 +847,6 @@ export default function Commander() {
           <div className="text-2xl font-black tracking-tight text-secondary">RENO<span className="text-primary">CART</span></div>
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Link to="/projets" className="min-h-11 flex items-center px-2 font-bold text-secondary hover:underline">{t.myProjects}</Link>
-            {started && !isMobile && <button onClick={() => setConfirmRestart(true)} className="text-xs text-muted-foreground hover:underline mr-2">{t.restart}</button>}
-            {isMobile && <Button variant="ghost" size="icon" aria-label={t.restart} title={t.restart} onClick={() => setConfirmRestart(true)} className="h-11 w-11 shrink-0"><RotateCcw className="h-5 w-5" /></Button>}
             <div className={cn("flex", isMobile && "rounded-xl bg-muted p-1")}>
               {(["fr", "en"] as Lang[]).map((l) => (
                 <button key={l} onClick={() => setLang(l)}
@@ -894,7 +892,7 @@ export default function Commander() {
               </div>
             ) : (
               <div className="space-y-3 max-w-2xl mx-auto">
-                <h1 className="hidden md:block text-xl font-black tracking-tight text-center mb-4 opacity-90">{t.title}</h1>
+                <h1 className="hidden md:block lg:hidden text-xl font-black tracking-tight text-center mb-4 opacity-90">{t.title}</h1>
                 {msgs.map(renderMsg)}
                 {confirmRestart ? (
                   <BotBubble>
@@ -955,7 +953,6 @@ export default function Commander() {
           <>
             <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0 min-w-0">
               <div className="p-5 border-b">
-                <h2 className="text-lg font-bold">{t.cart}</h2>
                 <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
                 <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>
               </div>
