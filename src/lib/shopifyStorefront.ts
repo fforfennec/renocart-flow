@@ -1,6 +1,6 @@
 // Public Shopify Storefront API (read products, create checkout). Token is publishable.
 export const SHOPIFY_STORE_PERMANENT_DOMAIN = "e5ec80-69.myshopify.com";
-const SHOPIFY_STOREFRONT_URL = `https://${SHOPIFY_STORE_PERMANENT_DOMAIN}/api/2025-07/graphql.json`;
+const SHOPIFY_STOREFRONT_URL = `https://${SHOPIFY_STORE_PERMANENT_DOMAIN}/api/2026-10/graphql.json`;
 const SHOPIFY_STOREFRONT_TOKEN = "220d62212479a424adc1837c2bc4f023";
 
 export async function storefrontApiRequest(query: string, variables: Record<string, unknown> = {}) {

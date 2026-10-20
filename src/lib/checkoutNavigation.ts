@@ -1,17 +1,21 @@
-/** Reserve a tab during the click: Shopify refuses embedded checkout pages. */
-export async function navigateToCheckout(createUrl: () => Promise<string>): Promise<void> {
-  const embedded = window.self !== window.top;
-  const tab = embedded ? window.open("about:blank", "_blank") : null;
-  if (embedded && !tab) {
-    throw new Error("Autorise l’ouverture d’un nouvel onglet pour accéder au paiement Shopify.");
+export class CheckoutNavigationError extends Error {
+  constructor(public readonly checkoutUrl: string) {
+    super("L’aperçu bloque la redirection automatique. Clique sur Accéder au paiement pour continuer dans cet onglet.");
+    this.name = "CheckoutNavigationError";
   }
-  if (tab) tab.opener = null;
+}
+
+/** Shopify must replace the top-level page, never render within the preview frame. */
+export async function navigateToCheckout(createUrl: () => Promise<string>): Promise<void> {
+  const url = await createUrl();
+  if (window.self === window.top) {
+    window.location.assign(url);
+    return;
+  }
   try {
-    const url = await createUrl();
-    if (tab) tab.location.replace(url);
-    else window.location.assign(url);
-  } catch (error) {
-    tab?.close();
-    throw error;
+    if (!window.top) throw new Error("No top-level window");
+    window.top.location.href = url;
+  } catch {
+    throw new CheckoutNavigationError(url);
   }
 }
