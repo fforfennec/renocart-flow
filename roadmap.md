@@ -1,5 +1,5 @@
 # Commander purchase list
-- [ ] Show RenoCart's same-day value promise and the 200-entrepreneurs line at the top of the mobile welcome screen, with the heading and arrow centred below it.
+- [x] Show RenoCart's same-day value promise and the 200-entrepreneurs line at the top of the mobile welcome screen, with the heading and arrow centred below it.
 - [x] Redesign mobile welcome around the microphone, switch to the shopping list after submission, and open conversation history and delivery from bottom controls; verified with a real catalog request, editable delivery, no overflow, unchanged desktop and 18 passing tests.
 - [x] Replace blank checkout with same-tab payment on standalone pages and allow missing details; sandboxed preview uses a clicked link to ready checkout in a new tab; verified real catalog payment and native address/contact fields.
 - [ ] Add missing date/time/truck fields on Shopify payment — needs Shopify checkout customization and compatible plan/app, unavailable through the current store connection.
