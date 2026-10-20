@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import NotFound from "./pages/NotFound";
 import Index from "./portals/client/pages/Index";
 import Commander from "./portals/client/pages/Commander";
+import CommanderMobilePreview from "./portals/client/pages/CommanderMobilePreview";
 import Projets from "./portals/client/pages/Projets";
 import ResetPassword from "./portals/client/pages/ResetPassword";
 
@@ -27,6 +28,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/commander" element={<Commander />} />
+            <Route path="/commander-mobile" element={<CommanderMobilePreview />} />
             <Route path="/projets" element={<Projets />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             {(["equipe", "admin", "supplier"] as const).map((a) => <Route key={a} path={`/${a}/*`} element={team(a)} />)}
