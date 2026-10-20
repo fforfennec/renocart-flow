@@ -66,6 +66,7 @@ const T = {
     trucks: { Boom: "Camion girafe (Boom)", "Boom 90ft": "Girafe 90 pi", "Van/Cube": "Camion cube", Hiab: "Grue (Hiab)", unknown: "Je ne sais pas" },
     summary: "Voici ta commande", materials: "Matériaux", date: "Date", when: "Moment", truck: "Camion", notes: "Notes", none: "Aucune",
     edit: "Modifier", checkout: "Placer ma commande", missingNote: "Articles non disponibles demandés", restart: "Recommencer", inCart: "C'est dans ton panier :", seeCart: "Voir le panier", close: "Fermer", changeFormat: "Changer de format", backChat: "Retour à la conversation", totalNote: "Tu verras le total et les taxes avant de payer.", delivery: "Livraison", add: "Ajouter",
+    stepChat: "Dis-nous ce dont tu as besoin", stepCart: "Liste d'achat", stepDelivery: "Informations de livraison",
   },
   en: {
     bar: "Construction materials delivered across Greater Montréal",
@@ -89,6 +90,7 @@ const T = {
     trucks: { Boom: "Boom truck", "Boom 90ft": "Boom 90 ft", "Van/Cube": "Cube van", Hiab: "Crane (Hiab)", unknown: "I don't know" },
     summary: "Here's your order", materials: "Materials", date: "Date", when: "Time", truck: "Truck", notes: "Notes", none: "None",
     edit: "Edit", checkout: "Place my order", missingNote: "Unavailable items requested", restart: "Start over", inCart: "It's in your cart:", seeCart: "See cart", close: "Close", changeFormat: "Change size", backChat: "Back to the conversation", totalNote: "You'll see the total and taxes before paying.", delivery: "Delivery", add: "Add",
+    stepChat: "Tell us what you need", stepCart: "Shopping list", stepDelivery: "Delivery information",
   },
 };
 
@@ -141,12 +143,13 @@ function MicButton({ onAudio, busy, big, mobile, accent, t, recording, start, st
     <div className={cn("flex items-center gap-3", big && "flex-col")}>
       <button type="button" onClick={click} disabled={busy} aria-label={label} title={label}
         className={cn("relative shrink-0 rounded-full flex items-center justify-center transition-all shadow-gold",
-          big ? "h-28 w-28" : accent ? "h-14 w-14 ring-4 ring-primary/30" : mobile ? "h-14 w-14 ring-4 ring-primary/25" : "h-12 w-12",
+          big ? "h-28 w-28" : accent ? "h-16 w-16 ring-4 ring-primary/40" : mobile ? "h-14 w-14 ring-4 ring-primary/25" : "h-12 w-12",
           recording ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground hover:scale-105",
           busy && "opacity-70")}>
         {recording && <span className="absolute inset-0 rounded-full bg-destructive/40 motion-safe:animate-ping" />}
+        {accent && !recording && !busy && <span aria-hidden="true" className="absolute -inset-1.5 rounded-full border-2 border-primary/60 motion-safe:animate-pulse" />}
         {busy ? <Loader2 className={cn("animate-spin", big ? "h-10 w-10" : "h-5 w-5")} />
-          : recording ? <Square className={big ? "h-10 w-10" : "h-5 w-5"} /> : <Mic className={big ? "h-12 w-12" : accent ? "h-6 w-6" : "h-5 w-5"} />}
+          : recording ? <Square className={big ? "h-10 w-10" : "h-5 w-5"} /> : <Mic className={big ? "h-12 w-12" : accent ? "h-7 w-7" : "h-5 w-5"} />}
       </button>
       {(big || (recording && !mobile)) && <span className={cn("font-medium", big ? "text-sm" : "text-xs")}>{label}</span>}
     </div>
@@ -824,7 +827,19 @@ export default function Commander() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 min-w-0 w-full max-w-7xl mx-auto lg:px-4 lg:py-6 grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4">
+      <main className="flex-1 min-h-0 min-w-0 w-full max-w-7xl mx-auto lg:px-4 lg:py-6 flex flex-col lg:gap-2">
+        {started && (
+          <div className="hidden lg:grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4 items-center shrink-0">
+            <p className="text-sm font-black uppercase tracking-wide text-secondary truncate">{t.stepChat}</p>
+            <div className="flex items-center gap-2 min-w-0">
+              <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+              <p className="text-sm font-black uppercase tracking-wide text-secondary truncate">{t.stepCart}</p>
+              <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+            </div>
+            <p className="text-sm font-black uppercase tracking-wide text-secondary truncate">{t.stepDelivery}</p>
+          </div>
+        )}
+        <div className="flex-1 min-h-0 grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4">
         <section className={cn("gradient-navy text-secondary-foreground lg:rounded-2xl flex flex-col min-h-0 min-w-0", !started && "lg:col-span-3")}>
           {/* tablet cart bar (desktop layout, unchanged) */}
           {started && !isMobile && (
@@ -913,9 +928,6 @@ export default function Commander() {
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">{cartItems}</div>
               {removalNotice}
-              <div className="shrink-0 px-5 py-3 border-t">
-                <Button size="lg" className="w-full min-h-12 h-auto whitespace-normal py-3 font-bold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
-              </div>
             </aside>
             <aside className="hidden lg:flex flex-col min-h-0 min-w-0">
               {deliveryHints ? (
@@ -925,9 +937,13 @@ export default function Commander() {
                   {lang === "fr" ? "La livraison se prépare ici dès que ta liste contient des articles." : "Delivery details appear here once your list has items."}
                 </div>
               )}
+              <div className="shrink-0 pt-3">
+                <Button size="lg" className="w-full min-h-14 h-auto whitespace-normal py-3 text-base font-bold shadow-gold" onClick={finish} disabled={!items.length || !mayOrder || busy || micOn || checkingOut}>{t.complete}<ChevronRight /></Button>
+              </div>
             </aside>
           </>
         )}
+        </div>
       </main>
 
       <NewProjectDialog open={newProject} onOpenChange={setNewProject} signedIn={!!user} onCreated={projectCreated} lang={lang} />
