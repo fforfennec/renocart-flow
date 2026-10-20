@@ -30,4 +30,9 @@ describe("Mobile order actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Accéder au paiement" }));
     expect(onPayment).toHaveBeenCalledTimes(1);
   });
+  it("keeps the header free of an empty-list count while the assistant is still working", () => {
+    setup({ started: true, busy: true, hasItems: false, cartLabel: "" });
+    expect(screen.queryByText(/produit|product/i)).toBeNull();
+    expect(screen.getByText("Votre liste d’achat")).toBeInTheDocument();
+  });
 });

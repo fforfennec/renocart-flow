@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatCartLabel } from "@/lib/commanderCartLabel";
 
 type Lang = "fr" | "en";
 type Item = {
