@@ -44,8 +44,8 @@ export function CommanderMobileExperience(p: Props) {
             </p>
             <p className="mx-auto mt-4 max-w-[20rem] text-base leading-relaxed text-secondary-foreground/70">
               {fr
-                ? "Notre solution est utilisée par plus de 200 entrepreneurs chaque mois pour optimiser leurs achats de chantier."
-                : "Our solution is used by more than 200 entrepreneurs every month to streamline their jobsite purchases."}
+                ? "Utilisé par plus de 200 entrepreneurs canadiens"
+                : "Used by more than 200 Canadian entrepreneurs"}
             </p>
           </div>
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
