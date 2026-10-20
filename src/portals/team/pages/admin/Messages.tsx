@@ -236,7 +236,7 @@ export default function Messages({ compact = false, initialConversation }: { com
         {!active ? (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
             <MessagesSquare className="h-10 w-10" />
-            <p>Choisis une conversation</p>
+            <p>Choisissez une conversation</p>
           </div>
         ) : (
           <>

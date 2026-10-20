@@ -171,7 +171,7 @@ export default function ClientMessages({ compact = false, initialConversation }:
 
       <div className="flex-1 flex flex-col min-w-0">
         {!active ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2"><MessagesSquare className="h-10 w-10" /><p>Choisis une conversation</p></div>
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2"><MessagesSquare className="h-10 w-10" /><p>Choisissez une conversation</p></div>
         ) : (<>
           <div className="min-h-16 border-b px-4 py-2 flex items-center gap-3 flex-wrap">
             <div className="h-10 w-10 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-xs font-semibold">{initials(activeName)}</div>
