@@ -1,6 +1,6 @@
 export class CheckoutNavigationError extends Error {
   constructor(public readonly checkoutUrl: string) {
-    super("L’aperçu bloque la redirection automatique. Clique sur Accéder au paiement pour continuer dans cet onglet.");
+    super("L’aperçu bloque la redirection automatique. Clique sur Accéder au paiement pour ouvrir le paiement dans un nouvel onglet.");
     this.name = "CheckoutNavigationError";
   }
 }

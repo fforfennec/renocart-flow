@@ -770,8 +770,8 @@ export default function Commander() {
 
   const missingPanel = checkoutLink ? (
     <div className="rounded-xl border bg-muted/40 p-3 space-y-2">
-      <p className="text-sm text-muted-foreground">{lang === "fr" ? "L’aperçu bloque la redirection automatique." : "The preview blocks automatic navigation."}</p>
-      <Button asChild className="w-full"><a href={checkoutLink} target="_top">{lang === "fr" ? "Accéder au paiement" : "Go to payment"}</a></Button>
+      <p className="text-sm text-muted-foreground">{lang === "fr" ? "Dans l’aperçu, le paiement s’ouvre dans un nouvel onglet. Sur le site, il remplace cette page." : "In the preview, payment opens in a new tab. On the website, it replaces this page."}</p>
+      <Button asChild className="w-full"><a href={checkoutLink} target="_blank" rel="noopener noreferrer">{lang === "fr" ? "Accéder au paiement" : "Go to payment"}</a></Button>
     </div>
   ) : null;
 
