@@ -25,7 +25,7 @@ describe("checkout navigation", () => {
     expect(open).not.toHaveBeenCalled();
   });
 
-  it("preserves the API checkout URL for a user-clicked link when top navigation is blocked", async () => {
+  it("preserves the ready API checkout URL for a preview-only external link when top navigation is blocked", async () => {
     const location = {};
     Object.defineProperty(location, "href", { set: () => { throw new Error("Sandbox blocked"); } });
     const assign = vi.fn();
