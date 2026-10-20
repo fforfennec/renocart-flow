@@ -1,4 +1,4 @@
-import { Commander } from "./Commander";
+import Commander from "./Commander";
 
 /**
  * "Commande Mobile" — shows the real /commander page inside a phone-sized frame.
