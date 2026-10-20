@@ -69,7 +69,7 @@ export function CommanderMobileExperience(p: Props) {
         </>
       )}
       <Drawer open={historyOpen} onOpenChange={setHistoryOpen}>
-        <DrawerContent className="flex h-[75dvh] flex-col">
+        <DrawerContent aria-describedby={undefined} className="flex h-[75dvh] flex-col">
           <div className="flex shrink-0 items-center justify-between border-b px-4 pb-3 pt-2">
             <DrawerTitle className="text-lg font-bold">{fr ? "Historique de clavardage" : "Conversation history"}</DrawerTitle>
             <Button variant="ghost" size="icon" aria-label={close} onClick={() => setHistoryOpen(false)}><X /></Button>
@@ -81,7 +81,7 @@ export function CommanderMobileExperience(p: Props) {
         </DrawerContent>
       </Drawer>
       <Drawer open={deliveryOpen} onOpenChange={setDeliveryOpen}>
-        <DrawerContent className="flex h-[85dvh] max-h-[90dvh] flex-col">
+        <DrawerContent aria-describedby={undefined} className="flex h-[85dvh] max-h-[90dvh] flex-col">
           <div className="flex shrink-0 items-center justify-between border-b px-4 pb-3 pt-2">
             <DrawerTitle className="text-xl font-black uppercase">{fr ? "Livraison" : "Delivery"}</DrawerTitle>
             <Button variant="ghost" size="icon" aria-label={close} onClick={() => setDeliveryOpen(false)}><X /></Button>
