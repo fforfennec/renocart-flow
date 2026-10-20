@@ -4,6 +4,7 @@ import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, C
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { CommanderMobileScroll } from "@/portals/client/components/CommanderMobileScroll";
+import { CommanderMobileExperience } from "@/portals/client/components/CommanderMobileExperience";
 import { CommanderDeliveryHints, type DeliveryFormValues } from "@/portals/client/components/CommanderDeliveryHints";
 import { CommanderVariantSelector } from "@/portals/client/components/CommanderVariantSelector";
 import { CommanderSuggestions, CommanderSuggestionReminder } from "@/portals/client/components/CommanderSuggestions";
@@ -126,8 +127,8 @@ async function callVoice(fd: FormData) {
   return data;
 }
 
-function MicButton({ onAudio, busy, big, mobile, accent, t, recording, start, stop }: {
-  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; mobile?: boolean; accent?: boolean; t: typeof T.fr;
+function MicButton({ onAudio, busy, big, mobile, accent, welcome, t, recording, start, stop }: {
+  onAudio: (b: Blob) => void; busy: boolean; big?: boolean; mobile?: boolean; accent?: boolean; welcome?: boolean; t: typeof T.fr;
   recording: boolean; start: () => Promise<void>; stop: () => Promise<Blob>;
 }) {
   const click = async () => {
@@ -142,17 +143,17 @@ function MicButton({ onAudio, busy, big, mobile, accent, t, recording, start, st
   const label = busy ? t.working : recording ? t.listening : t.tap;
   return (
     <div className={cn("flex items-center gap-3", big && "flex-col")}>
-      <button type="button" onClick={click} disabled={busy} aria-label={label} title={label}
+      <Button type="button" onClick={click} disabled={busy} aria-label={label} title={label}
         className={cn("relative shrink-0 rounded-full flex items-center justify-center transition-all shadow-gold",
-          big ? "h-28 w-28" : accent ? "h-16 w-16 ring-4 ring-primary/40" : mobile ? "h-14 w-14 ring-4 ring-primary/25" : "h-12 w-12",
+          welcome ? "h-36 w-36 ring-8 ring-primary/20" : big ? "h-28 w-28" : accent ? "h-16 w-16 ring-4 ring-primary/40" : mobile ? "h-14 w-14 ring-4 ring-primary/25" : "h-12 w-12",
           recording ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground hover:scale-105",
           busy && "opacity-70")}>
         {recording && <span className="absolute inset-0 rounded-full bg-destructive/40 motion-safe:animate-ping" />}
         {accent && !recording && !busy && <span aria-hidden="true" className="absolute -inset-1.5 rounded-full border-2 border-primary/60 motion-safe:animate-pulse" />}
         {busy ? <Loader2 className={cn("animate-spin", big ? "h-10 w-10" : "h-5 w-5")} />
           : recording ? <Square className={big ? "h-10 w-10" : "h-5 w-5"} /> : <Mic className={big ? "h-12 w-12" : accent ? "h-7 w-7" : "h-5 w-5"} />}
-      </button>
-      {(big || (recording && !mobile)) && <span className={cn("font-medium", big ? "text-sm" : "text-xs")}>{label}</span>}
+      </Button>
+      {(!welcome && (big || (recording && !mobile)) || welcome && (recording || busy)) && <span className={cn("font-medium", big ? "text-sm" : "text-xs")}>{label}</span>}
     </div>
   );
 }
@@ -194,6 +195,7 @@ export default function Commander() {
   const [busy, setBusy] = useState(false);
   const [typed, setTyped] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
+  const [mobileSubmitted, setMobileSubmitted] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [deliveryDraft, setDeliveryDraft] = useState<DeliveryFormValues | null>(null);
   const [checkoutLink, setCheckoutLink] = useState<string | null>(null);
@@ -815,6 +817,9 @@ export default function Commander() {
     </>
   );
 
+  const mobileAudio = (audio: Blob) => { setMobileSubmitted(true); micHandler(audio); };
+  const mobileSend = () => { setMobileSubmitted(true); send({ text: typed.trim() }); };
+
   return (
     <div className="h-[100dvh] flex flex-col bg-background text-foreground">
       <div className="hidden sm:block bg-secondary text-secondary-foreground text-xs text-center py-2 px-4">{t.bar}</div>
@@ -833,6 +838,12 @@ export default function Commander() {
         </div>
       </header>
 
+      {isMobile ? <CommanderMobileExperience lang={lang} started={started || items.length > 0 || mobileSubmitted} busy={busy} recording={micOn} checkingOut={checkingOut}
+        mayOrder={mayOrder} hasItems={items.length > 0} cartLabel={cartLabel} typed={typed} onTyped={setTyped} onSend={mobileSend} onPayment={finish}
+        welcomeMic={<MicButton big welcome busy={busy} onAudio={mobileAudio} t={t} recording={micOn} start={startRec} stop={micStop} />}
+        composerMic={<MicButton mobile busy={busy} onAudio={mobileAudio} t={t} recording={micOn} start={startRec} stop={micStop} />}
+        items={cartItems} history={<>{msgs.map(renderMsg)}{busy ? <BotBubble><Loader2 className="h-5 w-5 animate-spin" /></BotBubble> : prompt()}<div ref={endRef} /></>}
+        delivery={deliveryHints} paymentFallback={missingPanel} removalNotice={removalNotice} /> : (
       <main className="flex-1 min-h-0 min-w-0 w-full max-w-7xl mx-auto lg:px-4 lg:py-6 flex flex-col lg:gap-2">
         {started && (
           <div className="hidden lg:grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4 items-center shrink-0">
@@ -952,9 +963,10 @@ export default function Commander() {
         )}
         </div>
       </main>
+      )}
 
       <NewProjectDialog open={newProject} onOpenChange={setNewProject} signedIn={!!user} onCreated={projectCreated} lang={lang} />
-      {isMobile && (
+      {false && isMobile && (
         <Drawer open={cartOpen} onOpenChange={setCartOpen}>
           <DrawerContent className="h-[75dvh] flex flex-col">
             <div className="px-5 pt-2 pb-3 border-b flex items-start justify-between">
