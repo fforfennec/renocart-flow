@@ -895,12 +895,7 @@ export default function Commander() {
           ) : (
             <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
               onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
-              <button type="button" aria-label={t.restart} title={t.restart} onClick={() => setConfirmRestart(true)}
-                className="h-12 w-12 shrink-0 rounded-full border border-secondary-foreground/30 flex items-center justify-center text-secondary-foreground hover:bg-secondary-foreground/10 disabled:opacity-50"
-                disabled={busy}>
-                <RotateCcw className="h-5 w-5" />
-              </button>
-              {started && <MicButton busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />}
+              {started && <MicButton accent busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />}
               <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
                 className="flex-1 min-w-0 h-12 rounded-full bg-card text-card-foreground px-4 text-base outline-none focus:ring-2 focus:ring-primary" />
               <Button type="submit" size="icon" className="h-12 w-12 rounded-full shrink-0" disabled={busy || !typed.trim()}><Send className="h-4 w-4" /></Button>
