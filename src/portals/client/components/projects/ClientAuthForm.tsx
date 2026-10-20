@@ -14,7 +14,7 @@ const L = {
   fr: {
     signup: "Créer un profil",
     login: "J'ai déjà un compte",
-    hint: "Utilise le même courriel que pour tes commandes : tes factures s'y retrouvent automatiquement.",
+    hint: "Utilisez le même courriel que pour vos commandes : vos factures s'y retrouvent automatiquement.",
     google: "Continuer avec Google",
     or: "ou avec courriel",
     name: "Nom",
@@ -25,8 +25,8 @@ const L = {
     sendLink: "Envoyer le lien",
     forgot: "Mot de passe oublié ?",
     back: "Retour",
-    sentSignup: "Ton profil est presque prêt : vérifie tes courriels et clique sur le lien pour l'activer.",
-    sentForgot: "Si ce courriel existe, tu vas recevoir un lien pour choisir un nouveau mot de passe.",
+    sentSignup: "Votre profil est presque prêt : vérifiez vos courriels et cliquez sur le lien pour l'activer.",
+    sentForgot: "Si ce courriel existe, vous allez recevoir un lien pour choisir un nouveau mot de passe.",
   },
   en: {
     signup: "Create a profile",
@@ -51,11 +51,11 @@ const L = {
 function friendly(msg: string, lang: "fr" | "en") {
   const m = msg.toLowerCase();
   const map: [RegExp, { fr: string; en: string }][] = [
-    [/user is banned/, { fr: "Ce compte est bloqué. Écris à admin@renocart.ca pour le réactiver.", en: "This account is blocked. Write to admin@renocart.ca to reactivate it." }],
+    [/user is banned/, { fr: "Ce compte est bloqué. Écrivez à admin@renocart.ca pour le réactiver.", en: "This account is blocked. Write to admin@renocart.ca to reactivate it." }],
     [/invalid login credentials/, { fr: "Courriel ou mot de passe incorrect.", en: "Incorrect email or password." }],
-    [/email not confirmed/, { fr: "Confirme ton courriel avant de te connecter : vérifie ta boîte de réception.", en: "Confirm your email before signing in: check your inbox." }],
-    [/rate limit|too many requests|overloaded/, { fr: "Trop de tentatives. Réessaie dans une minute.", en: "Too many attempts. Try again in a minute." }],
-    [/already registered|already exists/, { fr: "Ce courriel a déjà un profil : connecte-toi.", en: "This email already has a profile: sign in." }],
+    [/email not confirmed/, { fr: "Confirmez votre courriel avant de vous connecter : vérifiez votre boîte de réception.", en: "Confirm your email before signing in: check your inbox." }],
+    [/rate limit|too many requests|overloaded/, { fr: "Trop de tentatives. Réessayez dans une minute.", en: "Too many attempts. Try again in a minute." }],
+    [/already registered|already exists/, { fr: "Ce courriel a déjà un profil : connectez-vous.", en: "This email already has a profile: sign in." }],
   ];
   const hit = map.find(([re]) => re.test(m));
   return hit ? hit[1][lang] : msg;

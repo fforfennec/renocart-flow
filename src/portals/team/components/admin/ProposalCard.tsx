@@ -60,7 +60,7 @@ export default function ProposalCard({ proposalId }: { proposalId: string }) {
         {p.note && <p className="italic text-muted-foreground whitespace-pre-wrap">« {p.note} »</p>}
       </div>
       {changed.length > 0 && p.status === 'pending' && (
-        <p className="text-xs text-muted-foreground">Si tu acceptes, la commande sera divisée : la partie retirée part au fournisseur suivant.</p>
+        <p className="text-xs text-muted-foreground">Si vous acceptez, la commande sera divisée : la partie retirée part au fournisseur suivant.</p>
       )}
       {p.status === 'pending' ? (
         <div className="flex gap-2 pt-1">

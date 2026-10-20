@@ -47,27 +47,27 @@ type Msg =
 const T = {
   fr: {
     bar: "Livraison de matériaux de construction partout dans le Grand Montréal",
-    title: "Dis-nous ce dont tu as besoin",
-    sub: "Appuie sur le micro et nomme tes matériaux et les quantités. On monte ton panier pour toi.",
+    title: "Dis-nous ce dont vous avez besoin",
+    sub: "Appuyez sur le micro et nommez vos matériaux et les quantités. On monte votre panier pour vous.",
     example: "Ex. : « 20 feuilles de gypse 1/2 pouce, 10 deux par quatre de 8 pieds et 3 chaudières de composé »",
-    tap: "Appuie pour parler", listening: "Je t'écoute… touche pour arrêter", working: "Je regarde ça…",
-    type: "Écris ici…", cart: "Ta liste d'achat", empty: "Ton panier est vide. Parle ou écris ta liste pour commencer.",
+    tap: "Appuyez pour parler", listening: "Je vous écoute… touchez pour arrêter", working: "Je regarde ça…",
+    type: "Écrivez ici…", cart: "Votre liste d'achat", empty: "Votre panier est vide. Parlez ou écrivez votre liste pour commencer.",
     missing: "Pas disponible chez nous", missingSub: "On n'a pas trouvé ces articles dans notre catalogue.",
     priceNote: "Les prix et les taxes s'affichent au paiement.", complete: "Compléter la commande",
     myProjects: "Mes projets",
     products: (n: number) => `${n} produit${n > 1 ? "s" : ""}`, units: (n: number) => `${n} unité${n > 1 ? "s" : ""}`,
-    added: "J'ai ajouté", removed: "J'ai enlevé", and: "et", notFound: "Je n'ai pas trouvé", nothing: "Je n'ai pas compris un des articles. Tu peux le répéter ?", repeat: "Répéter", ignore: "Ignorer", voice: "Message vocal",
-    confirmRestart: "Effacer ton panier et la conversation ?", yesRestart: "Oui, recommencer", cancel: "Annuler",
-    qList: "Qu'est-ce qu'il te faut ?", qMore: "Autre chose à ajouter ?", done: "C'est tout", addMore: "Ajouter autre chose", addMoreHint: "Vas-y, dis-moi ce que tu veux ajouter.",
-    needOne: "Ton panier est vide. Ajoute au moins un produit pour continuer.",
+    added: "J'ai ajouté", removed: "J'ai enlevé", and: "et", notFound: "Je n'ai pas trouvé", nothing: "Je n'ai pas compris un des articles. Vous pouvez le répéter ?", repeat: "Répéter", ignore: "Ignorer", voice: "Message vocal",
+    confirmRestart: "Effacer votre panier et la conversation ?", yesRestart: "Oui, recommencer", cancel: "Annuler",
+    qList: "Qu'est-ce qu'il vous faut ?", qMore: "Autre chose à ajouter ?", done: "C'est tout", addMore: "Ajouter autre chose", addMoreHint: "Allez-y, dites-nous ce que vous voulez ajouter.",
+    needOne: "Votre panier est vide. Ajoutez au moins un produit pour continuer.",
     qDate: "Pour quand ?", tomorrow: "Demain", after: "Après-demain", pick: "Choisir une date",
     qWindow: "À quel moment de la journée ?", qTruck: "Quel camion ?",
     qNote: "Autre chose à savoir pour la livraison ? (étage, ruelle…)", noNote: "Non, c'est tout",
     windows: { Early: "Tôt (avant 10 h)", AM: "Avant-midi", PM: "Après-midi", Day: "N'importe quand" },
     trucks: { Boom: "Camion girafe (Boom)", "Boom 90ft": "Girafe 90 pi", "Van/Cube": "Camion cube", Hiab: "Grue (Hiab)", unknown: "Je ne sais pas" },
-    summary: "Voici ta commande", materials: "Matériaux", date: "Date", when: "Moment", truck: "Camion", notes: "Notes", none: "Aucune",
-    edit: "Modifier", checkout: "Placer ma commande", missingNote: "Articles non disponibles demandés", restart: "Recommencer", inCart: "C'est dans ton panier :", seeCart: "Voir le panier", close: "Fermer", changeFormat: "Changer de format", backChat: "Retour à la conversation", totalNote: "Tu verras le total et les taxes avant de payer.", delivery: "Livraison", add: "Ajouter",
-    stepChat: "Dis-nous ce dont tu as besoin", stepCart: "Liste d'achat", stepDelivery: "Informations de livraison",
+    summary: "Voici votre commande", materials: "Matériaux", date: "Date", when: "Moment", truck: "Camion", notes: "Notes", none: "Aucune",
+    edit: "Modifier", checkout: "Placer ma commande", missingNote: "Articles non disponibles demandés", restart: "Recommencer", inCart: "C'est dans votre panier :", seeCart: "Voir le panier", close: "Fermer", changeFormat: "Changer de format", backChat: "Retour à la conversation", totalNote: "Vous verrez le total et les taxes avant de payer.", delivery: "Livraison", add: "Ajouter",
+    stepChat: "Dis-nous ce dont vous avez besoin", stepCart: "Liste d'achat", stepDelivery: "Informations de livraison",
   },
   en: {
     bar: "Construction materials delivered across Greater Montréal",
@@ -237,7 +237,7 @@ export default function Commander() {
   const micHandler = (b: Blob) => send({ audio: b, dur: Math.max(1, Math.round((Date.now() - recStart.current) / 1000)) });
   const openMic = () => { if (!busy && !micOn) startRec().catch(() => toast.error("Micro non autorisé / Microphone blocked")); };
 
-  useEffect(() => { document.title = lang === "fr" ? "RenoCart — Dis-nous ce dont tu as besoin" : "RenoCart — Tell us what you need"; }, [lang]);
+  useEffect(() => { document.title = lang === "fr" ? "RenoCart — Dis-nous ce dont vous avez besoin" : "RenoCart — Tell us what you need"; }, [lang]);
   useEffect(() => {
     localStorage.setItem(STORE, JSON.stringify({ items, missing, msgs, d, listDone, answered, lang, suggestions, project }));
   }, [items, missing, msgs, d, listDone, answered, lang, suggestions, project]);
@@ -757,7 +757,7 @@ export default function Commander() {
             <Button size="lg" className="w-full mt-4 h-14 text-base font-bold" onClick={finish} disabled={checkingOut || !items.length || !mayOrder}>
               {checkingOut ? <Loader2 className="h-5 w-5 animate-spin" /> : t.complete}
             </Button>
-            {!mayOrder && <p className="mt-2 text-center text-sm">{lang === "fr" ? "Ton accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>}
+            {!mayOrder && <p className="mt-2 text-center text-sm">{lang === "fr" ? "Votre accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>}
           </div>
         );
       }
@@ -914,7 +914,7 @@ export default function Commander() {
                 <div className="flex-1 min-h-0 overflow-y-auto">{deliveryHints}</div>
               ) : (
                 <div className="flex-1 rounded-2xl border border-dashed bg-muted/30 p-5 flex items-center justify-center text-center text-sm text-muted-foreground">
-                  {lang === "fr" ? "La livraison se prépare ici dès que ta liste contient des articles." : "Delivery details appear here once your list has items."}
+                  {lang === "fr" ? "La livraison se prépare ici dès que votre liste contient des articles." : "Delivery details appear here once your list has items."}
                 </div>
               )}
               <div className="shrink-0 pt-3 space-y-3">

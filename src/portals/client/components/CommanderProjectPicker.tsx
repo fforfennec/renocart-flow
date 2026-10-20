@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export type ProjectChoice = ClientProject | "none" | null;
 
 const L = {
-  fr: { none: "Aucun projet", add: "Nouveau projet", project: "Projet", newTitle: "Nouveau projet", login: "Crée un profil pour enregistrer ce projet", select: "Choisir un projet", search: "Rechercher un projet…" },
+  fr: { none: "Aucun projet", add: "Nouveau projet", project: "Projet", newTitle: "Nouveau projet", login: "Créez un profil pour enregistrer ce projet", select: "Choisir un projet", search: "Rechercher un projet…" },
   en: { none: "No project", add: "New project", project: "Project", newTitle: "New project", login: "Create a profile to save this project", select: "Choose a project", search: "Search a project…" },
 };
 

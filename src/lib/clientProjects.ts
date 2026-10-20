@@ -75,7 +75,7 @@ const clean = (p: ProjectInput) => Object.fromEntries(Object.entries(p).map(([k,
 
 export async function saveProject(input: ProjectInput, id?: string): Promise<ClientProject> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Connecte-toi d'abord.");
+  if (!user) throw new Error("Connectez-vous d'abord.");
   const v = clean(input);
   if (!v.name || !v.code) throw new Error("Le nom et le code du projet sont obligatoires.");
   const q = id

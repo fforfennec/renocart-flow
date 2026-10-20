@@ -86,14 +86,14 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
     <div className="min-h-screen bg-background">{header}
       <main className="max-w-md mx-auto px-4 py-12">
         <p className="inline-block rounded-md bg-primary/20 px-2 py-0.5 text-xs font-bold uppercase tracking-widest text-secondary mb-3">Gestion de projet</p>
-        <h1 className="text-3xl font-black tracking-tight mb-2">Crée ton profil pour voir tes projets</h1>
+        <h1 className="text-3xl font-black tracking-tight mb-2">Créez votre profil pour voir vos projets</h1>
         <ul className="space-y-2 mb-6">
-          {["Toutes tes commandes classées par projet", "Tes factures en PDF, une à une ou en fichier ZIP", "Le suivi de tes livraisons : à venir, en cours, livrées"].map((p) => (
+          {["Toutes vos commandes classées par projet", "Vos factures en PDF, une à une ou en fichier ZIP", "Le suivi de vos livraisons : à venir, en cours, livrées"].map((p) => (
             <li key={p} className="flex gap-2 text-sm font-medium"><Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />{p}</li>
           ))}
         </ul>
         <div className="bg-card rounded-2xl p-6 shadow-soft"><ClientAuthForm initialMode="signup" /></div>
-        <p className="text-xs text-muted-foreground mt-4">Tu as déjà commandé sans profil ? Choisis « J'ai déjà un compte » et utilise le même courriel : tes factures s'y rattachent automatiquement.</p>
+        <p className="text-xs text-muted-foreground mt-4">Vous avez déjà commandé sans profil ? Choisissez « J'ai déjà un compte » et utilisez le même courriel : vos factures s'y rattachent automatiquement.</p>
       </main>
     </div>
   );
@@ -139,10 +139,10 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
                 })}
                 <Button variant="outline" onClick={() => setOpen(NONE)} className="block h-auto whitespace-normal text-left bg-muted rounded-lg p-5 border border-dashed">
                   <h2 className="font-black text-lg flex items-center gap-2"><FolderOpen className="h-5 w-5" />Sans projet</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Commandes non assignées. Tu peux les déplacer dans un projet.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Commandes non assignées. Vous pouvez les déplacer dans un projet.</p>
                   <p className="mt-4 text-sm"><b className="text-lg">{(byProject.get(NONE) ?? []).length}</b> facture(s)</p>
                 </Button>
-                {!projects.length && <p className="sm:col-span-2 text-muted-foreground self-center">{manage ? "Aucun projet pour l'instant. Crée ton premier projet pour regrouper tes commandes." : "Aucun projet ne t'a encore été assigné."}</p>}
+                {!projects.length && <p className="sm:col-span-2 text-muted-foreground self-center">{manage ? "Aucun projet pour l'instant. Créez votre premier projet pour regrouper vos commandes." : "Aucun projet ne vous a encore été assigné."}</p>}
               </div>
             )}
             {tab === "projets" && !source && manage && ctx && <AccountTeam selfMemberId={ctx.memberId} />}

@@ -22,7 +22,7 @@ export function CommanderMobileExperience(p: Props) {
     <form className="flex w-full items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (p.typed.trim() && !p.busy && !p.recording) p.onSend(); }}>
       {!welcome && p.composerMic}
       <input aria-label={fr ? "Écrire un message" : "Write a message"} value={p.typed} onChange={(e) => p.onTyped(e.target.value)}
-        placeholder={fr ? "Écris ici…" : "Type here…"} disabled={p.busy || p.recording}
+        placeholder={fr ? "Écrivez ici…" : "Type here…"} disabled={p.busy || p.recording}
         className="h-12 min-w-0 flex-1 rounded-full border border-input bg-card px-4 text-base text-card-foreground outline-none focus:ring-2 focus:ring-primary" />
       <Button type="submit" size="icon" variant={welcome ? "secondary" : "default"} aria-label={fr ? "Envoyer" : "Send"}
         disabled={p.busy || p.recording || !p.typed.trim()} className="h-12 w-12 shrink-0 rounded-full">
@@ -49,13 +49,13 @@ export function CommanderMobileExperience(p: Props) {
             </p>
           </div>
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
-            <h1 className="text-center text-3xl font-black leading-tight">{fr ? "Dis-nous ce dont tu as besoin" : "Tell us what you need"}</h1>
+            <h1 className="text-center text-3xl font-black leading-tight">{fr ? "Dis-nous ce dont vous avez besoin" : "Tell us what you need"}</h1>
             <ArrowDown aria-hidden="true" className="mt-4 h-14 w-9 shrink-0 text-primary" strokeWidth={1.5} />
             <div className="mt-2 flex shrink-0 justify-center">{p.welcomeMic}</div>
           </div>
 
           <div className="mx-auto w-full max-w-sm shrink-0 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-            <p className="mb-2 text-center text-xs text-secondary-foreground/70">{fr ? "Ou écris-nous" : "Or write to us"}</p>
+            <p className="mb-2 text-center text-xs text-secondary-foreground/70">{fr ? "Ou écrivez-nous" : "Or write to us"}</p>
             {composer(true)}
           </div>
         </section>
@@ -63,7 +63,7 @@ export function CommanderMobileExperience(p: Props) {
       ) : (
         <>
           <div className="shrink-0 border-b bg-card px-4 py-4">
-            <h1 className="text-2xl font-black">{fr ? "Ta liste d’achat" : "Your shopping list"}</h1>
+            <h1 className="text-2xl font-black">{fr ? "Votre liste d’achat" : "Your shopping list"}</h1>
             <p className="mt-1 text-xs text-muted-foreground">{fr ? "Les prix et les taxes s’affichent au paiement." : "Prices and taxes are shown at checkout."}</p>
             <p className="mt-2 text-xs text-muted-foreground">{p.cartLabel}</p>
           </div>
@@ -81,7 +81,7 @@ export function CommanderMobileExperience(p: Props) {
             <Button className="h-14 w-full whitespace-normal text-base font-bold" onClick={() => setDeliveryOpen(true)} disabled={!p.hasItems || !p.mayOrder || p.busy || p.recording}>
               {fr ? "Compléter ma commande" : "Complete my order"}<ChevronRight className="h-5 w-5" />
             </Button>
-            {!p.mayOrder && <p className="text-center text-xs text-muted-foreground">{fr ? "Ton accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>}
+            {!p.mayOrder && <p className="text-center text-xs text-muted-foreground">{fr ? "Votre accès Employé ne permet pas de commander." : "Your Employee access can't place orders."}</p>}
           </div>
         </>
       )}

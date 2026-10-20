@@ -83,7 +83,7 @@ const Auth = () => {
     if (error) throw error;
     await supabase.functions.invoke('staff-access', { body: { action: 'notify', email } }).catch(() => {});
     await supabase.auth.signOut();
-    setPendingMsg("Demande envoyée. Confirme ton courriel, puis RenoCart approuvera ton accès. Tu pourras ensuite te connecter.");
+    setPendingMsg("Demande envoyée. Confirmez votre courriel, puis RenoCart approuvera votre accès. Vous pourrez ensuite vous connecter.");
   };
 
   const handleForgot = async () => {

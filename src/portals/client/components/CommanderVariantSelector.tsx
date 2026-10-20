@@ -19,7 +19,7 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
   const [selected, setSelected] = useState<Record<string, string>>({});
   const fr = lang === "fr";
   const label = fr ? "Changer de format" : "Change size";
-  const errorText = fr ? "Impossible de charger les formats. Réessaie." : "Unable to load options. Try again.";
+  const errorText = fr ? "Impossible de charger les formats. Réessayez." : "Unable to load options. Try again.";
 
   useEffect(() => {
     let active = true;
@@ -50,7 +50,7 @@ export function CommanderVariantSelector({ variantId, lang, disabled, onConfirm,
       const previous = latest?.variants.find((v) => v.id === variantId);
       if (latest) setProduct(latest);
       if (!latest || !variant?.availableForSale || !previous) {
-        toast.error(fr ? "Ce format n'est plus disponible. Choisis une autre option." : "This option is no longer available. Choose another one.");
+        toast.error(fr ? "Ce format n'est plus disponible. Choisissez une autre option." : "This option is no longer available. Choose another one.");
         return;
       }
       if (variant.id !== variantId) onConfirm(latest, variant, previous, mode);
