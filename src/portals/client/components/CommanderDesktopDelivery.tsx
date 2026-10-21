@@ -9,8 +9,9 @@ import type { ProjectChoice } from "./CommanderProjectPicker";
 import type { DeliveryHintValues, SavedAddress } from "./CommanderDeliveryHints";
 
 const labels = {
-  fr: { project: "Projet", noProject: "Aucun projet", newProject: "Nouveau projet", date: "Journée de livraison", window: "Moment de la journée", truck: "Camion", address: "Adresse de livraison", tomorrow: "Demain", after: "Après-demain", pick: "Autre date", standard: "Non, standard", other: "Autre adresse", change: "Changer", street: "Adresse", city: "Ville", province: "Province", postal: "Code postal", windows: { Early: "Tôt (avant 10 h)", AM: "Avant-midi", PM: "Après-midi", Day: "N'importe quand" }, trucks: { Boom: "Camion girafe", "Boom 90ft": "Girafe 90 pi", "Van/Cube": "Camion cube", Hiab: "Grue (Hiab)", unknown: "Je ne sais pas" } },
-  en: { project: "Project", noProject: "No project", newProject: "New project", date: "Delivery day", window: "Time of day", truck: "Truck", address: "Delivery address", tomorrow: "Tomorrow", after: "Day after", pick: "Other date", standard: "No, standard", other: "Another address", change: "Change", street: "Address", city: "City", province: "Province", postal: "Postal code", windows: { Early: "Early (before 10am)", AM: "Morning", PM: "Afternoon", Day: "Anytime" }, trucks: { Boom: "Boom truck", "Boom 90ft": "Boom 90 ft", "Van/Cube": "Cube van", Hiab: "Crane (Hiab)", unknown: "I don't know" } },
+
+  fr: { project: "Projet", chooseProject: "Choisir un projet", noProject: "Aucun projet", newProject: "Nouveau projet", date: "Journée de livraison", window: "Moment de la journée", truck: "Camion", address: "Adresse de livraison", tomorrow: "Demain", after: "Après-demain", pick: "Autre date", standard: "Non, standard", other: "Autre adresse", change: "Changer", street: "Adresse", city: "Ville", province: "Province", postal: "Code postal", windows: { Early: "Tôt (avant 10 h)", AM: "Avant-midi", PM: "Après-midi", Day: "N'importe quand" }, trucks: { Boom: "Camion girafe", "Boom 90ft": "Girafe 90 pi", "Van/Cube": "Camion cube", Hiab: "Grue (Hiab)", unknown: "Je ne sais pas" } },
+  en: { project: "Project", chooseProject: "Choose a project", noProject: "No project", newProject: "New project", date: "Delivery day", window: "Time of day", truck: "Truck", address: "Delivery address", tomorrow: "Tomorrow", after: "Day after", pick: "Other date", standard: "No, standard", other: "Another address", change: "Change", street: "Address", city: "City", province: "Province", postal: "Postal code", windows: { Early: "Early (before 10am)", AM: "Morning", PM: "Afternoon", Day: "Anytime" }, trucks: { Boom: "Boom truck", "Boom 90ft": "Boom 90 ft", "Van/Cube": "Cube van", Hiab: "Crane (Hiab)", unknown: "I don't know" } },
 };
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const shift = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return ymd(d); };
@@ -26,6 +27,7 @@ export function CommanderDesktopDelivery({ values, lang, onPatch, savedAddress, 
   const [editing, setEditing] = useState<string[]>([]);
   const [calendar, setCalendar] = useState(false);
   const [manual, setManual] = useState(false);
+  const [projectOpen, setProjectOpen] = useState(false);
   const patch = (key: string, p: Partial<DeliveryHintValues>) => { onPatch(p); setEditing((keys) => keys.filter((k) => k !== key)); };
   const chip = (label: string, action: () => void, active = false) => <Button type="button" variant="outline" onClick={action} className={cn("h-auto min-h-9 max-w-full rounded-full px-3 py-1.5 whitespace-normal text-left text-sm", active && "border-primary bg-primary/15")}>{label}</Button>;
   const section = (key: string, title: string, selected: string, body: ReactNode) => (
@@ -40,11 +42,11 @@ export function CommanderDesktopDelivery({ values, lang, onPatch, savedAddress, 
   return <div className="min-w-0 space-y-4 p-4">
     {(projects.length > 0 || onNewProject) && <section className="min-w-0 space-y-2 border-b pb-4">
       <h2 className="text-xs font-bold uppercase text-muted-foreground">{t.project}</h2>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {projects.map((p) => <Button type="button" variant="outline" key={p.id} onClick={() => onProject(p)} className={cn("shrink-0 rounded-full", project && project !== "none" && project.id === p.id && "border-primary bg-primary/15")}>{p.name}</Button>)}
-        <Button type="button" variant="outline" className={cn("shrink-0 rounded-full", project === "none" && "border-primary bg-primary/15")} onClick={() => onProject("none")}>{t.noProject}</Button>
-        {onNewProject && <Button type="button" variant="outline" className="shrink-0 rounded-full border-dashed" onClick={onNewProject}>{t.newProject}</Button>}
-      </div>
+      {projectOpen ? <div className="max-h-48 space-y-1 overflow-y-auto pr-1">
+        {projects.map((p) => <Button type="button" variant="outline" key={p.id} onClick={() => { onProject(p); setProjectOpen(false); }} className={cn("h-auto min-h-9 w-full justify-start whitespace-normal rounded-full px-3 text-left", project && project !== "none" && project.id === p.id && "border-primary bg-primary/15")}>{p.name}</Button>)}
+        <Button type="button" variant="outline" className={cn("h-auto min-h-9 w-full justify-start whitespace-normal rounded-full px-3 text-left", project === "none" && "border-primary bg-primary/15")} onClick={() => { onProject("none"); setProjectOpen(false); }}>{t.noProject}</Button>
+        {onNewProject && <Button type="button" variant="outline" className="h-auto min-h-9 w-full justify-start whitespace-normal rounded-full border-dashed px-3 text-left" onClick={onNewProject}>{t.newProject}</Button>}
+      </div> : <Button type="button" variant="outline" aria-label={project ? `${t.change} : ${t.project}` : t.chooseProject} onClick={() => setProjectOpen(true)} className="h-auto min-h-10 max-w-full whitespace-normal rounded-full border-primary/40 bg-primary/10 px-3 py-2 text-left"><span className="min-w-0 break-words">{project === "none" ? t.noProject : project ? project.name : t.chooseProject}</span><Pencil className="shrink-0" /></Button>}
     </section>}
     {section("date", t.date, values.delivery_date ? new Date(`${values.delivery_date}T12:00:00`).toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", { weekday: "short", day: "numeric", month: "short" }) : "", <>
       {chip(t.tomorrow, () => patch("date", { delivery_date: shift(1) }), values.delivery_date === shift(1))}
