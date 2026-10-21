@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { CommanderMobileScroll } from "@/portals/client/components/CommanderMobileScroll";
 import { CommanderMobileExperience } from "@/portals/client/components/CommanderMobileExperience";
 import { CommanderDeliveryHints, type DeliveryFormValues } from "@/portals/client/components/CommanderDeliveryHints";
+import { CommanderDesktopDelivery } from "@/portals/client/components/CommanderDesktopDelivery";
 import { CommanderVariantSelector } from "@/portals/client/components/CommanderVariantSelector";
 import { CommanderSuggestions, CommanderSuggestionReminder } from "@/portals/client/components/CommanderSuggestions";
 import { evaluateSuggestions, newSuggestionState, suggestionsRequest, type Suggestion, type SuggestionState } from "@/lib/commanderSuggestions";
@@ -844,7 +845,7 @@ export default function Commander() {
       <main className="flex-1 min-h-0 min-w-0 w-full max-w-7xl mx-auto lg:px-4 lg:py-6 flex flex-col lg:gap-2">
         {started && (
           <div className="hidden lg:grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4 items-center shrink-0">
-            <p className="text-sm font-black uppercase tracking-wide text-secondary truncate">{t.stepChat}</p>
+            <p className="text-sm font-black uppercase text-secondary">{t.stepChat}</p>
             <div className="flex items-center gap-2 min-w-0">
               <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
               <p className="text-sm font-black uppercase tracking-wide text-secondary truncate">{t.stepCart}</p>
@@ -910,7 +911,9 @@ export default function Commander() {
             </aside>
             <aside className="hidden lg:flex flex-col min-h-0 min-w-0">
               {deliveryHints ? (
-                <div className="flex-1 min-h-0 overflow-y-auto">{deliveryHints}</div>
+                <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl border bg-card shadow-soft">
+                  <CommanderDesktopDelivery values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
+                </div>
               ) : (
                 <div className="flex-1 rounded-2xl border border-dashed bg-muted/30 p-5 flex items-center justify-center text-center text-sm text-muted-foreground">
                   {lang === "fr" ? "La livraison se prépare ici dès que votre liste contient des articles." : "Delivery details appear here once your list has items."}
