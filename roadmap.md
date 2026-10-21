@@ -1,5 +1,5 @@
 # Commander purchase list
-- [ ] Match tablet to the desktop three-column ordering presentation without changing mobile.
+- [x] Match tablet to the desktop three-column ordering presentation without changing mobile; verified real catalog request and delivery edits at 834×852, unchanged mobile drawer, seven tests passing and build OK.
 - [x] Restore the pre-mobile desktop presentation with independent delivery controls; preserve current mobile and tablet. Verified real catalog request, desktop delivery editing, unchanged mobile drawer, 15 passing tests and build OK.
 - [x] Put every French sentence in vouvoiement (order page, client portal, support chat, auth/profile messages, staff portal); verified live on mobile/desktop and 20 tests passing.
 - [x] Show RenoCart's same-day value promise and the 200-entrepreneurs line at the top of the mobile welcome screen, with the heading and arrow centred below it.
