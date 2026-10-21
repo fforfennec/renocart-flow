@@ -1,5 +1,5 @@
 # Commander purchase list
-- [ ] Restore the pre-mobile desktop presentation with independent delivery controls; preserve current mobile and tablet.
+- [x] Restore the pre-mobile desktop presentation with independent delivery controls; preserve current mobile and tablet. Verified real catalog request, desktop delivery editing, unchanged mobile drawer, 15 passing tests and build OK.
 - [x] Put every French sentence in vouvoiement (order page, client portal, support chat, auth/profile messages, staff portal); verified live on mobile/desktop and 20 tests passing.
 - [x] Show RenoCart's same-day value promise and the 200-entrepreneurs line at the top of the mobile welcome screen, with the heading and arrow centred below it.
 - [x] Enlarge the mobile welcome promise text so it fills the upper half, move the heading with its arrow and microphone into the lower half, and balance the gaps; verified at 390×844 with no clipping or overflow.
