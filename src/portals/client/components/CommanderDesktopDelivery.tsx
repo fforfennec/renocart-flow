@@ -27,6 +27,7 @@ export function CommanderDesktopDelivery({ values, lang, onPatch, savedAddress, 
   const [editing, setEditing] = useState<string[]>([]);
   const [calendar, setCalendar] = useState(false);
   const [manual, setManual] = useState(false);
+  const [projectOpen, setProjectOpen] = useState(false);
   const patch = (key: string, p: Partial<DeliveryHintValues>) => { onPatch(p); setEditing((keys) => keys.filter((k) => k !== key)); };
   const chip = (label: string, action: () => void, active = false) => <Button type="button" variant="outline" onClick={action} className={cn("h-auto min-h-9 max-w-full rounded-full px-3 py-1.5 whitespace-normal text-left text-sm", active && "border-primary bg-primary/15")}>{label}</Button>;
   const section = (key: string, title: string, selected: string, body: ReactNode) => (
