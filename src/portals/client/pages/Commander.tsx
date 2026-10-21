@@ -842,23 +842,22 @@ export default function Commander() {
         composerMic={<MicButton mobile busy={busy} onAudio={mobileAudio} t={t} recording={micOn} start={startRec} stop={micStop} />}
         items={cartItems} history={<>{msgs.map(renderMsg)}{busy ? <BotBubble><Loader2 className="h-5 w-5 animate-spin" /></BotBubble> : prompt()}<div ref={endRef} /></>}
         delivery={deliveryHints} paymentFallback={missingPanel} removalNotice={removalNotice} /> : (
-      <main className="flex-1 min-h-0 min-w-0 w-full max-w-7xl mx-auto lg:px-4 lg:py-6 flex flex-col lg:gap-2">
+      <main className="flex-1 min-h-0 min-w-0 w-full max-w-7xl mx-auto md:px-2 lg:px-4 md:py-4 lg:py-6 flex flex-col md:gap-2">
         {started && (
-          <div className="hidden lg:grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4 items-center shrink-0">
+          <div className="hidden md:grid md:grid-cols-[minmax(200px,0.9fr)_minmax(0,1.2fr)_minmax(240px,1fr)] lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-2 lg:gap-4 items-center shrink-0">
             <p className="text-sm font-black uppercase text-secondary">{t.stepChat}</p>
             <div className="flex items-center gap-2 min-w-0">
               <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
-              <p className="text-sm font-black uppercase tracking-wide text-secondary truncate">{t.stepCart}</p>
+              <p className="text-sm font-black uppercase text-secondary">{t.stepCart}</p>
               <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
             </div>
-            <p className="text-sm font-black uppercase tracking-wide text-secondary truncate">{t.stepDelivery}</p>
+            <p className="text-sm font-black uppercase text-secondary">{t.stepDelivery}</p>
           </div>
         )}
-        <div className="flex-1 min-h-0 grid lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-4">
-        <section className={cn("gradient-navy text-secondary-foreground lg:rounded-2xl flex flex-col min-h-0 min-w-0", !started && "lg:col-span-3")}>
-          {/* tablet cart bar (desktop layout, unchanged) */}
+        <div className="flex-1 min-h-0 grid md:grid-cols-[minmax(200px,0.9fr)_minmax(0,1.2fr)_minmax(240px,1fr)] lg:grid-cols-[340px_minmax(0,1fr)_360px] gap-2 lg:gap-4">
+        <section className={cn("gradient-navy text-secondary-foreground md:rounded-2xl flex flex-col min-h-0 min-w-0", !started && "md:col-span-3")}>
           {started && !isMobile && (
-            <div className="lg:hidden shrink-0 bg-card text-card-foreground border-b">
+            <div className="md:hidden shrink-0 bg-card text-card-foreground border-b">
               <button onClick={() => setCartOpen((o) => !o)} className="w-full min-h-11 px-4 py-2 flex items-center justify-between text-sm font-semibold">
                 <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />{t.cart}{cartLabel ? ` · ${cartLabel}` : ""}</span>
                 <ChevronUp className={cn("h-4 w-4 transition-transform", !cartOpen && "rotate-180")} />
@@ -867,7 +866,7 @@ export default function Commander() {
             </div>
           )}
 
-          <CommanderMobileScroll enabled={isMobile} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 md:px-8 py-6">
+          <CommanderMobileScroll enabled={isMobile} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 lg:px-8 py-6">
             {!started && !confirmRestart ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-6">
                 <h1 className="text-4xl md:text-5xl font-black tracking-tight">{t.title}</h1>
@@ -877,7 +876,6 @@ export default function Commander() {
               </div>
             ) : (
               <div className="space-y-3 max-w-2xl mx-auto">
-                <h1 className="hidden md:block lg:hidden text-xl font-black tracking-tight text-center mb-4 opacity-90">{t.title}</h1>
                 {msgs.map(renderMsg)}
                 {confirmRestart ? (
                   <BotBubble>
@@ -890,7 +888,7 @@ export default function Commander() {
             )}
           </CommanderMobileScroll>
 
-            <form className="shrink-0 border-t border-secondary-foreground/15 p-3 flex items-center gap-2"
+            <form className="shrink-0 border-t border-secondary-foreground/15 p-2 lg:p-3 flex items-center gap-1 lg:gap-2"
               onSubmit={(e) => { e.preventDefault(); if (typed.trim() && !busy) send({ text: typed.trim() }); }}>
               {started && <MicButton accent busy={busy} onAudio={micHandler} t={t} recording={micOn} start={startRec} stop={micStop} />}
               <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} disabled={busy}
@@ -901,7 +899,7 @@ export default function Commander() {
 
         {started && (
           <>
-            <aside className="hidden lg:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0 min-w-0">
+            <aside className="hidden md:flex bg-card rounded-2xl border shadow-soft flex-col min-h-0 min-w-0">
               <div className="p-5 border-b">
                 <p className="mt-1 text-xs text-muted-foreground">{t.priceNote}</p>
                 {cartLabel && <p className="mt-2 text-sm text-muted-foreground">{cartLabel}</p>}
@@ -909,7 +907,7 @@ export default function Commander() {
               <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">{cartItems}</div>
               {removalNotice}
             </aside>
-            <aside className="hidden lg:flex flex-col min-h-0 min-w-0">
+            <aside className="hidden md:flex flex-col min-h-0 min-w-0">
               {deliveryHints ? (
                 <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl border bg-card shadow-soft">
                   <CommanderDesktopDelivery values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
