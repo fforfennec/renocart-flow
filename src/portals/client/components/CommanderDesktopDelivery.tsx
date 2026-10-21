@@ -42,11 +42,11 @@ export function CommanderDesktopDelivery({ values, lang, onPatch, savedAddress, 
   return <div className="min-w-0 space-y-4 p-4">
     {(projects.length > 0 || onNewProject) && <section className="min-w-0 space-y-2 border-b pb-4">
       <h2 className="text-xs font-bold uppercase text-muted-foreground">{t.project}</h2>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {projects.map((p) => <Button type="button" variant="outline" key={p.id} onClick={() => onProject(p)} className={cn("shrink-0 rounded-full", project && project !== "none" && project.id === p.id && "border-primary bg-primary/15")}>{p.name}</Button>)}
-        <Button type="button" variant="outline" className={cn("shrink-0 rounded-full", project === "none" && "border-primary bg-primary/15")} onClick={() => onProject("none")}>{t.noProject}</Button>
-        {onNewProject && <Button type="button" variant="outline" className="shrink-0 rounded-full border-dashed" onClick={onNewProject}>{t.newProject}</Button>}
-      </div>
+      {projectOpen ? <div className="max-h-48 space-y-1 overflow-y-auto pr-1">
+        {projects.map((p) => <Button type="button" variant="outline" key={p.id} onClick={() => { onProject(p); setProjectOpen(false); }} className={cn("h-auto min-h-9 w-full justify-start whitespace-normal rounded-full px-3 text-left", project && project !== "none" && project.id === p.id && "border-primary bg-primary/15")}>{p.name}</Button>)}
+        <Button type="button" variant="outline" className={cn("h-auto min-h-9 w-full justify-start whitespace-normal rounded-full px-3 text-left", project === "none" && "border-primary bg-primary/15")} onClick={() => { onProject("none"); setProjectOpen(false); }}>{t.noProject}</Button>
+        {onNewProject && <Button type="button" variant="outline" className="h-auto min-h-9 w-full justify-start whitespace-normal rounded-full border-dashed px-3 text-left" onClick={onNewProject}>{t.newProject}</Button>}
+      </div> : <Button type="button" variant="outline" aria-label={project ? `${t.change} : ${t.project}` : t.chooseProject} onClick={() => setProjectOpen(true)} className="h-auto min-h-10 max-w-full whitespace-normal rounded-full border-primary/40 bg-primary/10 px-3 py-2 text-left"><span className="min-w-0 break-words">{project === "none" ? t.noProject : project ? project.name : t.chooseProject}</span><Pencil className="shrink-0" /></Button>}
     </section>}
     {section("date", t.date, values.delivery_date ? new Date(`${values.delivery_date}T12:00:00`).toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", { weekday: "short", day: "numeric", month: "short" }) : "", <>
       {chip(t.tomorrow, () => patch("date", { delivery_date: shift(1) }), values.delivery_date === shift(1))}
