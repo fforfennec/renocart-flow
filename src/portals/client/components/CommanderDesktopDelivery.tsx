@@ -8,6 +8,8 @@ import type { ClientProject } from "@/lib/clientProjects";
 import type { ProjectChoice } from "./CommanderProjectPicker";
 import type { DeliveryHintValues, SavedAddress } from "./CommanderDeliveryHints";
 
+
+
 const labels = {
   fr: { project: "Projet", noProject: "Aucun projet", newProject: "Nouveau projet", date: "Journée de livraison", window: "Moment de la journée", truck: "Camion", address: "Adresse de livraison", tomorrow: "Demain", after: "Après-demain", pick: "Autre date", standard: "Non, standard", other: "Autre adresse", change: "Changer", street: "Adresse", city: "Ville", province: "Province", postal: "Code postal", windows: { Early: "Tôt (avant 10 h)", AM: "Avant-midi", PM: "Après-midi", Day: "N'importe quand" }, trucks: { Boom: "Camion girafe", "Boom 90ft": "Girafe 90 pi", "Van/Cube": "Camion cube", Hiab: "Grue (Hiab)", unknown: "Je ne sais pas" } },
   en: { project: "Project", noProject: "No project", newProject: "New project", date: "Delivery day", window: "Time of day", truck: "Truck", address: "Delivery address", tomorrow: "Tomorrow", after: "Day after", pick: "Other date", standard: "No, standard", other: "Another address", change: "Change", street: "Address", city: "City", province: "Province", postal: "Postal code", windows: { Early: "Early (before 10am)", AM: "Morning", PM: "Afternoon", Day: "Anytime" }, trucks: { Boom: "Boom truck", "Boom 90ft": "Boom 90 ft", "Van/Cube": "Cube van", Hiab: "Crane (Hiab)", unknown: "I don't know" } },
