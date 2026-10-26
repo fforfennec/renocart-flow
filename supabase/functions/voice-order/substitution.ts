@@ -21,7 +21,7 @@ export function withReplaces(itemsSchema: any) {
 
 export const SUBSTITUTION_PROMPT = SUBSTITUTION_ENABLED
   ? `- Size substitution: if the exact size/dimension/coverage requested is NOT in the catalog but the same product exists in another size, ` +
-    `add the closest available size (prefer the next larger) and set "replaces" to the requested item as the customer said it, in their language ` +
+    `add the closest available size (prefer the next larger) and set "replaces" to the requested item as the customer said it, in their language, without leading article or quantity ` +
     `(e.g. "rouleau de pare-vapeur de 1500 pi²"). Otherwise "replaces" = null. Only when no size of that product exists, use unavailable.\n`
   : "";
 
