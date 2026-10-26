@@ -17,3 +17,4 @@
 - Client support chat uses support_threads/support_messages: clients write only through start_support_thread/post_support_message RPCs, staff reply through support-reply (stores + emails in the Gmail thread), and poll-supplier-emails routes client replies to RenoCart's own order confirmation (sent by shopify-order-webhook) into the thread — supplier and client conversations stay separate.
 
 - Admin supplier/client inboxes share a team-only messaging provider and per-user database read receipts; Overview windows reuse the full chat pages in compact mode so sending, proposals and attachments keep the same behavior.
+- Client pages share ClientHeader (Commander, Mes projets, Notre équipe, À propos, Connexion/Déconnexion; mobile uses a side menu) — one navigation for all client views; À propos/Notre équipe copy is mirrored from renocart.ca.
