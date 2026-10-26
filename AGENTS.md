@@ -18,3 +18,4 @@
 
 - Admin supplier/client inboxes share a team-only messaging provider and per-user database read receipts; Overview windows reuse the full chat pages in compact mode so sending, proposals and attachments keep the same behavior.
 - Client pages share ClientHeader (Commander, Mes projets, Notre équipe, À propos, Connexion/Déconnexion; mobile uses a side menu) — one navigation for all client views; À propos/Notre équipe copy is mirrored from renocart.ca.
+- Commander size substitution is isolated in supabase/functions/voice-order/substitution.ts (SUBSTITUTION_ENABLED flag) and src/portals/client/components/CommanderSubstitution.tsx — the user asked that this feature be revertible alone without touching anything else.
