@@ -59,7 +59,7 @@ const SupplierDashboard = () => {
             <p className="text-sm font-medium">{profile?.full_name || 'Supplier'}</p>
             <p className="text-xs text-white/50">{profile?.company_name || 'Partner'}</p>
           </div>
-          <AccountSwitcher current="supplier" className="w-full justify-start mb-1 text-sidebar-foreground/75 hover:bg-sidebar-accent" />
+          <AccountSwitcher current="supplier" className="w-full justify-start mb-1 text-white/70 hover:text-white hover:bg-white/5" />
           <Button 
             variant="ghost" 
             className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
