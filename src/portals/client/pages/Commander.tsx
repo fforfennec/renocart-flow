@@ -16,7 +16,7 @@ import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { createCheckout } from "@/lib/shopifyStorefront";
 import { CheckoutNavigationError, navigateToCheckout } from "@/lib/checkoutNavigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { canManageAccount, canOrder, getClientContext, listProjects, lastOrderProjectId, projectAddress, type AccountRole, type ClientProject } from "@/lib/clientProjects";
+import { canManageAccount, canOrder, getClientContext, listProjects, lastOrderProjectId, lastOrderAddress, projectAddress, type AccountRole, type ClientProject } from "@/lib/clientProjects";
 import { NewProjectDialog, ProjectPicker, type ProjectChoice } from "@/portals/client/components/CommanderProjectPicker";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -179,6 +179,13 @@ const UserBubble = ({ children, onClick }: { children: React.ReactNode; onClick?
   </div>
 );
 
+const tomorrowYmd = () => { const x = new Date(); x.setDate(x.getDate() + 1); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+/** Prefill: tomorrow, morning, any truck — kept when the client already chose something. */
+const withDeliveryDefaults = (d?: Details | null): Details => ({
+  delivery_date: d?.delivery_date && d.delivery_date >= tomorrowYmd() ? d.delivery_date : tomorrowYmd(),
+  time_window: d?.time_window ?? "AM", truck_type: d?.truck_type ?? "none", note: d?.note ?? null,
+});
+
 export default function Commander() {
   const saved = useMemo(load, []);
   const [lang, setLang] = useState<Lang>(saved?.lang ?? "fr");
@@ -186,7 +193,7 @@ export default function Commander() {
   const [items, setItems] = useState<Item[]>(saved?.items ?? []);
   const [missing, setMissing] = useState<Missing[]>(saved?.missing ?? []);
   const [msgs, setMsgs] = useState<Msg[]>(saved?.msgs ?? []);
-  const [d, setD] = useState<Details>(saved?.d ?? { delivery_date: null, time_window: null, truck_type: null, note: null });
+  const [d, setD] = useState<Details>(() => withDeliveryDefaults(saved?.d));
   const [listDone, setListDone] = useState(saved?.listDone ?? false);
   const [answered, setAnswered] = useState<Field[]>(saved?.answered ?? []);
   const [editing, setEditing] = useState<Question | null>(null);
@@ -209,7 +216,8 @@ export default function Commander() {
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const { user } = useAuth();
   const [projects, setProjects] = useState<ClientProject[]>([]);
-  const [project, setProject] = useState<ProjectChoice>(saved?.project ?? null);
+  const [project, setProject] = useState<ProjectChoice>(saved?.project ?? "none");
+  const [lastAddress, setLastAddress] = useState<Awaited<ReturnType<typeof lastOrderAddress>>>(null);
   const [newProject, setNewProject] = useState(false);
   const [accountRole, setAccountRole] = useState<AccountRole | undefined>();
   const mayCreateProject = !user || canManageAccount(accountRole);
@@ -217,10 +225,11 @@ export default function Commander() {
   useEffect(() => {
     if (!user) { setProjects([]); setAccountRole(undefined); return; }
     getClientContext().then((c) => setAccountRole(c?.role)).catch(() => {});
+    lastOrderAddress().then(setLastAddress).catch(() => {});
     Promise.all([listProjects(), lastOrderProjectId().catch(() => null)]).then(([list, lastId]) => {
       setProjects(list);
-      const last = lastId ? list.find((p) => p.id === lastId) ?? null : null;
-      setProject((cur) => cur === "none" ? cur : cur ? list.find((p) => p.id === cur.id) ?? last : last);
+      const last: ProjectChoice = lastId ? list.find((p) => p.id === lastId) ?? "none" : "none";
+      setProject((cur) => cur && cur !== "none" ? list.find((p) => p.id === cur.id) ?? last : saved?.project === "none" ? "none" : last);
     }).catch(() => setProjects([]));
   }, [user]);
   const projectCreated = (p: ClientProject) => { setProjects((l) => [p, ...l]); setProject(p); setNewProject(false); };
@@ -474,8 +483,9 @@ export default function Commander() {
 
   const deliveryBase = (): DeliveryFormValues => {
     const p = project && project !== "none" ? project : null;
+    const a = p?.address1 ? p : lastAddress;
     return {
-      address1: p?.address1 ?? "", city: p?.city ?? "", province: p?.province ?? "QC", postal_code: p?.postal_code ?? "",
+      address1: a?.address1 ?? "", city: a?.city ?? "", province: a?.province || "QC", postal_code: a?.postal_code ?? "",
       contact_name: p?.contact_name ?? "", contact_phone: p?.contact_phone ?? "",
       delivery_date: d.delivery_date ?? "", time_window: d.time_window ?? "", truck_type: d.truck_type ?? "", note: d.note ?? "",
     };
@@ -497,12 +507,12 @@ export default function Commander() {
     }));
   };
   const hintValues: DeliveryFormValues = deliveryDraft ?? {
-    ...deliveryBase(), address1: "", city: "", province: "QC", postal_code: "", contact_name: "", contact_phone: "",
+    ...deliveryBase(), contact_name: "", contact_phone: "",
   };
   const savedAddress = project && project !== "none" && project.address1
     ? { label: [project.address1, project.city].filter(Boolean).join(", "),
         values: { address1: project.address1, city: project.city, province: project.province, postal_code: project.postal_code } }
-    : null;
+    : lastAddress ? { label: [lastAddress.address1, lastAddress.city].filter(Boolean).join(", "), values: lastAddress } : null;
   const finish = () => {
     if (!mayOrder || !items.length || busy || micOn || checkingOut) return;
     const delivery = mergeDelivery(deliveryDraft, deliveryBase());
@@ -548,7 +558,7 @@ export default function Commander() {
     setConfirmRestart(false);
     setRemovedProduct(null);
     setItems([]); setMissing([]); setMsgs([]); setListDone(false); setAnswered([]); setEditing(null);
-    setD({ delivery_date: null, time_window: null, truck_type: null, note: null });
+    setD(withDeliveryDefaults());
     setProject(null); setDeliveryDraft(null); setCheckoutLink(null);
   };
 

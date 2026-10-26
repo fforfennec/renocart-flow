@@ -208,3 +208,15 @@ export async function lastOrderProjectId(): Promise<string | null> {
     .not("project_id", "is", null).order("created_at", { ascending: false }).limit(1);
   return (data?.[0]?.project_id as string | undefined) ?? null;
 }
+
+/** Address of the client's most recent order, parsed from "street, city, PROV, postal[, country]". */
+export async function lastOrderAddress(): Promise<{ address1: string; city: string; province: string; postal_code: string } | null> {
+  const { data: ids } = await supabase.rpc("my_client_order_ids");
+  const list = ((ids ?? []) as unknown as (string | { my_client_order_ids: string })[]).map((r) => typeof r === "string" ? r : r.my_client_order_ids);
+  if (!list.length) return null;
+  const { data } = await supabase.from("orders").select("client_address").in("id", list).order("created_at", { ascending: false }).limit(1);
+  const parts = String(data?.[0]?.client_address ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  if (parts.length && /^canada$/i.test(parts[parts.length - 1])) parts.pop();
+  if (parts.length < 4) return null;
+  return { address1: parts[0], city: parts[1], province: parts[2], postal_code: parts[3] };
+}
