@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,9 @@ const PORTALS: { id: Portal; label: string; icon: typeof Shield; desc: string }[
 ];
 
 const Auth = () => {
-  const [portal, setPortal] = useState<Portal | null>(null);
+  const [params] = useSearchParams();
+  const initial = params.get('portal');
+  const [portal, setPortal] = useState<Portal | null>(initial === 'admin' || initial === 'supplier' || initial === 'partner' ? initial : null);
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

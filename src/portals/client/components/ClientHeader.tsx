@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { AccountSwitcher } from "@/components/AccountSwitcher";
 
 type Lang = "fr" | "en";
 const L = {
@@ -35,6 +36,7 @@ export function ClientHeader({ lang = "fr", extra }: { lang?: Lang; extra?: Reac
         <Link to="/commander" className="text-2xl font-black tracking-tight text-secondary">RENO<span className="text-primary">CART</span></Link>
         <nav className="hidden md:flex items-center gap-1">
           {links.map((l) => <NavLink key={l.to} to={l.to} className={cls}>{l.label}</NavLink>)}
+          <AccountSwitcher current="client" />
           {auth}
           {extra}
         </nav>
@@ -46,6 +48,7 @@ export function ClientHeader({ lang = "fr", extra }: { lang?: Lang; extra?: Reac
               <SheetHeader><SheetTitle>{t.menu}</SheetTitle></SheetHeader>
               <nav className="mt-4 flex flex-col gap-1">
                 {links.map((l) => <NavLink key={l.to} to={l.to} className={cls} onClick={() => setOpen(false)}>{l.label}</NavLink>)}
+                <AccountSwitcher current="client" className="justify-start" />
                 {auth}
               </nav>
             </SheetContent>

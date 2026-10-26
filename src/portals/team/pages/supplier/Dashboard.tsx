@@ -1,3 +1,4 @@
+import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { Routes, Route } from 'react-router-dom';
 import { LayoutDashboard, Package, BarChart3, HelpCircle, LogOut } from 'lucide-react';
 import { useAuth } from '@/portals/team/TeamAuthContext';
@@ -58,6 +59,7 @@ const SupplierDashboard = () => {
             <p className="text-sm font-medium">{profile?.full_name || 'Supplier'}</p>
             <p className="text-xs text-white/50">{profile?.company_name || 'Partner'}</p>
           </div>
+          <AccountSwitcher current="supplier" className="w-full justify-start mb-1 text-white/70 hover:text-white hover:bg-white/5" />
           <Button 
             variant="ghost" 
             className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"

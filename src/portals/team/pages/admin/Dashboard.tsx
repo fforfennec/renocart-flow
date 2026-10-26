@@ -1,3 +1,4 @@
+import { AccountSwitcher } from "@/components/AccountSwitcher";
 import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { LayoutDashboard, Package, Users, BarChart3, HelpCircle, LogOut, Truck, Bot, MessageCircle, ShoppingCart, UserCog, PanelLeftClose, PanelLeftOpen, ChevronDown } from 'lucide-react';
@@ -93,6 +94,7 @@ const AdminDashboardLayout = () => {
         </nav>
         <div className={`${collapsed ? 'p-1' : 'p-4'} border-t border-sidebar-border`}>
           {!collapsed && <div className="mb-3 px-3"><p className="text-sm font-medium truncate">{profile?.full_name || 'Admin User'}</p><p className="text-xs text-sidebar-foreground/50">COO / Operations</p></div>}
+          {!collapsed && <AccountSwitcher current="admin" className="w-full justify-start mb-1 text-sidebar-foreground/75 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent" />}
           <Button variant="ghost" title="Sign Out" aria-label="Sign Out" className="w-full justify-start text-sidebar-foreground/75 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent" onClick={signOut}><LogOut size={20} className="shrink-0" />{!collapsed && 'Sign Out'}</Button>
         </div>
       </aside>
