@@ -16,7 +16,7 @@ import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { createCheckout } from "@/lib/shopifyStorefront";
 import { CheckoutNavigationError, navigateToCheckout } from "@/lib/checkoutNavigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { canManageAccount, canOrder, getClientContext, listProjects, lastOrderProjectId, lastOrderAddress, projectAddress, type AccountRole, type ClientProject } from "@/lib/clientProjects";
+import { canManageAccount, canOrder, getClientContext, listProjects, lastOrderProjectId, pastOrderAddresses, addressKey, type DeliveryAddress, projectAddress, type AccountRole, type ClientProject } from "@/lib/clientProjects";
 import { NewProjectDialog, ProjectPicker, type ProjectChoice } from "@/portals/client/components/CommanderProjectPicker";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -217,7 +217,8 @@ export default function Commander() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<ClientProject[]>([]);
   const [project, setProject] = useState<ProjectChoice>(saved?.project ?? "none");
-  const [lastAddress, setLastAddress] = useState<Awaited<ReturnType<typeof lastOrderAddress>>>(null);
+  const [pastAddresses, setPastAddresses] = useState<DeliveryAddress[]>([]);
+  const lastAddress = pastAddresses[0] ?? null;
   const [newProject, setNewProject] = useState(false);
   const [accountRole, setAccountRole] = useState<AccountRole | undefined>();
   const mayCreateProject = !user || canManageAccount(accountRole);
@@ -225,7 +226,7 @@ export default function Commander() {
   useEffect(() => {
     if (!user) { setProjects([]); setAccountRole(undefined); return; }
     getClientContext().then((c) => setAccountRole(c?.role)).catch(() => {});
-    lastOrderAddress().then(setLastAddress).catch(() => {});
+    pastOrderAddresses().then(setPastAddresses).catch(() => {});
     Promise.all([listProjects(), lastOrderProjectId().catch(() => null)]).then(([list, lastId]) => {
       setProjects(list);
       const last: ProjectChoice = lastId ? list.find((p) => p.id === lastId) ?? "none" : "none";
@@ -509,10 +510,15 @@ export default function Commander() {
   const hintValues: DeliveryFormValues = deliveryDraft ?? {
     ...deliveryBase(), contact_name: "", contact_phone: "",
   };
-  const savedAddress = project && project !== "none" && project.address1
-    ? { label: [project.address1, project.city].filter(Boolean).join(", "),
-        values: { address1: project.address1, city: project.city, province: project.province, postal_code: project.postal_code } }
-    : lastAddress ? { label: [lastAddress.address1, lastAddress.city].filter(Boolean).join(", "), values: lastAddress } : null;
+  // Selected project first, then other project addresses and past order addresses, without duplicates.
+  const savedAddresses = [
+    ...(project && project !== "none" ? [project] : []), ...projects, ...pastAddresses,
+  ].reduce<{ label: string; values: DeliveryAddress }[]>((acc, a) => {
+    if (!a.address1 || !a.city) return acc;
+    const values = { address1: a.address1, city: a.city, province: a.province || "QC", postal_code: a.postal_code || "" };
+    if (!acc.some((x) => addressKey(x.values) === addressKey(values))) acc.push({ label: [values.address1, values.city].join(", "), values });
+    return acc;
+  }, []);
   const finish = () => {
     if (!mayOrder || !items.length || busy || micOn || checkingOut) return;
     const delivery = mergeDelivery(deliveryDraft, deliveryBase());
@@ -775,7 +781,7 @@ export default function Commander() {
   };
 
   const deliveryHints = items.length > 0 && mayOrder ? (
-    <CommanderDeliveryHints hideTitle={isMobile} values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
+    <CommanderDeliveryHints hideTitle={isMobile} values={hintValues} lang={lang} onPatch={patchDelivery} savedAddresses={savedAddresses} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
   ) : null;
 
   const missingPanel = checkoutLink ? (
@@ -920,7 +926,7 @@ export default function Commander() {
             <aside className="hidden md:flex flex-col min-h-0 min-w-0">
               {deliveryHints ? (
                 <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl border bg-card shadow-soft">
-                  <CommanderDesktopDelivery values={hintValues} lang={lang} onPatch={patchDelivery} savedAddress={savedAddress} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
+                  <CommanderDesktopDelivery values={hintValues} lang={lang} onPatch={patchDelivery} savedAddresses={savedAddresses} projects={projects} project={project} onProject={setProject} onNewProject={mayCreateProject ? () => setNewProject(true) : undefined} />
                 </div>
               ) : (
                 <div className="flex-1 rounded-2xl border border-dashed bg-muted/30 p-5 flex items-center justify-center text-center text-sm text-muted-foreground">

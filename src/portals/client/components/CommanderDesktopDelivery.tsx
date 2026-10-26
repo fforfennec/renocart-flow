@@ -18,9 +18,9 @@ const shift = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n);
 const field = "h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
 /** Desktop-only delivery presentation; shares values, not mobile expansion state. */
-export function CommanderDesktopDelivery({ values, lang, onPatch, savedAddress, projects, project, onProject, onNewProject }: {
+export function CommanderDesktopDelivery({ values, lang, onPatch, savedAddresses = [], projects, project, onProject, onNewProject }: {
   values: DeliveryHintValues; lang: "fr" | "en"; onPatch: (p: Partial<DeliveryHintValues>) => void;
-  savedAddress?: SavedAddress | null; projects: ClientProject[]; project: ProjectChoice;
+  savedAddresses?: SavedAddress[]; projects: ClientProject[]; project: ProjectChoice;
   onProject: (p: ProjectChoice) => void; onNewProject?: () => void;
 }) {
   const t = labels[lang];
@@ -56,7 +56,7 @@ export function CommanderDesktopDelivery({ values, lang, onPatch, savedAddress, 
     </>)}
     {section("window", t.window, windows[values.time_window] ?? values.time_window, Object.entries(windows).map(([key, label]) => <span key={key}>{chip(label, () => patch("window", { time_window: key }), values.time_window === key)}</span>))}
     {section("truck", t.truck, values.truck_type === "none" ? t.standard : trucks[values.truck_type] ?? values.truck_type, <>{chip(t.standard, () => patch("truck", { truck_type: "none" }), values.truck_type === "none")}{Object.entries(trucks).map(([key, label]) => <span key={key}>{chip(label, () => patch("truck", { truck_type: key }), values.truck_type === key)}</span>)}</>)}
-    {section("address", t.address, addressReady ? [values.address1, values.city, values.province, values.postal_code].join(", ") : "", savedAddress && !manual ? <>{<Button type="button" variant="outline" className="h-auto min-h-10 max-w-full whitespace-normal" onClick={() => patch("address", savedAddress.values)}><MapPin />{savedAddress.label}</Button>}{chip(t.other, () => setManual(true))}</> : <div className="grid w-full gap-2">
+    {section("address", t.address, addressReady ? [values.address1, values.city, values.province, values.postal_code].join(", ") : "", savedAddresses.length && !manual ? <>{savedAddresses.map((a) => <Button key={a.label} type="button" variant={values.address1 === a.values.address1 && values.city === a.values.city ? "default" : "outline"} className="h-auto min-h-10 max-w-full whitespace-normal" onClick={() => patch("address", a.values)}><MapPin />{a.label}</Button>)}{chip(t.other, () => setManual(true))}</> : <div className="grid w-full gap-2">
       <input aria-label={t.street} placeholder={t.street} className={field} value={values.address1} onChange={(e) => onPatch({ address1: e.target.value })} />
       <input aria-label={t.city} placeholder={t.city} className={field} value={values.city} onChange={(e) => onPatch({ city: e.target.value })} />
       <div className="grid grid-cols-2 gap-2"><input aria-label={t.province} placeholder={t.province} className={field} value={values.province} onChange={(e) => onPatch({ province: e.target.value })} /><input aria-label={t.postal} placeholder={t.postal} className={field} value={values.postal_code} onChange={(e) => onPatch({ postal_code: e.target.value })} /></div>
