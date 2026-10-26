@@ -1,5 +1,5 @@
+import { ClientHeader } from "@/portals/client/components/ClientHeader";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ChevronRight, ShoppingCart, Pencil, X, Info } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CommanderMobileScroll } from "@/portals/client/components/CommanderMobileScroll";
@@ -837,20 +837,13 @@ export default function Commander() {
   return (
     <div className="h-[100dvh] flex flex-col bg-background text-foreground">
       <div className="hidden sm:block bg-secondary text-secondary-foreground text-xs text-center py-2 px-4">{t.bar}</div>
-      <header className="bg-card border-b shrink-0">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="text-2xl font-black tracking-tight text-secondary">RENO<span className="text-primary">CART</span></div>
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Link to="/projets" className="min-h-11 flex items-center px-2 font-bold text-secondary hover:underline">{t.myProjects}</Link>
-            <div className={cn("flex", isMobile && "rounded-xl bg-muted p-1")}>
-              {(["fr", "en"] as Lang[]).map((l) => (
-                <button key={l} onClick={() => setLang(l)}
-                  className={cn("px-2 py-1 rounded", isMobile && "px-3 rounded-lg", lang === l ? "bg-secondary text-secondary-foreground" : "text-muted-foreground")}>{l.toUpperCase()}</button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </header>
+      <ClientHeader lang={lang} extra={
+        <div className={cn("flex text-sm font-semibold", isMobile && "rounded-xl bg-muted p-1")}>
+          {(["fr", "en"] as Lang[]).map((l) => (
+            <button key={l} onClick={() => setLang(l)}
+              className={cn("px-2 py-1 rounded", isMobile && "px-3 rounded-lg", lang === l ? "bg-secondary text-secondary-foreground" : "text-muted-foreground")}>{l.toUpperCase()}</button>
+          ))}
+        </div>} />
 
       {isMobile ? <CommanderMobileExperience lang={lang} started={started || items.length > 0 || mobileSubmitted} busy={busy} recording={micOn} checkingOut={checkingOut}
         mayOrder={mayOrder} hasItems={items.length > 0} cartLabel={cartLabel} typed={typed} onTyped={setTyped} onSend={mobileSend} onPayment={finish}
