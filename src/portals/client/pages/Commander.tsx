@@ -1,6 +1,5 @@
 import { ClientHeader } from "@/portals/client/components/ClientHeader";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { Mic, Square, Loader2, Minus, Plus, Trash2, PackageX, Send, ChevronUp, ChevronRight, ShoppingCart, Pencil, X, Info } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CommanderMobileScroll } from "@/portals/client/components/CommanderMobileScroll";

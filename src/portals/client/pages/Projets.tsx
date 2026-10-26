@@ -1,7 +1,7 @@
 import { ClientHeader } from "@/portals/client/components/ClientHeader";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Check, Download, FileText, FolderOpen, Loader2, LogOut, MapPin, Pencil, Phone, Plus, ShoppingCart, User } from "lucide-react";
+
+import { ArrowLeft, Check, Download, FileText, FolderOpen, Loader2, MapPin, Pencil, Phone, Plus, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -28,7 +28,7 @@ export interface ProjetsSource {
 }
 
 export default function Projets({ source }: { source?: ProjetsSource }) {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const [projects, setProjects] = useState<ClientProject[]>([]);
   const [orders, setOrders] = useState<InvoiceOrder[]>([]);
   const [busy, setBusy] = useState(true);
