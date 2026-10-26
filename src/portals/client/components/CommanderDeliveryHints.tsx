@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Check, MapPin, Pencil } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
@@ -146,13 +147,16 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddresses =
           <input className={FIELD} placeholder={t.province} value={values.province} onChange={(e) => onPatch({ province: e.target.value })} />
           <input className={FIELD} placeholder={t.postal} value={values.postal_code} onChange={(e) => onPatch({ postal_code: e.target.value })} />
         </div>
-        {hasAddr && <Button type="button" size="sm" className="justify-self-end" onClick={() => setOpen(null)}>OK</Button>}
+        <div className="flex items-center justify-between gap-2">
+          {savedAddresses.length > 0 ? <Button type="button" size="sm" variant="ghost" onClick={() => setManualAddr(false)}><ArrowLeft />{lang === "fr" ? "Précédent" : "Back"}</Button> : <span />}
+          {hasAddr && <Button type="button" size="sm" onClick={() => setOpen(null)}>OK</Button>}
+        </div>
       </div>
     ),
   };
 
   const toggle = (key: Key) => {
-    if (key === "address" && hasAddr) setManualAddr(true);
+    if (key === "address" && hasAddr && !savedAddresses.length) setManualAddr(true);
     setOpen(current === key ? "none" : key);
   };
 
