@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { MapPin, Pencil } from "lucide-react";
 import { fr, enCA } from "date-fns/locale";
@@ -60,7 +61,10 @@ export function CommanderDesktopDelivery({ values, lang, onPatch, savedAddresses
       <input aria-label={t.street} placeholder={t.street} className={field} value={values.address1} onChange={(e) => onPatch({ address1: e.target.value })} />
       <input aria-label={t.city} placeholder={t.city} className={field} value={values.city} onChange={(e) => onPatch({ city: e.target.value })} />
       <div className="grid grid-cols-2 gap-2"><input aria-label={t.province} placeholder={t.province} className={field} value={values.province} onChange={(e) => onPatch({ province: e.target.value })} /><input aria-label={t.postal} placeholder={t.postal} className={field} value={values.postal_code} onChange={(e) => onPatch({ postal_code: e.target.value })} /></div>
-      {addressReady && <Button type="button" size="sm" className="justify-self-end" onClick={() => setEditing((keys) => keys.filter((k) => k !== "address"))}>OK</Button>}
+      <div className="flex items-center justify-between gap-2">
+        {savedAddresses.length > 0 ? <Button type="button" size="sm" variant="ghost" onClick={() => setManual(false)}><ArrowLeft />{lang === "fr" ? "Précédent" : "Back"}</Button> : <span />}
+        {addressReady && <Button type="button" size="sm" onClick={() => setEditing((keys) => keys.filter((k) => k !== "address"))}>OK</Button>}
+      </div>
     </div>)}
   </div>;
 }
