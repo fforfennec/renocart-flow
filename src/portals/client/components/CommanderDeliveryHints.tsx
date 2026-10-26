@@ -55,8 +55,8 @@ const FIELD = "h-9 min-w-0 rounded-lg border border-input bg-card px-3 text-sm o
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /** Editable delivery shortcuts, independent of the voice pipeline. */
-export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, projects = [], project, onProject, onNewProject, hideTitle = false }: {
-  values: DeliveryHintValues; lang: Lang; onPatch: (p: Partial<DeliveryHintValues>) => void; savedAddress?: SavedAddress | null;
+export function CommanderDeliveryHints({ values, lang, onPatch, savedAddresses = [], projects = [], project, onProject, onNewProject, hideTitle = false }: {
+  values: DeliveryHintValues; lang: Lang; onPatch: (p: Partial<DeliveryHintValues>) => void; savedAddresses?: SavedAddress[];
   projects?: ClientProject[]; project?: ProjectChoice; onProject?: (p: ProjectChoice) => void; onNewProject?: () => void;
   hideTitle?: boolean;
 }) {
@@ -131,11 +131,11 @@ export function CommanderDeliveryHints({ values, lang, onPatch, savedAddress, pr
         ))}
       </div>
     ),
-    address: savedAddress && !manualAddr ? (
+    address: savedAddresses.length && !manualAddr ? (
       <div className={BAND}>
-        <button type="button" onClick={() => { onPatch(savedAddress.values); setOpen(null); }} className={cn(CHIP, "flex items-center gap-1.5", IDLE)}>
-          <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" />{savedAddress.label}
-        </button>
+        {savedAddresses.map((a) => <button key={a.label} type="button" onClick={() => { onPatch(a.values); setOpen(null); }} className={cn(CHIP, "flex items-center gap-1.5", IDLE)}>
+          <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" />{a.label}
+        </button>)}
         <button type="button" onClick={() => setManualAddr(true)} className={cn(CHIP, "border-dashed border-border bg-card text-muted-foreground hover:border-primary")}>{t.other}</button>
       </div>
     ) : (
