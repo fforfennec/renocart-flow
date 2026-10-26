@@ -23,11 +23,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCartLabel } from "@/lib/commanderCartLabel";
+import { CommanderSubstitution } from "@/portals/client/components/CommanderSubstitution";
 
 type Lang = "fr" | "en";
 type Item = {
   variantId: string; productTitle: string; variantTitle: string; image: string | null;
-  price: string; currency: string; available: boolean; quantity: number;
+  price: string; currency: string; available: boolean; quantity: number; replaces?: string | null;
 };
 type Missing = { name: string; quantity: number };
 type Field = "date" | "window" | "truck" | "note";
@@ -466,11 +467,11 @@ export default function Commander() {
     <span>{lang === "fr" ? "Produit retiré" : "Product removed"}</span>
     <Button variant="ghost" className="h-11 text-secondary font-semibold" onClick={undoRemoval}>{t.cancel}</Button>
   </div>;
-  const variantSelector = (item: Item) => <CommanderVariantSelector variantId={item.variantId} lang={lang} disabled={busy || checkingOut}
+  const variantSelector = (item: Item) => <CommanderSubstitution replaces={item.replaces} lang={lang}><CommanderVariantSelector variantId={item.variantId} lang={lang} disabled={busy || checkingOut}
     row={{ title: item.productTitle, detail: item.variantTitle !== "Default Title" ? item.variantTitle : "", image: item.image,
       quantity: item.quantity, onDecrease: () => decreaseProduct(item), onIncrease: () => setQty(item.variantId, item.quantity + 1),
       onSet: (q) => setQty(item.variantId, q), onDelete: () => deleteProduct(item) }}
-    onConfirm={(product, variant, previous, mode) => changeVariant(item.variantId, product, variant, previous, mode)} />;
+    onConfirm={(product, variant, previous, mode) => changeVariant(item.variantId, product, variant, previous, mode)} /></CommanderSubstitution>;
 
   const units = items.reduce((s, i) => s + i.quantity, 0);
   const cartLabel = formatCartLabel(items.length, units, lang);

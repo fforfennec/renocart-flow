@@ -11,6 +11,7 @@ const CHAT_MODEL = "openai/gpt-6-astra";
 const STT_MODEL = "google/gemini-3.5-transcribe";
 const SHOP = "e5ec80-69.myshopify.com";
 const STOREFRONT_TOKEN = "220d62212479a424adc1837c2bc4f023"; // public storefront token
+import { withReplaces, SUBSTITUTION_PROMPT, replacesOf } from "./substitution.ts";
 
 type Variant = { id: string; title: string; price: string; currency: string; available: boolean };
 type Product = { id: string; title: string; handle: string; type: string; image: string | null; variants: Variant[] };
@@ -193,7 +194,7 @@ const turnSchema = {
   additionalProperties: false,
   required: ["add", "remove", "unavailable", "delivery_date", "time_window", "truck_type", "note", "done"],
   properties: {
-    add: cartSchema.properties.items,
+    add: withReplaces(cartSchema.properties.items),
     remove: {
       type: "array",
       items: {
@@ -253,7 +254,7 @@ Deno.serve(async (req) => {
           `The bot's current question is: "${question}" (list = what materials; more = anything else to add; date; window; truck; note = other delivery info; summary = reviewing order).\n` +
           `- add: materials the customer wants to ADD, matched to the single best CATALOG line by number (respect dimensions, thickness, pack sizes; default quantity 1). Never invent lines.\n` +
           `- remove: materials to remove or reduce from the CURRENT CART by cart index; quantity = how many to remove, 0 = remove entirely.\n` +
-          `- unavailable: requested items with no reasonable catalog match (customer wording).\n` +
+          `- unavailable: requested items with no reasonable catalog match (customer wording).\n` + SUBSTITUTION_PROMPT +
           `- delivery_date YYYY-MM-DD (resolve "demain", "mardi prochain"), time_window (AM before noon, PM afternoon, Early before 10am, Day anytime), ` +
           `truck_type (Boom = camion girafe, Boom 90ft, Van/Cube, Hiab = grue, Other, unknown = doesn't know). null if not mentioned.\n` +
           `- note: delivery instructions (floor, alley, access…) only if given, else null. If current question is "note" and the customer gives instructions, put them here.\n` +
@@ -266,7 +267,7 @@ Deno.serve(async (req) => {
         return {
           variantId: l.variant.id, productTitle: l.product.title, variantTitle: l.variant.title,
           image: l.product.image, price: l.variant.price, currency: l.variant.currency,
-          available: l.variant.available, quantity: Math.max(1, it.quantity || 1),
+          available: l.variant.available, quantity: Math.max(1, it.quantity || 1), replaces: replacesOf(it),
         };
       });
       return json({
