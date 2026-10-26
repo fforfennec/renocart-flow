@@ -1,3 +1,4 @@
+import { ClientHeader } from "@/portals/client/components/ClientHeader";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Check, Download, FileText, FolderOpen, Loader2, LogOut, MapPin, Pencil, Phone, Plus, ShoppingCart, User } from "lucide-react";
@@ -69,16 +70,10 @@ export default function Projets({ source }: { source?: ProjetsSource }) {
   };
 
   const header = (
-    <header className="bg-card border-b">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link to="/commander" className="text-2xl font-black tracking-tight text-secondary">RENO<span className="text-primary">CART</span></Link>
-        {user && <div className="flex items-center gap-1">
-          <Button asChild variant="ghost" className="h-11"><Link to="/commander"><ShoppingCart className="h-4 w-4 mr-2" />Commander</Link></Button>
-          <Button variant="ghost" className="h-11" onClick={() => setProfileOpen(true)}><User className="h-4 w-4 mr-2" />Profil</Button>
-          <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Se déconnecter" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
-        </div>}
-      </div>
-    </header>
+    <>
+      <ClientHeader />
+      {user && <div className="max-w-6xl mx-auto px-4 pt-3 flex justify-end"><Button variant="outline" className="h-11" onClick={() => setProfileOpen(true)}><User className="h-4 w-4 mr-2" />Profil</Button></div>}
+    </>
   );
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;

@@ -10,6 +10,9 @@ import Index from "./portals/client/pages/Index";
 import Commander from "./portals/client/pages/Commander";
 import CommanderMobilePreview from "./portals/client/pages/CommanderMobilePreview";
 import Projets from "./portals/client/pages/Projets";
+import Connexion from "./portals/client/pages/Connexion";
+import APropos from "./portals/client/pages/APropos";
+import NotreEquipe from "./portals/client/pages/NotreEquipe";
 import ResetPassword from "./portals/client/pages/ResetPassword";
 
 // Second portal: loaded on demand so client visitors never download it.
@@ -30,6 +33,9 @@ const App = () => (
             <Route path="/commander" element={<Commander />} />
             <Route path="/commander-mobile" element={<CommanderMobilePreview />} />
             <Route path="/projets" element={<Projets />} />
+            <Route path="/connexion" element={<Connexion />} />
+            <Route path="/a-propos" element={<APropos />} />
+            <Route path="/notre-equipe" element={<NotreEquipe />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             {(["equipe", "admin", "supplier"] as const).map((a) => <Route key={a} path={`/${a}/*`} element={team(a)} />)}
             <Route path="*" element={<NotFound />} />
